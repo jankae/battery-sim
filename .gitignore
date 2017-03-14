@@ -1,0 +1,12 @@
+literature
+data
+sim
+software/batsim/.cproject
+software/batsim/.project
+software/batsim/.settings
+software/.metadata
+software/test
+software/RemoteSystemsTempFiles
+software/batsim/Debug
+software/batsim/Release
+
