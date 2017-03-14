@@ -94,3 +94,33 @@ void SSD1289_Init(void) {
 	writeRegister(0x4e,0x0000);
 	selectRegister(0x22);
 }
+
+void display_DrawPixel(uint16_t x, uint16_t y, uint16_t color){
+	uint8_t buf1[] = { 0, x >> 8, x & 0xff, '\n' };
+	usb_send(buf1, 4);
+	uint8_t buf2[] = { 1, y >> 8, y & 0xff, '\n' };
+	usb_send(buf2, 4);
+	uint8_t buf3[] = { 4, color >> 8, color & 0xff, '\n' };
+	usb_send(buf3, 4);
+}
+
+void display_DrawLine(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t color){
+    uint16_t dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+    uint16_t dy = abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+    int16_t err = (dx > dy ? dx : -dy) / 2, e2;
+
+    for (;;) {
+    	display_DrawPixel(x0, y0, color);
+        if (x0 == x1 && y0 == y1)
+            break;
+        e2 = err;
+        if (e2 > -dx) {
+            err -= dy;
+            x0 += sx;
+        }
+        if (e2 < dy) {
+            err += dx;
+            y0 += sy;
+        }
+    }
+}

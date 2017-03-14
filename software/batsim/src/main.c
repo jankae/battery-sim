@@ -49,10 +49,13 @@
 #include "dma.h"
 #include "usart.h"
 #include "gpio.h"
+#include "usb_otg.h"
 
+#include "display.h"
 #include "pushpull.h"
 #include "definitions.h"
 #include "limits.h"
+#include "usb_configuration.h"
 
 /* USER CODE BEGIN Includes */
 
@@ -83,6 +86,8 @@ void task1(void);
 
 void task2(void) {
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_SET);
+	char text[] = "Start2\r\n";
+	usb_send(text, 8);
 	pushpull_AcquireControl();
 	uint32_t counter = 0;
 	while(1) {
@@ -98,13 +103,15 @@ void task2(void) {
 		}
 		if(counter++==100) {
 			/* start other thread after one second */
-			xTaskCreate((TaskFunction_t )task1, "task1", 100, NULL, 3, NULL);
+			xTaskCreate((TaskFunction_t )task1, "task1", 300, NULL, 3, NULL);
 		}
 	}
 }
 
 void task1(void) {
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_SET);
+	uint8_t text[] = "Start1\r\n";
+	usb_send(text, 8);
 	pushpull_AcquireControl();
 	uint32_t counter = 0;
 	while(1) {
@@ -120,7 +127,7 @@ void task1(void) {
 		}
 		if(counter++==100) {
 			/* start other thread after one second */
-			xTaskCreate((TaskFunction_t )task2, "task2", 100, NULL, 3, NULL);
+			xTaskCreate((TaskFunction_t )task2, "task2", 300, NULL, 3, NULL);
 		}
 	}
 }
@@ -148,17 +155,23 @@ int main(void)
   MX_ADC3_Init();
   MX_DAC_Init();
   MX_USART1_UART_Init();
+  MX_USB_OTG_FS_PCD_Init();
 
   /* USER CODE BEGIN 2 */
+  usb_configuration_init();
+  HAL_Delay(1000);
 
-  /* USER CODE END 2 */
-
+  uint8_t x = 0;
+  while(1) {
+	  display_DrawLine(0, 0, x, 100, COLOR(x,255-x,0));
+	  x++;
+  }
   /* Call init function for freertos objects (in freertos.c) */
   MX_FREERTOS_Init();
 
   HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
 
-	xTaskCreate((TaskFunction_t )task1, "task", 200, NULL, 3, NULL);
+	xTaskCreate((TaskFunction_t )task1, "task", 300, NULL, 3, NULL);
   /* Start scheduler */
   osKernelStart();
   
