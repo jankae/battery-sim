@@ -54,6 +54,7 @@ GUIResult_t window_SetMainWidget(window_t *w, widget_t *widg) {
 		return GUI_ERROR;
 	}
 	w->base.firstChild = widg;
+	widg->parent = w;
 	/* set child offset */
 	widg->position.x = 1;
 	widg->position.y = w->font.height + 4;
@@ -98,7 +99,11 @@ GUIResult_t window_draw(widget_t *w, coords_t offset) {
 	display_SetBackground(WINDOW_TITLE_BG_COLOR);
 	display_String(upperLeft.x + window->font.height + 5, upperLeft.y + 2,
 			window->title);
-	return GUI_OK;
+	if (w->firstChild) {
+		return widget_draw(w->firstChild, offset);
+	} else {
+		return GUI_OK;
+	}
 }
 
 coords_t window_GetAvailableArea(window_t *w) {
@@ -117,10 +122,6 @@ void window_input(widget_t *w, GUIEvent_t *ev) {
 				/* clicked into window close area, close this window */
 				window_destroy(w);
 			}
-		} else {
-			/* adjust position to canvas offset */
-			ev->pos.x -= 1;
-			ev->pos.y -= window->font.height + 4;
 		}
 		break;
 	default:
