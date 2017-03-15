@@ -4,6 +4,7 @@
 #include "FreeRTOS.h"
 #include "button.h"
 #include "container.h"
+#include "window.h"
 
 void gui_Init(void);
 

@@ -1,9 +1,13 @@
 #include "container.h"
 
-void container_create(container_t *c, int16_t width, int16_t height) {
+container_t* container_new(coords_t size) {
+	container_t *c = pvPortMalloc(sizeof(container_t));
+	if (!c) {
+		/* malloc failed */
+		return NULL;
+	}
     widget_init((widget_t*) c);
-    c->base.size.x = width;
-    c->base.size.y = height;
+    c->base.size = size;
     c->base.func.draw = container_draw;
     c->base.func.input = container_input;
     c->flags.editing = 0;
@@ -17,9 +21,11 @@ void container_create(container_t *c, int16_t width, int16_t height) {
     c->scrollBarLength.x = 0;
     c->scrollBarLength.y = 0;
     c->viewingSize = c->base.size;
+
+    return c;
 }
 
-GUIResult_t container_attach(container_t *c, widget_t *w, int16_t x, int16_t y) {
+GUIResult_t container_attach(container_t *c, widget_t *w, coords_t position) {
     if (c->base.firstChild) {
         /* find end of children list */
         widget_t *child = c->base.firstChild;
@@ -32,16 +38,15 @@ GUIResult_t container_attach(container_t *c, widget_t *w, int16_t x, int16_t y) 
         /* this is the first child */
         c->base.firstChild = w;
     }
-    w->position.x = x;
-    w->position.y = y;
+    w->position = position;
     w->parent = (widget_t*) c;
 
     /* extend canvas size if necessary */
-    if (c->canvasSize.x < x + w->size.x) {
-        c->canvasSize.x = x + w->size.x;
+    if (c->canvasSize.x < position.x + w->size.x) {
+        c->canvasSize.x = position.x + w->size.x;
     }
-    if (c->canvasSize.y < y + w->size.y) {
-        c->canvasSize.y = y + w->size.y;
+    if (c->canvasSize.y < position.y + w->size.y) {
+        c->canvasSize.y = position.y + w->size.y;
     }
     /* add scroll bars if necessary */
     if (c->canvasSize.x > c->base.size.x) {
@@ -97,6 +102,7 @@ GUIResult_t container_draw(widget_t *w, coords_t offset) {
     }
     /* draw scroll bars if necessary */
     if (c->flags.scrollVertical) {
+    	display_SetForeground(CONTAINER_LINE_COLOR);
         display_VerticalLine(
                 offset.x + c->base.size.x - CONTAINER_SCROLLBAR_SIZE, offset.y,
                 c->base.size.y);
@@ -106,12 +112,14 @@ GUIResult_t container_draw(widget_t *w, coords_t offset) {
                 c->base.size.y
                         - CONTAINER_SCROLLBAR_SIZE * c->flags.scrollHorizontal);
 		/* display position indicator */
+    	display_SetForeground(CONTAINER_SCROLLBAR_COLOR);
 		display_RectangleFull(
 				offset.x + c->base.size.x - CONTAINER_SCROLLBAR_SIZE + 1,
 				offset.y + scrollBegin, offset.x + c->base.size.x - 1,
 				offset.y + scrollBegin + c->scrollBarLength.y - 1);
 	}
     if (c->flags.scrollHorizontal) {
+    	display_SetForeground(CONTAINER_LINE_COLOR);
         display_HorizontalLine(offset.x,
                 offset.y + c->base.size.y - CONTAINER_SCROLLBAR_SIZE,
                 c->base.size.x);
@@ -121,6 +129,7 @@ GUIResult_t container_draw(widget_t *w, coords_t offset) {
                 c->base.size.x
                         - CONTAINER_SCROLLBAR_SIZE * c->flags.scrollVertical);
 		/* display position indicator */
+    	display_SetForeground(CONTAINER_SCROLLBAR_COLOR);
 		display_RectangleFull(offset.x + scrollBegin,
 				offset.y + c->base.size.y - CONTAINER_SCROLLBAR_SIZE + 1,
 				offset.x + scrollBegin + c->scrollBarLength.x - 1,
@@ -158,9 +167,11 @@ GUIResult_t container_draw(widget_t *w, coords_t offset) {
 
 void container_input(widget_t *w, GUIEvent_t *ev) {
 	container_t *c = (container_t*) w;
-	switch(ev->type) {
-	case GUI_TOUCH_PRESSED:
-		if (ev->pos.x > c->viewingSize.y) {
+	switch (ev->type) {
+	case GUI_TOUCH_PRESSED: {
+		/* save old canvasOffset */
+		coords_t old = c->canvasOffset;
+		if (ev->pos.x > c->viewingSize.x) {
 			/* vertical scrollbar */
 			/* adjust vertical canvas offset */
 			c->canvasOffset.y = common_Map(ev->pos.y, c->scrollBarLength.y / 2,
@@ -173,16 +184,28 @@ void container_input(widget_t *w, GUIEvent_t *ev) {
 				c->canvasOffset.y = c->canvasSize.y - c->viewingSize.y;
 			/* clear event */
 			ev->type = GUI_EVENT_NONE;
-			/* request redraw */
-			widget_RequestRedrawFull(w);
 		} else if (ev->pos.y
 				> w->size.y
 						- c->flags.scrollHorizontal * CONTAINER_SCROLLBAR_SIZE) {
 			/* horizontal scrollbar */
-			// TODO
+			/* adjust horizontal canvas offset */
+			c->canvasOffset.x = common_Map(ev->pos.x, c->scrollBarLength.x / 2,
+					c->viewingSize.x - c->scrollBarLength.x / 2, 0,
+					c->canvasSize.x - c->viewingSize.x);
+			/* constrain offset */
+			if (c->canvasOffset.x < 0)
+				c->canvasOffset.x = 0;
+			else if (c->canvasOffset.x > c->canvasSize.x - c->viewingSize.x)
+				c->canvasOffset.x = c->canvasSize.x - c->viewingSize.x;
 			/* clear event */
 			ev->type = GUI_EVENT_NONE;
 		}
+		/* check if canvas moved */
+		if (c->canvasOffset.x != old.x || c->canvasOffset.y != old.y) {
+			/* request redraw */
+			widget_RequestRedrawFull(w);
+		}
+	}
 		/* no break */
 	case GUI_TOUCH_RELEASED:
 		/* adjust position to canvas offset */

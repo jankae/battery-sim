@@ -23,12 +23,10 @@ while True:
         if event.type == pygame.QUIT:
         	running = 0
      	elif event.type == pygame.MOUSEBUTTONDOWN:
-         	print "You pressed the mouse button at (%d, %d)" % event.pos
 		# send event 
 		x, y = event.pos
 		ser.write(bytearray([0x01, x/256, x%256, y/256, y%256]))
      	elif event.type == pygame.MOUSEBUTTONUP:
-         	print "You released the mouse button at (%d, %d)" % event.pos
 		# send event 
 		x, y = event.pos
 		ser.write(bytearray([0x02, x/256, x%256, y/256, y%256]))

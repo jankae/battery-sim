@@ -7,6 +7,59 @@ void widget_init(widget_t *w) {
     w->flags.redraw = 1;
 }
 
+/**
+ * @brief Deletes a widget WITHOUT removing it from its parents list
+ *
+ * This function is only used internally when deleting widgets whos
+ * parent will also be deleted.
+ * @param w Widget to delete
+ */
+static void widget_deleteInt(widget_t *w) {
+	/* delete children first as we still have the firstChild pointer */
+	widget_t *next = w->firstChild;
+	while(next) {
+		/* save pointer to this widget */
+		widget_t *this = next;
+		/* save next widget in line (will get lost when this is freed) */
+		next = this->next;
+		/* delete and free this child */
+		widget_deleteInt(this);
+	}
+	/* free memory of this widget */
+	/* Although the exact size of the widget data is not known (widget_t is only the base data,
+	 * the actual widget has a larger size (e.g. sizeof(button_t)), free still works because the
+	 * size of the memory block associated with the widget is known by the memory management functions
+	 */
+	vPortFree(w);
+}
+
+void widget_delete(widget_t *w) {
+	/* remove this widget from its parents list */
+	if(w->parent) {
+		/* remove widget from parent linked list */
+		widget_t *it = w->parent->firstChild;
+		/* which pointer is pointing to it */
+		widget_t **pointer = &(w->parent->firstChild);
+		while (it) {
+			if (it == w) {
+				/* found this widget */
+				/* set pointer to point to next widget, removing this widget from the list */
+				*pointer = it->next;
+				/* widget found, loop is done */
+				break;
+			} else {
+				/* not this widget, update it and pointer to it */
+				pointer = &(it->next);
+				it = it->next;
+			}
+		}
+		/* request full redraw for parent */
+		widget_RequestRedrawFull(w->parent);
+	}
+	/* delete the actually widget */
+	widget_deleteInt(w);
+}
+
 GUIResult_t widget_selectNext(widget_t *first) {
     if (!first)
         return GUI_ERROR;
@@ -138,16 +191,12 @@ GUIResult_t widget_draw(widget_t *w, coords_t pos) {
 	pos.x += w->position.x;
 	pos.y += w->position.y;
 	if (w->flags.redrawFull) {
-		/* save foreground and set background as foreground */
-		color_t fg = display_GetForeground();
-		display_SetForeground(display_GetBackground());
+		display_SetForeground(COLOR_BG_DEFAULT);
 		/* widget needs a full redraw, clear widget area */
 		display_RectangleFull(pos.x, pos.y, pos.x + w->size.x - 1,
 				pos.y + w->size.y - 1);
 		/* clear flag */
 		w->flags.redrawFull = 0;
-		/* restore foreground */
-		display_SetForeground(fg);
 	}
 	/* draw widget */
 	GUIResult_t res = w->func.draw(w, pos);

@@ -1,6 +1,7 @@
 #include "gui.h"
 
 QueueHandle_t eventQueue = NULL;
+widget_t *topWidget;
 
 static void guiThread(void) {
 	display_SetForeground(COLOR(0, 0, 0));
@@ -8,40 +9,47 @@ static void guiThread(void) {
 	display_SetFont(Font_Big);
 
 	GUIEvent_t event;
-	button_t b1;
-	button_create(&b1, "Test1", Font_Big, 0, NULL);
-	button_t b2;
-	button_create(&b2, "Test2", Font_Big, 0, NULL);
-	button_t b3;
-	button_create(&b3, "Test3", Font_Big, 0, NULL);
-	button_t b4;
-	button_create(&b4, "Test4", Font_Big, 0, NULL);
-	button_t b5;
-	button_create(&b5, "Test5", Font_Big, 0, NULL);
-	button_t b6;
-	button_create(&b6, "Test6", Font_Big, 0, NULL);
-	coords_t coord = { .x = 0, .y = 0 };
-	container_t c;
-	container_create(&c, DISPLAY_WIDTH, DISPLAY_HEIGHT);
-	container_attach(&c, &b1, 20, 0);
-	container_attach(&c, &b2, 20, 50);
-	container_attach(&c, &b3, 20, 100);
-	container_attach(&c, &b4, 20, 150);
-	container_attach(&c, &b5, 20, 200);
-	container_attach(&c, &b6, 20, 250);
+	button_t *b1 = button_new("Test1", Font_Big, 0, NULL);
+	button_t *b2 = button_new("Test2", Font_Big, 0, NULL);
+	button_t *b3 = button_new("Test3", Font_Big, 0, NULL);
+	button_t *b4 = button_new("Test4", Font_Big, 0, NULL);
+	button_t *b5 = button_new("Test5", Font_Big, 0, NULL);
+	button_t *b6 = button_new("Test6", Font_Big, 0, NULL);
+	container_t *c = container_new(SIZE(DISPLAY_WIDTH, DISPLAY_HEIGHT));
+	container_attach(c, b1, COORDS(20, 0));
+	container_attach(c, b2, COORDS(20, 50));
+	container_attach(c, b3, COORDS(20, 100));
+	container_attach(c, b4, COORDS(20, 150));
+	container_attach(c, b5, COORDS(20, 200));
+	container_attach(c, b6, COORDS(20, 250));
+	topWidget = c;
+	window_t *w = window_new("Test", Font_Big, SIZE(200, 100));
 	display_Clear();
-	widget_draw(&c, coord);
+	widget_draw(topWidget, COORDS(0,0));
 	usb_DisplayFlush();
 	while (1) {
 		if (xQueueReceive(eventQueue, &event, portMAX_DELAY)) {
-			/* got a new event */
-			if (event.type == GUI_TOUCH_PRESSED
-					|| event.type == GUI_TOUCH_RELEASED) {
-				/* send event to root widget */
-				widget_input(&c, &event);
-				widget_draw(&c, coord);
-				usb_DisplayFlush();
+			switch (event.type) {
+			case GUI_TOUCH_PRESSED:
+			case GUI_TOUCH_RELEASED:
+				/* these are position based events */
+				/* check if applicable for top widget
+				 * (which, for smaller windows, might not be the case */
+				if (event.pos.x >= topWidget->position.x
+						&& event.pos.y >= topWidget->position.y
+						&& event.pos.x
+								< topWidget->position.x + topWidget->size.x
+						&& event.pos.y
+								< topWidget->position.y + topWidget->size.y) {
+					/* send event to top widget */
+					widget_input(topWidget, &event);
+				}
+				break;
+			default:
+				break;
 			}
+			widget_draw(topWidget, COORDS(0, 0));
+			usb_DisplayFlush();
 		}
 	}
 }

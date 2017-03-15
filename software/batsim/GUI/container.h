@@ -5,7 +5,11 @@
 #include "display.h"
 #include "common.h"
 
-#define CONTAINER_SCROLLBAR_SIZE    5
+#define CONTAINER_SCROLLBAR_SIZE    	8
+
+#define CONTAINER_SCROLLBAR_COLOR		COLOR_ORANGE
+#define CONTAINER_LINE_COLOR			COLOR_FG_DEFAULT
+
 
 typedef struct {
     widget_t base;
@@ -21,8 +25,8 @@ typedef struct {
     } flags;
 } container_t;
 
-void container_create(container_t *c, int16_t width, int16_t height);
-GUIResult_t container_attach(container_t *c, widget_t *w, int16_t x, int16_t y);
+container_t* container_new(coords_t size);
+GUIResult_t container_attach(container_t *c, widget_t *w, coords_t position);
 GUIResult_t container_draw(widget_t *w, coords_t offset);
 void container_input(widget_t *w, GUIEvent_t *ev);
 void container_focussed(widget_t *w);

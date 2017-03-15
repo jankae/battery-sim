@@ -179,8 +179,8 @@ void display_Line(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) {
 
 void display_Rectangle(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) {
 	display_VerticalLine(x0, y0, y1 - y0);
-	display_VerticalLine(x1, y0, y1 - y0);
-	display_HorizontalLine(x0, y0, x1 - x0);
+	display_VerticalLine(x1, y0 + 1, y1 - y0);
+	display_HorizontalLine(x0 + 1, y0, x1 - x0);
 	display_HorizontalLine(x0, y1, x1 - x0);
 }
 
@@ -195,14 +195,13 @@ void display_RectangleFull(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1){
 	}
 }
 
-void display_Char(uint16_t x, uint16_t y, char c) {
+void display_Char(uint16_t x, uint16_t y, uint8_t c) {
 	usb_DisplayCommand(0, x);
 	usb_DisplayCommand(1, y);
 	usb_DisplayCommand(2, x + font.width - 1);
 	usb_DisplayCommand(3, y + font.height - 1);
 	/* number of bytes in font per row */
 	uint8_t yInc = (font.width - 1) / 8 + 1;
-	uint8_t xInc = (font.height - 1) / 8 + 1;
 	uint8_t *charIndex = font.data + c * yInc * font.height;
 	uint8_t i, j;
 	uint8_t startMask = 0x80 >> (yInc * 8 - font.width);

@@ -8,6 +8,7 @@
 #include "gud_conf.h"
 #include "usb_configuration.h"
 #include "gui.h"
+#include "common.h"
 
 unsigned char usb_buffer[256];
 

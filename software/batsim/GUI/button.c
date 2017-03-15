@@ -1,6 +1,11 @@
 #include "button.h"
 
-void button_create(button_t *button, const char *name, font_t font, uint8_t minWidth, void *cb) {
+button_t* button_new(const char *name, font_t font, uint8_t minWidth, void *cb) {
+	button_t* button = pvPortMalloc(sizeof(button_t));
+	if (!button) {
+		/* malloc failed */
+		return NULL;
+	}
     /* initialize common widget values */
     widget_init((widget_t*) button);
     /* set widget functions */
@@ -26,6 +31,8 @@ void button_create(button_t *button, const char *name, font_t font, uint8_t minW
 	/* calculate font start position */
 	button->fontStart.y = 3;
 	button->fontStart.x = (button->base.size.x - font.width * i - 1) / 2;
+
+	return button;
 }
 
 GUIResult_t button_draw(widget_t *w, coords_t offset) {
@@ -36,17 +43,15 @@ GUIResult_t button_draw(widget_t *w, coords_t offset) {
     lowerRight.x += b->base.size.x - 1;
     lowerRight.y += b->base.size.y - 1;
     /* draw outline */
+    display_SetForeground(BUTTON_FG_COLOR);
     display_VerticalLine(upperLeft.x, upperLeft.y + 1, b->base.size.y - 2);
     display_VerticalLine(lowerRight.x, upperLeft.y + 1, b->base.size.y - 2);
     display_HorizontalLine(upperLeft.x + 1, upperLeft.y, b->base.size.x - 2);
     display_HorizontalLine(upperLeft.x + 1, lowerRight.y, b->base.size.x - 2);
-    /* save current colors */
-    color_t fg = display_GetForeground();
-    color_t bg = display_GetBackground();
 	if (!b->pressed)
-		display_SetForeground(color_Tint(fg, bg, 75));
+		display_SetForeground(color_Tint(BUTTON_FG_COLOR, BUTTON_BG_COLOR, 75));
 	else
-		display_SetForeground(color_Tint(fg, COLOR_WHITE, 200));
+		display_SetForeground(color_Tint(BUTTON_FG_COLOR, COLOR_WHITE, 200));
     display_VerticalLine(lowerRight.x - 1, upperLeft.y + 1, b->base.size.y - 2);
     display_HorizontalLine(upperLeft.x + 1, lowerRight.y - 1,
             b->base.size.x - 2);
@@ -57,18 +62,16 @@ GUIResult_t button_draw(widget_t *w, coords_t offset) {
 //            b->base.size.x - 3);
 
 	if (b->pressed)
-		display_SetForeground(color_Tint(fg, bg, 75));
+		display_SetForeground(color_Tint(BUTTON_FG_COLOR, BUTTON_BG_COLOR, 75));
 	else
-		display_SetForeground(color_Tint(fg, COLOR_WHITE, 200));
+		display_SetForeground(color_Tint(BUTTON_FG_COLOR, COLOR_WHITE, 200));
     display_VerticalLine(upperLeft.x + 1, upperLeft.y + 1, b->base.size.y - 3);
     display_HorizontalLine(upperLeft.x + 1, upperLeft.y + 1,
             b->base.size.x - 3);
-    /* restore foreground */
-    display_SetForeground(fg);
-
-
 
     if (b->name) {
+    	display_SetForeground(BUTTON_FG_COLOR);
+    	display_SetBackground(BUTTON_BG_COLOR);
 		display_SetFont(b->font);
 		display_String(upperLeft.x + b->fontStart.x,
 				upperLeft.y + b->fontStart.y, b->name);

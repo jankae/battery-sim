@@ -6,6 +6,7 @@
 
 #include "events.h"
 #include "display.h"
+#include "common.h"
 
 typedef struct widgetFunctions widgetFunctions_t;
 typedef struct widget widget_t;
@@ -37,6 +38,7 @@ struct widget {
 };
 
 void widget_init(widget_t *w);
+void widget_delete(widget_t *w);
 GUIResult_t widget_selectNext(widget_t *first);
 GUIResult_t widget_selectPrevious(widget_t *first);
 GUIResult_t widget_selectFirst(widget_t *first);
