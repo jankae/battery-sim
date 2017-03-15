@@ -1,0 +1,98 @@
+#include "button.h"
+
+void button_create(button_t *button, const char *name, font_t font, uint8_t minWidth, void *cb) {
+    /* initialize common widget values */
+    widget_init((widget_t*) button);
+    /* set widget functions */
+    button->base.func.draw = button_draw;
+    button->base.func.input = button_input;
+    /* set name and callback */
+    uint8_t i = 0;
+    while (*name && i < BUTTON_MAX_NAME) {
+        button->name[i++] = *name++;
+    }
+    button->name[i] = 0;
+    button->callback = cb;
+    button->font = font;
+    button->pressed = 0;
+
+    /* calculate size based on the font */
+    button->base.size.y = font.height + 6;
+    button->base.size.x = font.width * i + 5;
+
+    if(minWidth > button->base.size.x)
+        button->base.size.x = minWidth;
+
+	/* calculate font start position */
+	button->fontStart.y = 3;
+	button->fontStart.x = (button->base.size.x - font.width * i - 1) / 2;
+}
+
+GUIResult_t button_draw(widget_t *w, coords_t offset) {
+    button_t *b = (button_t*) w;
+    /* calculate corners */
+    coords_t upperLeft = offset;
+    coords_t lowerRight = upperLeft;
+    lowerRight.x += b->base.size.x - 1;
+    lowerRight.y += b->base.size.y - 1;
+    /* draw outline */
+    display_VerticalLine(upperLeft.x, upperLeft.y + 1, b->base.size.y - 2);
+    display_VerticalLine(lowerRight.x, upperLeft.y + 1, b->base.size.y - 2);
+    display_HorizontalLine(upperLeft.x + 1, upperLeft.y, b->base.size.x - 2);
+    display_HorizontalLine(upperLeft.x + 1, lowerRight.y, b->base.size.x - 2);
+    /* save current colors */
+    color_t fg = display_GetForeground();
+    color_t bg = display_GetBackground();
+	if (!b->pressed)
+		display_SetForeground(color_Tint(fg, bg, 75));
+	else
+		display_SetForeground(color_Tint(fg, COLOR_WHITE, 200));
+    display_VerticalLine(lowerRight.x - 1, upperLeft.y + 1, b->base.size.y - 2);
+    display_HorizontalLine(upperLeft.x + 1, lowerRight.y - 1,
+            b->base.size.x - 2);
+
+//    display_SetForeground(color_Tint(fg, bg, 150));
+//    display_VerticalLine(lowerRight.x - 2, upperLeft.y + 1, b->base.size.y - 3);
+//    display_HorizontalLine(upperLeft.x + 1, lowerRight.y - 2,
+//            b->base.size.x - 3);
+
+	if (b->pressed)
+		display_SetForeground(color_Tint(fg, bg, 75));
+	else
+		display_SetForeground(color_Tint(fg, COLOR_WHITE, 200));
+    display_VerticalLine(upperLeft.x + 1, upperLeft.y + 1, b->base.size.y - 3);
+    display_HorizontalLine(upperLeft.x + 1, upperLeft.y + 1,
+            b->base.size.x - 3);
+    /* restore foreground */
+    display_SetForeground(fg);
+
+
+
+    if (b->name) {
+		display_SetFont(b->font);
+		display_String(upperLeft.x + b->fontStart.x,
+				upperLeft.y + b->fontStart.y, b->name);
+	}
+//    if (b->base.flags.selected) {
+//        /* invert button area */
+//        screen_FullRectangle(upperLeft.x + 1, upperLeft.y + 1,
+//                lowerRight.x - 2, lowerRight.y - 2, PIXEL_INVERT);
+//    }
+    return GUI_OK;
+}
+
+void button_input(widget_t *w, GUIEvent_t *ev) {
+    button_t *b = (button_t*) w;
+    if(ev->type == GUI_TOUCH_PRESSED) {
+		if (!b->pressed) {
+			b->pressed = 1;
+			widget_RequestRedraw(w);
+		}
+	} else if (ev->type == GUI_TOUCH_RELEASED) {
+		if (b->pressed) {
+			b->pressed = 0;
+			widget_RequestRedraw(w);
+		}
+	}
+    return;
+}

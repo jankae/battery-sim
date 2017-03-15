@@ -27,7 +27,9 @@ static char serial[25];
 extern PCD_HandleTypeDef hpcd_USB_OTG_FS;
 
 void usb_configuration_init(void);
-void usb_send(uint8_t *data, uint8_t length);
+void usb_send(uint8_t *data, uint16_t length);
+void usb_DisplayCommand(uint8_t command, uint16_t value);
+void usb_DisplayFlush(void);
 GUD_StatusTypeDef usb_getState(void);
 
 #endif /* USER_USB_CONFIGURATION_H_ */
