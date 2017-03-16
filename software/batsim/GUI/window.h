@@ -31,7 +31,8 @@ window_t* window_new(const char *titel, font_t font, coords_t size);
 void window_destroy(window_t *w);
 GUIResult_t window_SetMainWidget(window_t *w, widget_t *widg);
 coords_t window_GetAvailableArea(window_t *w);
-GUIResult_t window_draw(widget_t *w, coords_t offset);
+void window_draw(widget_t *w, coords_t offset);
+void window_drawChildren(widget_t *w, coords_t offset);
 void window_input(widget_t *w, GUIEvent_t *ev);
 
 #endif /* WINDOW_H_ */

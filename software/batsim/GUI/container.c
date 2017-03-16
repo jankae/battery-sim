@@ -10,6 +10,7 @@ container_t* container_new(coords_t size) {
     c->base.size = size;
     c->base.func.draw = container_draw;
     c->base.func.input = container_input;
+    c->base.func.drawChildren = container_drawChildren;
     c->flags.editing = 0;
     c->flags.focussed = 0;
     c->flags.scrollHorizontal = 0;
@@ -39,6 +40,7 @@ GUIResult_t container_attach(container_t *c, widget_t *w, coords_t position) {
         c->base.firstChild = w;
     }
     w->position = position;
+	c->base.flags.redrawChild = 1;
     w->parent = (widget_t*) c;
 
     /* extend canvas size if necessary */
@@ -74,9 +76,8 @@ GUIResult_t container_attach(container_t *c, widget_t *w, coords_t position) {
     return GUI_OK;
 }
 
-GUIResult_t container_draw(widget_t *w, coords_t offset) {
+void container_draw(widget_t *w, coords_t offset) {
     container_t *c = (container_t*) w;
-    GUIResult_t res = GUI_OK;
     widget_t *child = w->firstChild;
     widget_t *selected = child;
     for (; selected; selected = selected->next) {
@@ -136,16 +137,23 @@ GUIResult_t container_draw(widget_t *w, coords_t offset) {
 				offset.y + c->base.size.y - 1);
 	}
 
+}
+
+void container_drawChildren(widget_t *w, coords_t offset) {
+    container_t *c = (container_t*) w;
+    widget_t *child = w->firstChild;
+    widget_t *selected = child;
+    for (; selected; selected = selected->next) {
+        if (selected->flags.selected)
+            break;
+    }
+
 	offset.x -= c->canvasOffset.x;
     offset.y -= c->canvasOffset.y;
 
     /* draw its children */
     for (; child; child = child->next) {
-        if (res != GUI_OK) {
-            /* abort on error */
-            break;
-        }
-        if (child->flags.visible && !child->flags.selected) {
+         if (child->flags.visible && !child->flags.selected) {
             /* check if child is fully in viewing field */
             if (child->position.x >= c->canvasOffset.x
                     && child->position.y >= c->canvasOffset.y
@@ -154,15 +162,14 @@ GUIResult_t container_draw(widget_t *w, coords_t offset) {
                     && child->position.y + child->size.y
                             <= c->canvasOffset.y + c->viewingSize.y) {
                 /* draw this child */
-                res = widget_draw(child, offset);
+                widget_draw(child, offset);
             }
         }
     }
     /* always draw selected child last (might overwrite other children) */
     if (selected) {
-        res = widget_draw(selected, offset);
+        widget_draw(selected, offset);
     }
-    return res;
 }
 
 void container_input(widget_t *w, GUIEvent_t *ev) {

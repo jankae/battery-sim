@@ -180,29 +180,33 @@ GUIResult_t widget_deselectAll(widget_t *first) {
 //    w->func.input(w, s);
 //}
 
-GUIResult_t widget_draw(widget_t *w, coords_t pos) {
-	if(!w)
+void widget_draw(widget_t *w, coords_t pos) {
+	if (!w)
 		/* no widget given */
-		return GUI_ERROR;
-	if(!w->flags.redraw)
-		/* this widget doesn't need a redraw */
-		return GUI_OK;
+		return;
 	/* calculate new position */
 	pos.x += w->position.x;
 	pos.y += w->position.y;
-	if (w->flags.redrawFull) {
-		display_SetForeground(COLOR_BG_DEFAULT);
-		/* widget needs a full redraw, clear widget area */
-		display_RectangleFull(pos.x, pos.y, pos.x + w->size.x - 1,
-				pos.y + w->size.y - 1);
-		/* clear flag */
-		w->flags.redrawFull = 0;
+	if (w->flags.redraw) {
+		if (w->flags.redrawClear) {
+			display_SetForeground(COLOR_BG_DEFAULT);
+			/* widget needs a full redraw, clear widget area */
+			display_RectangleFull(pos.x, pos.y, pos.x + w->size.x - 1,
+					pos.y + w->size.y - 1);
+			/* clear flag */
+			w->flags.redrawClear = 0;
+		}
+		/* draw widget */
+		w->func.draw(w, pos);
+		/* clear redraw request */
+		w->flags.redraw = 0;
 	}
-	/* draw widget */
-	GUIResult_t res = w->func.draw(w, pos);
-	/* clear redraw request */
-	w->flags.redraw = 0;
-    return res;
+	if (w->flags.redrawChild) {
+		/* draw children of this widget */
+		w->func.drawChildren(w, pos);
+		/* clear redraw request */
+		w->flags.redrawChild = 0;
+	}
 }
 
 void widget_input(widget_t *w, GUIEvent_t *ev) {
@@ -257,8 +261,11 @@ GUIResult_t widget_RequestRedrawChildren(widget_t *first){
     while (first) {
         first->flags.redraw = 1;
 		/* recursively request redraw of their children */
-		if (first->firstChild)
+		if (first->firstChild) {
+			/* widget got children itself */
+			first->flags.redrawChild = 1;
 			widget_RequestRedrawChildren(first->firstChild);
+		}
 		first = first->next;
 	}
 	return GUI_OK;
@@ -269,22 +276,28 @@ GUIResult_t widget_RequestRedraw(widget_t *w) {
 		return GUI_ERROR;
 	/* mark this widget */
 	w->flags.redraw = 1;
-	if(w->parent) {
-		/* mark parent */
-		return widget_RequestRedraw(w->parent);
-	} else {
-		return GUI_OK;
+	while(w->parent) {
+		/* this is not the top widget, indicate branch redraw */
+		w = w->parent;
+		if (w->flags.redrawChild) {
+			/* reached a part that is already scheduled for redrawing */
+			break;
+		}
+		w->flags.redrawChild = 1;
 	}
+	return GUI_OK;
 }
 
 GUIResult_t widget_RequestRedrawFull(widget_t *w) {
 	if(!w)
 		return GUI_ERROR;
 	/* mark this widget */
-	w->flags.redrawFull = 1;
+	w->flags.redrawClear = 1;
 	/* mark all children */
-	if (w->firstChild)
+	if (w->firstChild) {
+		w->flags.redrawChild = 1;
 		widget_RequestRedrawChildren(w->firstChild);
+	}
 	/* mark parents */
 	return widget_RequestRedraw(w);
 }

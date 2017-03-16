@@ -12,7 +12,8 @@ typedef struct widgetFunctions widgetFunctions_t;
 typedef struct widget widget_t;
 
 struct widgetFunctions {
-    GUIResult_t (*draw)(widget_t *w, coords_t offset);
+    void (*draw)(widget_t *w, coords_t offset);
+    void (*drawChildren)(widget_t *w, coords_t offset);
     void (*input)(widget_t *w, GUIEvent_t *ev);
 };
 
@@ -30,8 +31,12 @@ struct widget {
         uint8_t selected :1;
         uint8_t selectable :1;
         uint8_t focus :1;
+        /* this widget needs to be redrawn */
         uint8_t redraw :1;
-        uint8_t redrawFull :1;
+        /* the widget area has to be cleared and the widget redrawn completely */
+        uint8_t redrawClear :1;
+        /* some widget down this widgets branch has to be redrawn */
+        uint8_t redrawChild :1;
     } flags;
 
     widgetFunctions_t func;
@@ -46,7 +51,7 @@ GUIResult_t widget_selectWidget(widget_t *first, uint8_t num);
 GUIResult_t widget_deselectAll(widget_t *first);
 void widget_gotFocus(widget_t *w);
 void widget_lostFocus(widget_t *w);
-GUIResult_t widget_draw(widget_t *w, coords_t offset);
+void widget_draw(widget_t *w, coords_t offset);
 void widget_input(widget_t *w, GUIEvent_t *ev);
 GUIResult_t widget_RequestRedrawChildren(widget_t *first);
 GUIResult_t widget_RequestRedraw(widget_t *w);

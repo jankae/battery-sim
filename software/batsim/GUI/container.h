@@ -27,7 +27,8 @@ typedef struct {
 
 container_t* container_new(coords_t size);
 GUIResult_t container_attach(container_t *c, widget_t *w, coords_t position);
-GUIResult_t container_draw(widget_t *w, coords_t offset);
+void container_draw(widget_t *w, coords_t offset);
+void container_drawChildren(widget_t *w, coords_t offset);
 void container_input(widget_t *w, GUIEvent_t *ev);
 void container_focussed(widget_t *w);
 

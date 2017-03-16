@@ -15,8 +15,9 @@ window_t* window_new(const char *titel, font_t font, coords_t size) {
 	w->base.position.y = (DISPLAY_HEIGHT - size.y) / 2;
 	w->base.func.draw = window_draw;
 	w->base.func.input = window_input;
+	w->base.func.drawChildren = window_drawChildren;
 	/* a new widget must have its area cleared */
-	w->base.flags.redrawFull = 1;
+	w->base.flags.redrawClear = 1;
 	w->font = font;
 	/* set title */
 	uint8_t i = 0;
@@ -54,15 +55,15 @@ GUIResult_t window_SetMainWidget(window_t *w, widget_t *widg) {
 		return GUI_ERROR;
 	}
 	w->base.firstChild = widg;
-	widg->parent = w;
+	w->base.flags.redrawChild = 1;
+	widg->parent = (widget_t*) w;
 	/* set child offset */
 	widg->position.x = 1;
 	widg->position.y = w->font.height + 4;
 
 	return GUI_OK;
 }
-
-GUIResult_t window_draw(widget_t *w, coords_t offset) {
+void window_draw(widget_t *w, coords_t offset) {
 	window_t *window = (window_t*) w;
     /* calculate corners */
     coords_t upperLeft = offset;
@@ -99,10 +100,11 @@ GUIResult_t window_draw(widget_t *w, coords_t offset) {
 	display_SetBackground(WINDOW_TITLE_BG_COLOR);
 	display_String(upperLeft.x + window->font.height + 5, upperLeft.y + 2,
 			window->title);
+}
+
+void window_drawChildren(widget_t *w, coords_t offset) {
 	if (w->firstChild) {
-		return widget_draw(w->firstChild, offset);
-	} else {
-		return GUI_OK;
+		widget_draw(w->firstChild, offset);
 	}
 }
 

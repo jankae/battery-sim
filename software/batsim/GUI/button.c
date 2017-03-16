@@ -11,6 +11,8 @@ button_t* button_new(const char *name, font_t font, uint8_t minWidth, void *cb) 
     /* set widget functions */
     button->base.func.draw = button_draw;
     button->base.func.input = button_input;
+    /* a button can't have any children */
+    button->base.func.drawChildren = NULL;
     /* set name and callback */
     uint8_t i = 0;
     while (*name && i < BUTTON_MAX_NAME) {
