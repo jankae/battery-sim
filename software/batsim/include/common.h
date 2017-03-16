@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
 
 typedef struct {
     int16_t x;
@@ -24,5 +26,7 @@ extern const unit_t Unit_Current;
 
 int32_t common_Map(int32_t value, int32_t scaleFromLow, int32_t scaleFromHigh,
         int32_t scaleToLow, int32_t scaleToHigh);
+
+void common_StringFromValue(char *to, uint8_t len, int32_t val, const unit_t * const unit);
 
 #endif

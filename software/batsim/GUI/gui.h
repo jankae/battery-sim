@@ -7,6 +7,7 @@
 #include "window.h"
 #include "label.h"
 #include "dialog.h"
+#include "entry.h"
 
 void gui_Init(void);
 

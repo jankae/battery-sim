@@ -15,17 +15,14 @@ static void guiThread(void) {
 	display_SetFont(Font_Big);
 
 	GUIEvent_t event;
-	button_t *b1 = button_new("Window", Font_Big, 0, gui_createWindow);
-	button_t *b2 = button_new("Test2", Font_Big, 0, NULL);
-	button_t *b3 = button_new("Test3", Font_Big, 0, NULL);
+	button_t *b1 = button_new("Change", Font_Big, 0, gui_createWindow);
+	int32_t min = -20000000;
+	int32_t max = 20000000;
+	entry_t *e1	= entry_new(&bla, &max, &min, Font_Big, 8, &Unit_Current);
 
 	container_t *c = container_new(SIZE(DISPLAY_WIDTH, DISPLAY_HEIGHT));
 	container_attach(c, b1, COORDS(20, 0));
-	container_attach(c, b2, COORDS(20, 50));
-	container_attach(c, b3, COORDS(20, 100));
-//	container_attach(c, b4, COORDS(20, 150));
-//	container_attach(c, b5, COORDS(20, 200));
-//	container_attach(c, b6, COORDS(20, 250));
+	container_attach(c, e1, COORDS(20, 50));
 	topWidget = c;
 	display_Clear();
 	widget_draw(topWidget, COORDS(0,0));

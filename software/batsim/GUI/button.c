@@ -93,6 +93,7 @@ void button_input(widget_t *w, GUIEvent_t *ev) {
 			b->pressed = 1;
 			widget_RequestRedraw(w);
 		}
+		ev->type = EVENT_NONE;
 	} else if (ev->type == EVENT_TOUCH_RELEASED) {
 		if (b->pressed) {
 			b->pressed = 0;
@@ -100,6 +101,7 @@ void button_input(widget_t *w, GUIEvent_t *ev) {
 			if(b->callback)
 				b->callback(w);
 		}
+		ev->type = EVENT_NONE;
 	}
     return;
 }

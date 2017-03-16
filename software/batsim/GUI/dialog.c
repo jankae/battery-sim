@@ -46,6 +46,22 @@ static void inputDialog_DeleteChar(widget_t *source) {
 	}
 }
 
+static void inputDialog_ToggleSign(widget_t *source) {
+	if (dialog.input.string[0] == '-') {
+		/* remove sign from string */
+		memmove(&dialog.input.string[0], &dialog.input.string[1], dialog.input.pos);
+		dialog.input.pos--;
+	} else if(dialog.input.pos < 10) {
+		/* space for sign available, add at the beginning */
+		memmove(&dialog.input.string[1], &dialog.input.string[0], dialog.input.pos);
+		/* add sign at the beginning */
+		dialog.input.string[0] = '-';
+		dialog.input.pos++;
+	}
+	/* text has changed */
+	label_SetText(dialog.input.label, dialog.input.string);
+}
+
 static void inputDialog_Finished(widget_t *source) {
 	button_t *b = (button_t*) source;
 	uint32_t factor = 0;
@@ -134,6 +150,7 @@ void dialog_InputValue(const char * const title, int32_t * const result,
 	button_t *b0 = button_new("0", Font_Big, 30, inputDialog_AddChar);
 	button_t *bdot = button_new(".", Font_Big, 30, inputDialog_AddChar);
 	button_t *bdel = button_new("\x1B", Font_Big, 30, inputDialog_DeleteChar);
+	button_t *bsign = button_new("\xF1", Font_Big, 30, inputDialog_ToggleSign);
 	window_t *w = window_new("New value:", Font_Big, SIZE(230, 120));
 	container_t *c = container_new(window_GetAvailableArea(w));
 #define KEY_OFFSET_X		130
@@ -151,6 +168,8 @@ void dialog_InputValue(const char * const title, int32_t * const result,
 	container_attach(c, b0, COORDS(KEY_OFFSET_X + 0, KEY_OFFSET_Y + 75));
 	container_attach(c, bdot, COORDS(KEY_OFFSET_X + 33, KEY_OFFSET_Y + 75));
 	container_attach(c, bdel, COORDS(KEY_OFFSET_X + 66, KEY_OFFSET_Y + 75));
+	// TODO find a place for sign toggle
+	container_attach(c, bsign, COORDS(KEY_OFFSET_X - 33, KEY_OFFSET_Y + 50));
 	/* unit selection buttons */
 	uint8_t i = 0;
 	/* position for first unit button is bottom left corner */
