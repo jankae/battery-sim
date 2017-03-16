@@ -115,14 +115,15 @@ coords_t window_GetAvailableArea(window_t *w) {
 void window_input(widget_t *w, GUIEvent_t *ev) {
 	window_t *window = (window_t*) w;
 	switch (ev->type) {
-	case GUI_TOUCH_PRESSED:
-	case GUI_TOUCH_RELEASED:
+	case EVENT_TOUCH_PRESSED:
+	case EVENT_TOUCH_RELEASED:
 		if (ev->pos.y <= window->font.height + 3) {
 			/* mark event as handled */
-			ev->type = GUI_EVENT_NONE;
+			ev->type = EVENT_NONE;
 			if (ev->pos.x <= window->font.height + 3) {
 				/* clicked into window close area, close this window */
-				window_destroy(w);
+				GUIEvent_t ev = { .type = EVENT_WINDOW_CLOSE, .w = w };
+				gui_SendEvent(&ev);
 			}
 		}
 		break;

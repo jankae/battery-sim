@@ -5,6 +5,8 @@
 #include "button.h"
 #include "container.h"
 #include "window.h"
+#include "label.h"
+#include "dialog.h"
 
 void gui_Init(void);
 

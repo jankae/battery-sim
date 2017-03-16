@@ -2,11 +2,22 @@
 #define COMMON_H_
 
 #include <stdint.h>
+#include <stddef.h>
 
 typedef struct {
     int16_t x;
     int16_t y;
 } coords_t;
+
+typedef struct {
+	/* name length up to 3 (plus string terminator) */
+	char name[4];
+	uint32_t factor;
+} unitElement_t;
+
+typedef const unitElement_t *unit_t[];
+
+extern const unit_t Unit_Current;
 
 #define COORDS(v1, v2)	((coords_t){.x=v1, .y=v2})
 #define SIZE(v1, v2)	COORDS(v1, v2)

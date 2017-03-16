@@ -80,14 +80,14 @@ void GUD_DataReceivedCallback(uint8_t ep_num, uint8_t* buffer,
 		if(buffer[0]==1) {
 			/* touch press event */
 			GUIEvent_t ev;
-			ev.type = GUI_TOUCH_PRESSED;
+			ev.type = EVENT_TOUCH_PRESSED;
 			ev.pos.x = (buffer[1] << 8) + buffer[2];
 			ev.pos.y = (buffer[3] << 8) + buffer[4];
 			gui_SendEvent(&ev);
 		} else if(buffer[0]==2) {
 			/* touch press event */
 			GUIEvent_t ev;
-			ev.type = GUI_TOUCH_RELEASED;
+			ev.type = EVENT_TOUCH_RELEASED;
 			ev.pos.x = (buffer[1] << 8) + buffer[2];
 			ev.pos.y = (buffer[3] << 8) + buffer[4];
 			gui_SendEvent(&ev);

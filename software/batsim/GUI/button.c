@@ -1,6 +1,6 @@
 #include "button.h"
 
-button_t* button_new(const char *name, font_t font, uint8_t minWidth, void *cb) {
+button_t* button_new(const char *name, font_t font, uint8_t minWidth, void (*cb)(widget_t*)) {
 	button_t* button = pvPortMalloc(sizeof(button_t));
 	if (!button) {
 		/* malloc failed */
@@ -88,15 +88,17 @@ GUIResult_t button_draw(widget_t *w, coords_t offset) {
 
 void button_input(widget_t *w, GUIEvent_t *ev) {
     button_t *b = (button_t*) w;
-    if(ev->type == GUI_TOUCH_PRESSED) {
+    if(ev->type == EVENT_TOUCH_PRESSED) {
 		if (!b->pressed) {
 			b->pressed = 1;
 			widget_RequestRedraw(w);
 		}
-	} else if (ev->type == GUI_TOUCH_RELEASED) {
+	} else if (ev->type == EVENT_TOUCH_RELEASED) {
 		if (b->pressed) {
 			b->pressed = 0;
 			widget_RequestRedraw(w);
+			if(b->callback)
+				b->callback(w);
 		}
 	}
     return;

@@ -175,7 +175,7 @@ void container_drawChildren(widget_t *w, coords_t offset) {
 void container_input(widget_t *w, GUIEvent_t *ev) {
 	container_t *c = (container_t*) w;
 	switch (ev->type) {
-	case GUI_TOUCH_PRESSED: {
+	case EVENT_TOUCH_PRESSED: {
 		/* save old canvasOffset */
 		coords_t old = c->canvasOffset;
 		if (ev->pos.x > c->viewingSize.x) {
@@ -190,7 +190,7 @@ void container_input(widget_t *w, GUIEvent_t *ev) {
 			else if (c->canvasOffset.y > c->canvasSize.y - c->viewingSize.y)
 				c->canvasOffset.y = c->canvasSize.y - c->viewingSize.y;
 			/* clear event */
-			ev->type = GUI_EVENT_NONE;
+			ev->type = EVENT_NONE;
 		} else if (ev->pos.y
 				> w->size.y
 						- c->flags.scrollHorizontal * CONTAINER_SCROLLBAR_SIZE) {
@@ -205,7 +205,7 @@ void container_input(widget_t *w, GUIEvent_t *ev) {
 			else if (c->canvasOffset.x > c->canvasSize.x - c->viewingSize.x)
 				c->canvasOffset.x = c->canvasSize.x - c->viewingSize.x;
 			/* clear event */
-			ev->type = GUI_EVENT_NONE;
+			ev->type = EVENT_NONE;
 		}
 		/* check if canvas moved */
 		if (c->canvasOffset.x != old.x || c->canvasOffset.y != old.y) {
@@ -214,7 +214,7 @@ void container_input(widget_t *w, GUIEvent_t *ev) {
 		}
 	}
 		/* no break */
-	case GUI_TOUCH_RELEASED:
+	case EVENT_TOUCH_RELEASED:
 		/* adjust position to canvas offset */
 		ev->pos.x += c->canvasOffset.x;
 		ev->pos.y += c->canvasOffset.y;

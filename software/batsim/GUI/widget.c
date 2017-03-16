@@ -211,15 +211,15 @@ void widget_draw(widget_t *w, coords_t pos) {
 
 void widget_input(widget_t *w, GUIEvent_t *ev) {
 	switch(ev->type) {
-	case GUI_TOUCH_PRESSED:
-	case GUI_TOUCH_RELEASED:
+	case EVENT_TOUCH_PRESSED:
+	case EVENT_TOUCH_RELEASED:
 		/* position based event */
 		/* remove offset of own widget */
 		ev->pos.x -= w->position.x;
 		ev->pos.y -= w->position.y;
 		/* first, try to handle it itself */
 		w->func.input(w, ev);
-		if(ev->type != GUI_EVENT_NONE) {
+		if(ev->type != EVENT_NONE) {
 			/* event not handled yet */
 			/* find matching child */
 			widget_t *child = w->firstChild;
@@ -239,7 +239,7 @@ void widget_input(widget_t *w, GUIEvent_t *ev) {
 			}
 		}
 		break;
-	case GUI_EVENT_NONE:
+	case EVENT_NONE:
 		break;
 	}
 //    /* First pass it on to any active child */

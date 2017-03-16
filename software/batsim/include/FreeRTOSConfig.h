@@ -108,6 +108,8 @@
 #define configQUEUE_REGISTRY_SIZE                8
 #define configUSE_APPLICATION_TASK_TAG           1
 
+#define INCLUDE_uxTaskGetStackHighWaterMark 	 1
+
 /* Co-routine definitions. */
 #define configUSE_CO_ROUTINES                    0
 #define configMAX_CO_ROUTINE_PRIORITIES          ( 2 )

@@ -13,14 +13,14 @@
 
 typedef struct {
     widget_t base;
-    void (*callback)(void);
+    void (*callback)(widget_t* source);
     char name[BUTTON_MAX_NAME + 1];
     font_t font;
     coords_t fontStart;
     uint8_t pressed;
 } button_t;
 
-button_t* button_new(const char *name, font_t font, uint8_t minWidth, void *cb);
+button_t* button_new(const char *name, font_t font, uint8_t minWidth, void (*cb)(widget_t*));
 GUIResult_t button_draw(widget_t *w, coords_t offset);
 void button_input(widget_t *w, GUIEvent_t *ev);
 

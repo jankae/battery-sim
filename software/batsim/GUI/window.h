@@ -12,6 +12,7 @@
 #include "display.h"
 #include "font.h"
 #include "common.h"
+#include "gui.h"
 
 #define WINDOW_MAX_NAME         		16
 #define WINDOW_BORDER_COLOR				COLOR_BLACK

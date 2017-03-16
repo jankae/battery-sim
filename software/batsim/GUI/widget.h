@@ -4,12 +4,13 @@
 #include <string.h>
 #include <stdint.h>
 
-#include "events.h"
 #include "display.h"
 #include "common.h"
 
 typedef struct widgetFunctions widgetFunctions_t;
 typedef struct widget widget_t;
+
+#include "events.h"
 
 struct widgetFunctions {
     void (*draw)(widget_t *w, coords_t offset);
@@ -41,6 +42,8 @@ struct widget {
 
     widgetFunctions_t func;
 };
+
+
 
 void widget_init(widget_t *w);
 void widget_delete(widget_t *w);
