@@ -233,3 +233,30 @@ void display_String(uint16_t x, uint16_t y, char *s) {
 			break;
 	}
 }
+
+void display_Image(uint16_t x, uint16_t y, const Image_t *im) {
+	usb_DisplayCommand(0, x);
+	usb_DisplayCommand(1, y);
+	usb_DisplayCommand(2, x + im->width - 1);
+	usb_DisplayCommand(3, y + im->height - 1);
+	uint32_t i = im->width * im->height;
+	uint16_t *ptr = im->data;
+	for (; i > 0; i--) {
+		usb_DisplayCommand(4, *ptr++);
+	}
+}
+void display_ImageGrayscale(uint16_t x, uint16_t y, const Image_t *im){
+	usb_DisplayCommand(0, x);
+	usb_DisplayCommand(1, y);
+	usb_DisplayCommand(2, x + im->width - 1);
+	usb_DisplayCommand(3, y + im->height - 1);
+	uint32_t i = im->width * im->height;
+	uint16_t *ptr = im->data;
+	for (; i > 0; i--) {
+		/* convert to grayscale */
+		uint16_t gray = COLOR_R(*ptr) + COLOR_G(*ptr) + COLOR_B(*ptr);
+		gray /= 3;
+		usb_DisplayCommand(4, COLOR(gray, gray, gray));
+		ptr++;
+	}
+}

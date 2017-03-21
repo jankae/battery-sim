@@ -7,6 +7,12 @@
 #include <string.h>
 
 typedef struct {
+	uint16_t width;
+	uint16_t height;
+	const uint16_t *data;
+} Image_t;
+
+typedef struct {
     int16_t x;
     int16_t y;
 } coords_t;

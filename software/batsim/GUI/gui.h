@@ -9,6 +9,8 @@
 #include "dialog.h"
 #include "entry.h"
 
+#include "desktop.h"
+
 void gui_Init(void);
 
 void gui_SendEvent(GUIEvent_t *ev);

@@ -58,6 +58,9 @@
 #include "limits.h"
 #include "usb_configuration.h"
 
+#include "test/test.h"
+#include "Settings/Settings.h"
+
 /* USER CODE BEGIN Includes */
 
 /* USER CODE END Includes */
@@ -162,26 +165,11 @@ int main(void)
   usb_configuration_init();
   HAL_Delay(1000);
 
-//  display_SetForeground(COLOR(0,0,0));
-//  display_SetBackground(COLOR(214,211,206));
-//  display_SetFont(Font_Big);
-//  display_Clear();
-//  display_String(0, 0, "Hello World!");
-//  display_SetFont(Font_Medium);
-//  display_String(0, 20, "Hello World!");
-//  display_SetFont(Font_Small);
-//  display_String(0, 40, "Hello World!");
-
-//  button_t b;
-//  button_create(&b, "Test", Font_Big, 0, NULL);
-//  coords_t c = {.x = 160, .y=120};
-//  button_draw(&b, c);
-//  usb_DisplayFlush();
-//  while(1) {
-////	  usb_DisplayCommand(4, 0xffff);
-//  }
   /* Call init function for freertos objects (in freertos.c) */
   MX_FREERTOS_Init();
+
+  test_Init();
+  settings_Init();
 
   gui_Init();
 
