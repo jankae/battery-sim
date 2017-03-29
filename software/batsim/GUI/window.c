@@ -115,7 +115,6 @@ coords_t window_GetAvailableArea(window_t *w) {
 void window_input(widget_t *w, GUIEvent_t *ev) {
 	window_t *window = (window_t*) w;
 	switch (ev->type) {
-	case EVENT_TOUCH_PRESSED:
 	case EVENT_TOUCH_RELEASED:
 		if (ev->pos.y <= window->font.height + 3) {
 			/* mark event as handled */

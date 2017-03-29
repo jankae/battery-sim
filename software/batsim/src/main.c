@@ -159,11 +159,13 @@ int main(void)
   MX_ADC3_Init();
   MX_DAC_Init();
   MX_USART1_UART_Init();
-  MX_USB_OTG_FS_PCD_Init();
+//  MX_USB_OTG_FS_PCD_Init();
 
   /* USER CODE BEGIN 2 */
-  usb_configuration_init();
-  HAL_Delay(1000);
+//  usb_configuration_init();
+  display_Init();
+  input_Init();
+//  HAL_Delay(1000);
 
   /* Call init function for freertos objects (in freertos.c) */
   MX_FREERTOS_Init();
@@ -171,9 +173,21 @@ int main(void)
   test_Init();
   settings_Init();
 
+  display_Clear();
   gui_Init();
 
-  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
+//  coords_t c, last;
+//  last.x = -1;
+//  while(1) {
+//		if (touch_GetCoordinates(&c)) {
+//			if (last.x != -1) {
+//				display_Line(c.x, c.y, last.x, last.y);
+//			}
+//			last = c;
+//		} else {
+//			last.x = -1;
+//		}
+//  }
 
   /* Start scheduler */
   osKernelStart();

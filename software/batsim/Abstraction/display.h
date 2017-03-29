@@ -11,6 +11,7 @@
 #define DISPLAY_WIDTH		320
 #define DISPLAY_HEIGHT		240
 
+void display_Init(void);
 void display_SetFont(font_t f);
 void display_SetForeground(color_t c);
 color_t display_GetForeground(void);

@@ -139,7 +139,7 @@ void entry_draw(widget_t *w, coords_t offset) {
 void entry_input(widget_t *w, GUIEvent_t *ev) {
     entry_t *e = (entry_t*) w;
     if (ev->type == EVENT_TOUCH_RELEASED) {
-    	dialog_InputValue("New value:", e->value, *e->min, *e->max, e->unit);
+    	dialog_InputValue(e->value, *e->min, *e->max, e->unit);
     	widget_RequestRedraw(w);
 		ev->type = EVENT_NONE;
 	}

@@ -37,7 +37,7 @@ static const uint16_t imagedata[1024] = {
 
 static Image_t icon = { .width = 32, .height = 32, .data = imagedata };
 
-static uint8_t running;
+static xTaskHandle hTask;
 
 void test_Init() {
 	/* register app at desktop module */
@@ -49,7 +49,7 @@ void test_Init() {
 }
 
 static void stop() {
-	running = 0;
+	xTaskNotify(hTask, SIGNAL_TERMINATE, eSetValueWithOverwrite);
 }
 
 void test_Start(){
@@ -57,22 +57,34 @@ void test_Start(){
 }
 
 void test(void) {
+	hTask = xTaskGetCurrentTaskHandle();
+
 	/* create GUI */
 	container_t *c = container_new(COORDS(280, 240));
 	button_t *b = button_new("Stop", Font_Big, 0, stop);
+	uint8_t var = 0;
+	checkbox_t *check = checkbox_new(&var, NULL);
 	int32_t val, min = -30000000, max = 30000000;
 	entry_t *e = entry_new(&val, &max, &min, Font_Big, 9, Unit_Current);
 	container_attach(c, b, COORDS(20, 20));
 	container_attach(c, e, COORDS(20, 60));
+	container_attach(c, check, COORDS(20, 80));
 	c->base.position.x = 40;
 
 	desktop_AppStarted(test_Start, c);
-	running = 1;
-	while(running) {
-		vTaskDelay(1000);
-	}
+	uint32_t signal;
 
-	desktop_AppStopped(test_Start);
-	widget_delete(c);
-	vTaskDelete(NULL);
+	while(1) {
+		if (xTaskNotifyWait(ULONG_MAX, ULONG_MAX, &signal, 10)) {
+			/* received a notication */
+			switch (signal) {
+			case SIGNAL_TERMINATE:
+				desktop_AppStopped(test_Start);
+				widget_delete(c);
+				vTaskDelete(NULL);
+				return;
+				break;
+			}
+		}
+	}
 }

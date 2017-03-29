@@ -8,7 +8,14 @@ typedef enum  {GUI_OK, GUI_ERROR, GUI_UNABLE} GUIResult_t;
 
 typedef struct event GUIEvent_t;
 
-typedef enum {EVENT_NONE, EVENT_TOUCH_PRESSED, EVENT_TOUCH_RELEASED, EVENT_WINDOW_CLOSE} GUIEventType_t;
+typedef enum {
+	EVENT_NONE,
+	EVENT_TOUCH_PRESSED,
+	EVENT_TOUCH_RELEASED,
+	EVENT_TOUCH_DRAGGED,
+	EVENT_TOUCH_HELD,
+	EVENT_WINDOW_CLOSE
+} GUIEventType_t;
 
 struct event {
     /* indicates the type of event */

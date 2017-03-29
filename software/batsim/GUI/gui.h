@@ -8,6 +8,8 @@
 #include "label.h"
 #include "dialog.h"
 #include "entry.h"
+#include "textfield.h"
+#include "checkbox.h"
 
 #include "desktop.h"
 

@@ -2,7 +2,9 @@
 #ifndef SETTINGS_SETTINGS_H_
 #define SETTINGS_SETTINGS_H_
 
+#include <limits.h>
 #include "gui.h"
+#include "definitions.h"
 
 void settings_Init();
 

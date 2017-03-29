@@ -2,6 +2,7 @@
 #define DESKTOP_H_
 
 
+#include "definitions.h"
 #include "gui.h"
 
 #define DESKTOP_MAX_APPS		5

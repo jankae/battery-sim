@@ -22,15 +22,74 @@ inline void setData(uint16_t data) {
 inline void selectRegister(uint8_t reg) {
 	RS_LOW();
 	setData(reg);
+//	HAL_Delay(1);
+	CS_LOW();
+//	HAL_Delay(1);
 	WR_LOW();
+	asm volatile("nop");
+	asm volatile("nop");
+	asm volatile("nop");
+	asm volatile("nop");
+	asm volatile("nop");
 	WR_HIGH();
+//	HAL_Delay(1);
+	CS_HIGH();
+//	HAL_Delay(1);
 }
 
 inline void writeData(uint16_t data) {
 	RS_HIGH();
 	setData(data);
+//	HAL_Delay(1);
+	CS_LOW();
+//	HAL_Delay(1);
 	WR_LOW();
+	asm volatile("nop");
+	asm volatile("nop");
+	asm volatile("nop");
+	asm volatile("nop");
+	asm volatile("nop");
+//	HAL_Delay(1);
 	WR_HIGH();
+//	HAL_Delay(1);
+	CS_HIGH();
+//	HAL_Delay(1);
+}
+
+uint16_t readData(void) {
+	/* configure data pins as inputs */
+	GPIO_InitTypeDef GPIO_InitStruct;
+	/*Configure GPIO pins : PD8 PD9 PD10 PD11
+	 PD12 PD13 PD14 PD15
+	 PD0 PD1 PD2 PD3
+	 PD4 PD5 PD6 PD7 */
+	GPIO_InitStruct.Pin = GPIO_PIN_8 | GPIO_PIN_9 | GPIO_PIN_10 | GPIO_PIN_11
+			| GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15 | GPIO_PIN_0
+			| GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5
+			| GPIO_PIN_6 | GPIO_PIN_7;
+	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+	HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+	/* Read cycle */
+	RS_HIGH();
+	HAL_Delay(2);
+	CS_LOW();
+	HAL_Delay(2);
+	RD_LOW();
+	HAL_Delay(2);
+	uint16_t data = GPIOD->IDR;
+	CS_HIGH();
+	HAL_Delay(2);
+	RD_HIGH();
+	HAL_Delay(2);
+
+	/* configure data pins as outputs */
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+	return data;
 }
 
 void writeRegister(uint8_t reg, uint16_t data) {
@@ -38,7 +97,50 @@ void writeRegister(uint8_t reg, uint16_t data) {
 	writeData(data);
 }
 
+uint16_t readRegister(uint8_t reg) {
+	selectRegister(reg);
+	return readData();
+}
+
+inline void setYStartStop(uint16_t start, uint16_t stop) {
+	writeRegister(0x44, (stop << 8) + start);
+}
+
+inline void setXStart(uint16_t start) {
+	writeRegister(0x45, start);
+}
+
+inline void setXStop(uint16_t stop) {
+	writeRegister(0x46, stop);
+}
+
+void setXY(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) {
+	/* convert to landscape mode */
+	x0 = DISPLAY_WIDTH - x0 - 1;
+	x1 = DISPLAY_WIDTH - x1 - 1;
+	/* set start and stop values */
+	setYStartStop(y0, y1);
+	setXStart(x1);
+	setXStop(x0);
+	/* start in top left corner */
+	writeRegister(0x4e, y0);
+	writeRegister(0x4f, x0);
+	selectRegister(0x22);
+}
+
 void SSD1289_Init(void) {
+	RST_HIGH();
+	HAL_Delay(5);
+	RST_LOW();
+	HAL_Delay(15);
+	RST_HIGH();
+	HAL_Delay(15);
+	CS_LOW();
+	RD_HIGH();
+	WR_HIGH();
+
+
+
 	/* enable oscillator */
 	writeRegister(0x00, 0x0001);
 	/* Step-up cycle 8 color = fosc/4, step-up factor = +5/-4, step-up cycle 262k color = fosc/4, Op-amp power medium to large */
@@ -58,7 +160,7 @@ void SSD1289_Init(void) {
 	/* disable sleep mode */
 	writeRegister(0x10, 0x0000);
 	/* 65k color mode, automatic increase of address counter */
-	writeRegister(0x11, 0x6070);
+	writeRegister(0x11, 0x6058);
 	/* clear compare registers */
 	writeRegister(0x05, 0x0000);
 	writeRegister(0x06, 0x0000);
@@ -96,7 +198,15 @@ void SSD1289_Init(void) {
 	writeRegister(0x25, 0x8000);
 	writeRegister(0x4f, 0x0000);
 	writeRegister(0x4e, 0x0000);
+
 	selectRegister(0x22);
+}
+
+void display_Init(void){
+	SSD1289_Init();
+	background = COLOR_BG_DEFAULT;
+	foreground = COLOR_FG_DEFAULT;
+	font = Font_Big;
 }
 
 inline void display_SetFont(font_t f) {
@@ -120,39 +230,47 @@ inline color_t display_GetBackground(void) {
 }
 
 void display_Clear() {
-	usb_DisplayCommand(0, 0);
-	usb_DisplayCommand(1, 0);
-	usb_DisplayCommand(2, DISPLAY_WIDTH - 1);
-	usb_DisplayCommand(3, DISPLAY_HEIGHT - 1);
+//	usb_DisplayCommand(0, 0);
+//	usb_DisplayCommand(1, 0);
+//	usb_DisplayCommand(2, DISPLAY_WIDTH - 1);
+//	usb_DisplayCommand(3, DISPLAY_HEIGHT - 1);
+	setXY(0, 0, DISPLAY_WIDTH - 1, DISPLAY_HEIGHT - 1);
 	uint32_t i = DISPLAY_WIDTH * DISPLAY_HEIGHT;
 	for (; i > 0; i--) {
-		usb_DisplayCommand(4, background);
+		writeData(background);
+//		usb_DisplayCommand(4, background);
 	}
 }
 
 void display_Pixel(uint16_t x, uint16_t y, uint16_t color) {
-	usb_DisplayCommand(0, x);
-	usb_DisplayCommand(1, y);
-	usb_DisplayCommand(4, color);
+//	usb_DisplayCommand(0, x);
+//	usb_DisplayCommand(1, y);
+//	usb_DisplayCommand(4, color);
+	setXY(x, y, x, y);
+	writeData(color);
 }
 
 void display_HorizontalLine(uint16_t x, uint16_t y, uint16_t length) {
-	usb_DisplayCommand(0, x);
-	usb_DisplayCommand(1, y);
-	usb_DisplayCommand(2, x + length - 1);
-	usb_DisplayCommand(3, y);
+//	usb_DisplayCommand(0, x);
+//	usb_DisplayCommand(1, y);
+//	usb_DisplayCommand(2, x + length - 1);
+//	usb_DisplayCommand(3, y);
+	setXY(x, y, x + length - 1, y);
 	for (; length > 0; length--) {
-		usb_DisplayCommand(4, foreground);
+		writeData(foreground);
+//		usb_DisplayCommand(4, foreground);
 	}
 }
 
 void display_VerticalLine(uint16_t x, uint16_t y, uint16_t length) {
-	usb_DisplayCommand(0, x);
-	usb_DisplayCommand(1, y);
-	usb_DisplayCommand(2, x);
-	usb_DisplayCommand(3, y + length - 1);
+//	usb_DisplayCommand(0, x);
+//	usb_DisplayCommand(1, y);
+//	usb_DisplayCommand(2, x);
+//	usb_DisplayCommand(3, y + length - 1);
+	setXY(x, y, x, y + length - 1);
 	for (; length > 0; length--) {
-		usb_DisplayCommand(4, foreground);
+		writeData(foreground);
+//		usb_DisplayCommand(4, foreground);
 	}
 }
 
@@ -185,21 +303,24 @@ void display_Rectangle(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) {
 }
 
 void display_RectangleFull(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1){
-	usb_DisplayCommand(0, x0);
-	usb_DisplayCommand(1, y0);
-	usb_DisplayCommand(2, x1);
-	usb_DisplayCommand(3, y1);
+//	usb_DisplayCommand(0, x0);
+//	usb_DisplayCommand(1, y0);
+//	usb_DisplayCommand(2, x1);
+//	usb_DisplayCommand(3, y1);
+	setXY(x0, y0, x1, y1);
 	uint32_t i = (x1 - x0 + 1) * (y1 - y0 + 1);
 	for (; i > 0; i--) {
-		usb_DisplayCommand(4, foreground);
+		writeData(foreground);
+//		usb_DisplayCommand(4, foreground);
 	}
 }
 
 void display_Char(uint16_t x, uint16_t y, uint8_t c) {
-	usb_DisplayCommand(0, x);
-	usb_DisplayCommand(1, y);
-	usb_DisplayCommand(2, x + font.width - 1);
-	usb_DisplayCommand(3, y + font.height - 1);
+//	usb_DisplayCommand(0, x);
+//	usb_DisplayCommand(1, y);
+//	usb_DisplayCommand(2, x + font.width - 1);
+//	usb_DisplayCommand(3, y + font.height - 1);
+	setXY(x, y, x + font.width - 1, y + font.height - 1);
 	/* number of bytes in font per row */
 	uint8_t yInc = (font.width - 1) / 8 + 1;
 	uint8_t *charIndex = font.data + c * yInc * font.height;
@@ -215,7 +336,8 @@ void display_Char(uint16_t x, uint16_t y, uint8_t c) {
 			} else {
 				color = background;
 			}
-			usb_DisplayCommand(4, color);
+			writeData(color);
+//			usb_DisplayCommand(4, color);
 			bitMask >>= 1;
 			if (!bitMask) {
 				bitMask = 0x80;
@@ -235,28 +357,32 @@ void display_String(uint16_t x, uint16_t y, char *s) {
 }
 
 void display_Image(uint16_t x, uint16_t y, const Image_t *im) {
-	usb_DisplayCommand(0, x);
-	usb_DisplayCommand(1, y);
-	usb_DisplayCommand(2, x + im->width - 1);
-	usb_DisplayCommand(3, y + im->height - 1);
+//	usb_DisplayCommand(0, x);
+//	usb_DisplayCommand(1, y);
+//	usb_DisplayCommand(2, x + im->width - 1);
+//	usb_DisplayCommand(3, y + im->height - 1);
+	setXY(x, y, x + im->width - 1, y + im->height - 1);
 	uint32_t i = im->width * im->height;
 	uint16_t *ptr = im->data;
 	for (; i > 0; i--) {
-		usb_DisplayCommand(4, *ptr++);
+		writeData(*ptr++);
+//		usb_DisplayCommand(4, *ptr++);
 	}
 }
 void display_ImageGrayscale(uint16_t x, uint16_t y, const Image_t *im){
-	usb_DisplayCommand(0, x);
-	usb_DisplayCommand(1, y);
-	usb_DisplayCommand(2, x + im->width - 1);
-	usb_DisplayCommand(3, y + im->height - 1);
+	//	usb_DisplayCommand(0, x);
+	//	usb_DisplayCommand(1, y);
+	//	usb_DisplayCommand(2, x + im->width - 1);
+	//	usb_DisplayCommand(3, y + im->height - 1);
+	setXY(x, y, x + im->width - 1, y + im->height - 1);
 	uint32_t i = im->width * im->height;
 	uint16_t *ptr = im->data;
 	for (; i > 0; i--) {
 		/* convert to grayscale */
 		uint16_t gray = COLOR_R(*ptr) + COLOR_G(*ptr) + COLOR_B(*ptr);
 		gray /= 3;
-		usb_DisplayCommand(4, COLOR(gray, gray, gray));
+		writeData(COLOR(gray, gray, gray));
+//		usb_DisplayCommand(4, COLOR(gray, gray, gray));
 		ptr++;
 	}
 }

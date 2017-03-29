@@ -2,18 +2,23 @@
 
 #define INPUT_DIALOG_LENGTH		10
 
-union {
-	struct {
-		char string[INPUT_DIALOG_LENGTH + 1];
-		uint8_t pos;
-		label_t *label;
-		button_t *bdot;
-		window_t *window;
-		int32_t *ptr;
-		int32_t min;
-		int32_t max;
-		const unit_t *unit;
-	} input;
+struct {
+	window_t *window;
+	union {
+		struct {
+			char string[INPUT_DIALOG_LENGTH + 1];
+			uint8_t pos;
+			label_t *label;
+			button_t *bdot;
+			int32_t *ptr;
+			int32_t min;
+			int32_t max;
+			const unit_t *unit;
+		} input;
+		struct {
+			void (*cb)(MsgResult_t);
+		} msgbox;
+	};
 } dialog;
 
 static void inputDialog_AddChar(widget_t *source) {
@@ -122,14 +127,14 @@ static void inputDialog_Finished(widget_t *source) {
 	*dialog.input.ptr = (int32_t) value;
 
 	/* destroy dialog */
-	GUIEvent_t ev = { .type = EVENT_WINDOW_CLOSE, .w = dialog.input.window };
+	GUIEvent_t ev = { .type = EVENT_WINDOW_CLOSE, .w = dialog.window };
 	gui_SendEvent(&ev);
 }
 
-void dialog_InputValue(const char * const title, int32_t * const result,
+void dialog_InputValue(int32_t * const result,
 		const int32_t min, const int32_t max, const unit_t * const unit){
 	/* check pointers */
-	if (!title || !result || !unit) {
+	if (!result || !unit) {
 		return;
 	}
 	/* initialize input string */
@@ -192,7 +197,7 @@ void dialog_InputValue(const char * const title, int32_t * const result,
 	/* save pointer to widgets */
 	dialog.input.bdot = bdot;
 	dialog.input.label = label;
-	dialog.input.window = w;
+	dialog.window = w;
 
 	dialog.input.ptr = result;
 	dialog.input.min = min;
@@ -201,6 +206,78 @@ void dialog_InputValue(const char * const title, int32_t * const result,
 
 	window_SetMainWidget(w, c);
 
+}
+
+static void MessageBoxButton(widget_t *source) {
+	button_t *b = (button_t*) source;
+	MsgResult_t res = MSG_RESULT_ERR;
+	/* find which button has been pressed */
+	if(!strcmp(b->name, "OK")) {
+		res = MSG_RESULT_OK;
+	} else if(!strcmp(b->name, "ABORT")) {
+		res = MSG_RESULT_ABORT;
+	}
+
+	if (dialog.msgbox.cb)
+		dialog.msgbox.cb(res);
+
+	// TODO does this always work? (might result in null pointer exception due to deleting
+	// widgets while working on them)
+	window_destroy((window_t*) dialog.window);
+
+//	/* destroy dialog */
+//	GUIEvent_t ev = { .type = EVENT_WINDOW_CLOSE, .w = dialog.window };
+//	gui_SendEvent(&ev);
+}
+
+void dialog_MessageBox(const char * const title, const char * const msg,
+		MsgBox_t type, void (*cb)(MsgResult_t)){
+	/* check pointers */
+	if (!title || !msg) {
+		return;
+	}
+	/* create dialog window and elements */
+	textfield_t *text = textfield_new(msg, Font_Medium, COORDS(300, 180));
+	if (!text) {
+		return;
+	}
+	/* calculate window size */
+	coords_t windowSize = text->base.size;
+	if (windowSize.x < 132) {
+		windowSize.x = 136;
+	} else {
+		windowSize.x += 4;
+	}
+	windowSize.y += 50;
+	window_t *w = window_new(title, Font_Big, windowSize);
+	container_t *c = container_new(window_GetAvailableArea(w));
+	container_attach(c, text, COORDS(1, 2));
+	switch (type) {
+	case MSG_OK: {
+		button_t *bOK = button_new("OK", Font_Big, 65, MessageBoxButton);
+		container_attach(c, bOK,
+				COORDS((c->base.size.x - bOK->base.size.x) / 2,
+						c->base.size.y - bOK->base.size.y - 1));
+	}
+		break;
+	case MSG_ABORT_OK: {
+		button_t *bOK = button_new("OK", Font_Big, 65, MessageBoxButton);
+		button_t *bAbort = button_new("ABORT", Font_Big, 65, MessageBoxButton);
+		container_attach(c, bAbort,
+				COORDS(c->base.size.x / 2 - bAbort->base.size.x - 1,
+						c->base.size.y - bAbort->base.size.y - 1));
+		container_attach(c, bOK,
+				COORDS(c->base.size.x / 2 + 1,
+						c->base.size.y - bOK->base.size.y - 1));
+
+	}
+		break;
+	}
+
+	dialog.window = w;
+	dialog.msgbox.cb = cb;
+
+	window_SetMainWidget(w, c);
 }
 
 

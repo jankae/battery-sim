@@ -1,11 +1,11 @@
 #include "../Abstraction/touch.h"
 
-#define CS_LOW()			(GPIOB->BSRR = GPIO_PIN_3)
-#define CS_HIGH()			(GPIOB->BSRR = GPIO_PIN_3<<16u)
-#define DOUT_LOW()			(GPIOC->BSRR = GPIO_PIN_12)
-#define DOUT_HIGH()			(GPIOC->BSRR = GPIO_PIN_12<<16u)
-#define SCK_LOW()			(GPIOC->BSRR = GPIO_PIN_10)
-#define SCK_HIGH()			(GPIOC->BSRR = GPIO_PIN_10<<16u)
+#define CS_LOW()			(GPIOB->BSRR = GPIO_PIN_3<<16u)
+#define CS_HIGH()			(GPIOB->BSRR = GPIO_PIN_3)
+#define DOUT_LOW()			(GPIOC->BSRR = GPIO_PIN_12<<16u)
+#define DOUT_HIGH()			(GPIOC->BSRR = GPIO_PIN_12)
+#define SCK_LOW()			(GPIOC->BSRR = GPIO_PIN_10<<16u)
+#define SCK_HIGH()			(GPIOC->BSRR = GPIO_PIN_10)
 #define DIN()				(GPIOC->IDR & GPIO_PIN_11)
 #define BUSY()				(!(GPIOB->IDR & GPIO_PIN_4))
 #define PENIRQ()			(!(GPIOB->IDR & GPIO_PIN_5))
@@ -33,10 +33,11 @@ void touch_Init(void) {
 	CS_HIGH();
 }
 
-
 static uint16_t ADS7843_Read(uint8_t control) {
 	SCK_LOW();
+	HAL_Delay(1);
 	CS_LOW();
+	HAL_Delay(1);
 	/* highest bit in control must always be one */
 	control |= 0x80;
 	uint16_t read = 0;
@@ -49,7 +50,9 @@ static uint16_t ADS7843_Read(uint8_t control) {
 			DOUT_LOW();
 		}
 		SCK_HIGH();
+		HAL_Delay(1);
 		SCK_LOW();
+		HAL_Delay(1);
 		control <<= 1;
 	}
 	/* read ADC result */
@@ -59,22 +62,29 @@ static uint16_t ADS7843_Read(uint8_t control) {
 			read |= 1;
 		}
 		SCK_HIGH();
+		HAL_Delay(1);
 		SCK_LOW();
+		HAL_Delay(1);
 	}
 	/* shift and mask 12-bit result */
 	read >>= 3;
 	read &= 0x0FFF;
 	CS_HIGH();
+	HAL_Delay(1);
 	return read;
 }
 
-uint8_t touch_GetCoordinates(touchCoord_t *c) {
+uint8_t touch_GetCoordinates(coords_t *c) {
 	if (PENIRQ()) {
 		/* screen is being touched */
 		uint32_t rawX = ADS7843_Read(
 		CHANNEL_X | DIFFERENTIAL | BITS12 | PD_PENIRQ);
 		uint32_t rawY = ADS7843_Read(
 		CHANNEL_Y | DIFFERENTIAL | BITS12 | PD_PENIRQ);
+		if (!PENIRQ()) {
+			/* touch has been released during measurement */
+			return 0;
+		}
 		/* convert to screen resolution */
 		c->x = (rawX * TOUCH_RESOLUTION_X) / 4096;
 		c->y = (rawY * TOUCH_RESOLUTION_Y) / 4096;

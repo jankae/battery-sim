@@ -16,6 +16,7 @@ static void guiThread(void) {
 				switch (event.type) {
 				case EVENT_TOUCH_PRESSED:
 				case EVENT_TOUCH_RELEASED:
+				case EVENT_TOUCH_HELD:
 					/* these are position based events */
 					/* check if applicable for top widget
 					 * (which, for smaller windows, might not be the case */
@@ -28,6 +29,8 @@ static void guiThread(void) {
 											+ topWidget->size.y) {
 						/* send event to top widget */
 						widget_input(topWidget, &event);
+					} else {
+						desktop_Input(&event);
 					}
 					break;
 				case EVENT_WINDOW_CLOSE:
@@ -36,8 +39,9 @@ static void guiThread(void) {
 				default:
 					break;
 				}
+			} else {
+				desktop_Input(&event);
 			}
-			desktop_Input(&event);
 		}
 		if (topWidget) {
 			widget_draw(topWidget, COORDS(0, 0));
