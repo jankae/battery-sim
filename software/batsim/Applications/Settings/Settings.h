@@ -5,6 +5,7 @@
 #include <limits.h>
 #include "gui.h"
 #include "definitions.h"
+#include "touch.h"
 
 void settings_Init();
 

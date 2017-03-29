@@ -41,6 +41,8 @@ static Image_t icon = { .width = 32, .height = 32, .data = imagedata };
 
 static xTaskHandle hTask;
 
+extern widget_t *topWidget;
+
 void settings_Init() {
 	/* register app at desktop module */
 	AppInfo_t app;
@@ -50,8 +52,10 @@ void settings_Init() {
 	desktop_AddApp(app);
 }
 
-static void stop() {
-	xTaskNotify(hTask, SIGNAL_TERMINATE, eSetValueWithOverwrite);
+static void calibrateTouch() {
+	touch_Calibrate();
+	widget_RequestRedrawFull(topWidget);
+	desktop_Draw();
 }
 
 void settings_Start(){
@@ -63,7 +67,7 @@ void settings(void) {
 
 	/* create GUI */
 	container_t *c = container_new(COORDS(280, 240));
-	button_t *b = button_new("Stop", Font_Big, 0, stop);
+	button_t *b = button_new("Calibrate", Font_Big, 0, calibrateTouch);
 	int32_t val, min = -30000000, max = 30000000;
 	entry_t *e = entry_new(&val, &max, &min, Font_Big, 9, Unit_Current);
 	container_attach(c, b, COORDS(40, 20));

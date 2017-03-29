@@ -9,7 +9,7 @@ static void inputThread(void) {
 
 
 	while (1) {
-		vTaskDelay(pdMS_TO_TICKS(2));
+		vTaskDelay(pdMS_TO_TICKS(20));
 		/* check touch for new input */
 		coords_t touch;
 		if (touch_GetCoordinates(&touch)) {
@@ -27,8 +27,8 @@ static void inputThread(void) {
 			} else {
 				/* check if (large enough) movement detected */
 				if (!touchMoved) {
-					if (abs(initialTouch.x - touch.x) > 10
-							|| abs(initialTouch.y - touch.y) > 10) {
+					if (abs(initialTouch.x - touch.x) > 20
+							|| abs(initialTouch.y - touch.y) > 20) {
 						touchMoved = 1;
 					} else if (xTaskGetTickCount() - touchStart > 1000) {
 						/* touch held event */

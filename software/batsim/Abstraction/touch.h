@@ -3,6 +3,7 @@
 
 #include "gpio.h"
 #include "gui.h"
+#include "display.h"
 
 #define TOUCH_RESOLUTION_X		320
 #define TOUCH_RESOLUTION_Y		240
@@ -19,5 +20,7 @@ void touch_Init(void);
  * \return 1 if screen is being touched, 0 otherwise
  */
 uint8_t touch_GetCoordinates(coords_t *c);
+
+void touch_Calibrate(void);
 
 #endif
