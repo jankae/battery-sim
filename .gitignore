@@ -10,4 +10,5 @@ software/test
 software/RemoteSystemsTempFiles
 software/batsim/Debug
 software/batsim/Release
+*.dwb
 
