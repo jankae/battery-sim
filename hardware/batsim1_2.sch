@@ -24804,7 +24804,7 @@ Source: www.tracopower.com .. tme.pdf</description>
 <wire x1="378.46" y1="96.52" x2="375.92" y2="96.52" width="0.1524" layer="91"/>
 </segment>
 </net>
-<net name="N$32" class="0">
+<net name="SWDIO" class="0">
 <segment>
 <pinref part="IC15" gate="MCU" pin="PA13"/>
 <wire x1="375.92" y1="48.26" x2="414.02" y2="48.26" width="0.1524" layer="91"/>
@@ -24813,7 +24813,7 @@ Source: www.tracopower.com .. tme.pdf</description>
 <wire x1="414.02" y1="33.02" x2="421.64" y2="33.02" width="0.1524" layer="91"/>
 </segment>
 </net>
-<net name="N$33" class="0">
+<net name="SWCLK" class="0">
 <segment>
 <pinref part="IC15" gate="MCU" pin="PA14"/>
 <wire x1="375.92" y1="50.8" x2="411.48" y2="50.8" width="0.1524" layer="91"/>
@@ -24822,7 +24822,7 @@ Source: www.tracopower.com .. tme.pdf</description>
 <wire x1="411.48" y1="38.1" x2="421.64" y2="38.1" width="0.1524" layer="91"/>
 </segment>
 </net>
-<net name="N$34" class="0">
+<net name="NRST" class="0">
 <segment>
 <pinref part="SDIO" gate="A" pin="5"/>
 <wire x1="421.64" y1="30.48" x2="411.48" y2="30.48" width="0.1524" layer="91"/>
