@@ -22872,7 +22872,7 @@ Source: www.tracopower.com .. tme.pdf</description>
 <part name="L5" library="we-power" deviceset="INDUCTOR" device="-1212" value="22u"/>
 <part name="C37" library="rcl" deviceset="C-EU" device="C1206" value="1u/25V"/>
 <part name="SUPPLY9" library="supply2" deviceset="-8V" device=""/>
-<part name="D8" library="diodes" deviceset="D-" device="SMA"/>
+<part name="D8" library="diodes" deviceset="D-" device="SMA" value="SS110"/>
 <part name="GND41" library="supply1" deviceset="GND" device=""/>
 <part name="R55" library="resistor" deviceset="R-EU_" device="R0603" value="9k1"/>
 <part name="R56" library="resistor" deviceset="R-EU_" device="R0603" value="1k"/>
@@ -23038,6 +23038,8 @@ Source: www.tracopower.com .. tme.pdf</description>
 <part name="C9" library="rcl" deviceset="C-EU" device="C0603" value="100n"/>
 <part name="GND59" library="supply1" deviceset="GND" device=""/>
 <part name="P+16" library="supply1" deviceset="+24V" device=""/>
+<part name="GND60" library="supply1" deviceset="GND" device=""/>
+<part name="GND61" library="supply1" deviceset="GND" device=""/>
 </parts>
 <sheets>
 <sheet>
@@ -23143,7 +23145,7 @@ Source: www.tracopower.com .. tme.pdf</description>
 <instance part="GND16" gate="1" x="289.56" y="45.72"/>
 <instance part="+3V6" gate="G$1" x="287.02" y="96.52"/>
 <instance part="GND6" gate="1" x="396.24" y="81.28"/>
-<instance part="+3V8" gate="G$1" x="396.24" y="109.22"/>
+<instance part="+3V8" gate="G$1" x="393.7" y="109.22"/>
 <instance part="SUPPLY10" gate="G$1" x="439.42" y="109.22"/>
 <instance part="SUPPLY11" gate="G$1" x="431.8" y="81.28"/>
 <instance part="IC4" gate="G$1" x="467.36" y="45.72"/>
@@ -23259,8 +23261,8 @@ Source: www.tracopower.com .. tme.pdf</description>
 <instance part="P+15" gate="1" x="421.64" y="264.16"/>
 <instance part="IC16" gate="C" x="467.36" y="269.24" rot="MR180"/>
 <instance part="IC16" gate="B" x="497.84" y="236.22" rot="MR180"/>
-<instance part="IC3" gate="B" x="444.5" y="205.74"/>
-<instance part="IC16" gate="D" x="469.9" y="205.74"/>
+<instance part="IC3" gate="B" x="449.58" y="205.74"/>
+<instance part="IC16" gate="D" x="474.98" y="205.74"/>
 <instance part="IC16" gate="P" x="403.86" y="347.98"/>
 <instance part="R46" gate="G$1" x="449.58" y="271.78" smashed="yes">
 <attribute name="NAME" x="450.85" y="268.1986" size="1.778" layer="95"/>
@@ -23373,6 +23375,8 @@ Source: www.tracopower.com .. tme.pdf</description>
 <instance part="C29" gate="G$1" x="170.18" y="304.8"/>
 <instance part="C30" gate="G$1" x="114.3" y="347.98" rot="MR180"/>
 <instance part="IC22" gate="IC" x="152.4" y="309.88"/>
+<instance part="GND60" gate="1" x="436.88" y="208.28" rot="R270"/>
+<instance part="GND61" gate="1" x="462.28" y="208.28" rot="R270"/>
 </instances>
 <busses>
 </busses>
@@ -23910,6 +23914,16 @@ Source: www.tracopower.com .. tme.pdf</description>
 <pinref part="C14" gate="G$1" pin="2"/>
 <pinref part="GND14" gate="1" pin="GND"/>
 <wire x1="241.3" y1="340.36" x2="241.3" y2="337.82" width="0.1524" layer="91"/>
+</segment>
+<segment>
+<pinref part="GND61" gate="1" pin="GND"/>
+<pinref part="IC16" gate="D" pin="+IN"/>
+<wire x1="464.82" y1="208.28" x2="467.36" y2="208.28" width="0.1524" layer="91"/>
+</segment>
+<segment>
+<pinref part="GND60" gate="1" pin="GND"/>
+<pinref part="IC3" gate="B" pin="+IN"/>
+<wire x1="439.42" y1="208.28" x2="441.96" y2="208.28" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="CURRENT_SENSE" class="0">
@@ -24560,8 +24574,12 @@ Source: www.tracopower.com .. tme.pdf</description>
 <segment>
 <pinref part="IC8" gate="G$1" pin="VDD2"/>
 <pinref part="+3V8" gate="G$1" pin="+3V3"/>
-<wire x1="398.78" y1="104.14" x2="396.24" y2="104.14" width="0.1524" layer="91"/>
-<wire x1="396.24" y1="104.14" x2="396.24" y2="106.68" width="0.1524" layer="91"/>
+<wire x1="398.78" y1="104.14" x2="393.7" y2="104.14" width="0.1524" layer="91"/>
+<wire x1="393.7" y1="104.14" x2="393.7" y2="106.68" width="0.1524" layer="91"/>
+<pinref part="IC8" gate="G$1" pin="VE2"/>
+<wire x1="398.78" y1="88.9" x2="393.7" y2="88.9" width="0.1524" layer="91"/>
+<wire x1="393.7" y1="88.9" x2="393.7" y2="104.14" width="0.1524" layer="91"/>
+<junction x="393.7" y="104.14"/>
 </segment>
 <segment>
 <pinref part="IC5" gate="G$1" pin="VDD"/>
@@ -25024,6 +25042,10 @@ Source: www.tracopower.com .. tme.pdf</description>
 <wire x1="447.04" y1="101.6" x2="434.34" y2="101.6" width="0.1524" layer="91"/>
 <wire x1="434.34" y1="101.6" x2="434.34" y2="104.14" width="0.1524" layer="91"/>
 <wire x1="434.34" y1="104.14" x2="429.26" y2="104.14" width="0.1524" layer="91"/>
+<pinref part="IC8" gate="G$1" pin="VE1"/>
+<wire x1="429.26" y1="88.9" x2="434.34" y2="88.9" width="0.1524" layer="91"/>
+<wire x1="434.34" y1="88.9" x2="434.34" y2="101.6" width="0.1524" layer="91"/>
+<junction x="434.34" y="101.6"/>
 </segment>
 </net>
 <net name="N$46" class="0">
@@ -25596,9 +25618,69 @@ Source: www.tracopower.com .. tme.pdf</description>
 <junction x="45.72" y="241.3"/>
 </segment>
 </net>
+<net name="N$15" class="0">
+<segment>
+<pinref part="IC3" gate="B" pin="OUT"/>
+<wire x1="457.2" y1="205.74" x2="459.74" y2="205.74" width="0.1524" layer="91"/>
+<wire x1="459.74" y1="205.74" x2="459.74" y2="198.12" width="0.1524" layer="91"/>
+<wire x1="459.74" y1="198.12" x2="439.42" y2="198.12" width="0.1524" layer="91"/>
+<wire x1="439.42" y1="198.12" x2="439.42" y2="203.2" width="0.1524" layer="91"/>
+<pinref part="IC3" gate="B" pin="-IN"/>
+<wire x1="439.42" y1="203.2" x2="441.96" y2="203.2" width="0.1524" layer="91"/>
+</segment>
+</net>
+<net name="N$27" class="0">
+<segment>
+<pinref part="IC16" gate="D" pin="OUT"/>
+<wire x1="482.6" y1="205.74" x2="485.14" y2="205.74" width="0.1524" layer="91"/>
+<wire x1="485.14" y1="205.74" x2="485.14" y2="198.12" width="0.1524" layer="91"/>
+<wire x1="485.14" y1="198.12" x2="464.82" y2="198.12" width="0.1524" layer="91"/>
+<wire x1="464.82" y1="198.12" x2="464.82" y2="203.2" width="0.1524" layer="91"/>
+<pinref part="IC16" gate="D" pin="-IN"/>
+<wire x1="464.82" y1="203.2" x2="467.36" y2="203.2" width="0.1524" layer="91"/>
+</segment>
+</net>
 </nets>
 </sheet>
 </sheets>
+<errors>
+<approved hash="104,1,342.9,261.62,IC2,V+,+24V,,,"/>
+<approved hash="104,1,342.9,276.86,IC2,V-,-8V,,,"/>
+<approved hash="104,1,342.9,210.82,IC1,V+,+24V,,,"/>
+<approved hash="104,1,342.9,226.06,IC1,V-,-8V,,,"/>
+<approved hash="104,1,116.84,165.1,IC7P,V+,+24V,,,"/>
+<approved hash="104,1,116.84,149.86,IC7P,V-,-8V,,,"/>
+<approved hash="202,1,35.56,350.52,IC12,VREF,,,,"/>
+<approved hash="202,1,35.56,345.44,IC12,SYNC,,,,"/>
+<approved hash="104,1,142.24,345.44,IC9,VIN,+5V,,,"/>
+<approved hash="104,1,416.56,355.6,IC13PWR,V+,+24V,,,"/>
+<approved hash="104,1,416.56,340.36,IC13PWR,V-,-8V,,,"/>
+<approved hash="104,1,408.94,355.6,IC3P,V+,+24V,,,"/>
+<approved hash="104,1,408.94,340.36,IC3P,V-,-8V,,,"/>
+<approved hash="104,1,330.2,25.4,IC15,VDDA,VREF,,,"/>
+<approved hash="104,1,330.2,22.86,IC15,VSSA,GND,,,"/>
+<approved hash="104,1,287.02,88.9,IC15PWR,VDD,+3V3,,,"/>
+<approved hash="104,1,289.56,53.34,IC15PWR,VSS,GND,,,"/>
+<approved hash="104,1,292.1,88.9,IC15PWR,VDD,+3V3,,,"/>
+<approved hash="104,1,294.64,53.34,IC15PWR,VSS,GND,,,"/>
+<approved hash="104,1,297.18,88.9,IC15PWR,VDD,+3V3,,,"/>
+<approved hash="104,1,457.2,53.34,IC4,VDD,+3V3,,,"/>
+<approved hash="104,1,472.44,132.08,IC5,VDD,+3V3,,,"/>
+<approved hash="104,1,403.86,355.6,IC16P,V+,+24V,,,"/>
+<approved hash="104,1,403.86,340.36,IC16P,V-,-8V,,,"/>
+<approved hash="104,1,142.24,309.88,IC22,VIN,+5V,,,"/>
+<approved hash="104,1,162.56,309.88,IC22,VOUT,+3V3,,,"/>
+<approved hash="113,1,130.071,279.931,FRAME1,,,,,"/>
+<approved hash="113,1,130.071,89.431,FRAME2,,,,,"/>
+<approved hash="113,1,401.851,279.931,FRAME3,,,,,"/>
+<approved hash="113,1,20.0406,288.193,VIN,,,,,"/>
+<approved hash="113,1,20.0406,278.033,GND,,,,,"/>
+<approved hash="113,1,421.877,36.9612,SDIO,,,,,"/>
+<approved hash="113,1,484.654,325.251,BAT_OUT,,,,,"/>
+<approved hash="113,1,451.781,99.1912,FRONTPANEL,,,,,"/>
+<approved hash="113,1,401.851,89.431,FRAME4,,,,,"/>
+<approved hash="113,1,382.139,157.28,VIN_CTRL,,,,,"/>
+</errors>
 </schematic>
 </drawing>
 <compatibility>
