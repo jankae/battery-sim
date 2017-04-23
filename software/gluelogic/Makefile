@@ -49,7 +49,7 @@ OCD		= openocd \
   
 # INCLUDES = -I$(SRCDIR) $(LIBINC)
 INCLUDES = $(LIBINC)
-CFLAGS  = $(CPU) $(CMSIS_OPT) $(OTHER_OPT) -Wall -fno-common -fdata-sections -ffunction-sections -fno-strict-aliasing -O2 $(INCLUDES) -g -Wfatal-errors -g 
+CFLAGS  = $(CPU) $(CMSIS_OPT) $(OTHER_OPT) -Wall -fno-common -fdata-sections -ffunction-sections -fno-strict-aliasing -O2 $(INCLUDES) -Wfatal-errors -g
 ASFLAGS = $(CFLAGS) -x assembler-with-cpp
 LDFLAGS = -Wl,--gc-sections,-Map=$*.map,-cref -T $(LDSCRIPT) $(CPU)
 ARFLAGS = cr
