@@ -2,9 +2,6 @@ literature
 data
 sim
 Packages
-software/batsim/.cproject
-software/batsim/.project
-software/batsim/.settings
 software/.metadata
 software/test
 software/RemoteSystemsTempFiles
@@ -19,3 +16,7 @@ software/batsim/Release
 *.out
 *.o
 *.dep
+*.a
+*.cproject
+*.project
+*.settings
