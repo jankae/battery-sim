@@ -11,4 +11,11 @@ software/RemoteSystemsTempFiles
 software/batsim/Debug
 software/batsim/Release
 *.dwb
-
+*.depend
+*.mxproject
+*.bin
+*.list
+*.map
+*.out
+*.o
+*.dep
