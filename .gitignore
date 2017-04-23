@@ -7,8 +7,11 @@ software/test
 software/RemoteSystemsTempFiles
 software/batsim/Debug
 software/batsim/Release
+software/gluelogic/build
+software/gluelogic/binary
+*.d
 *.dwb
-*.depend
+*.d
 *.mxproject
 *.bin
 *.list

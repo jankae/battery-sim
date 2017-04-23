@@ -1,115 +1,130 @@
-export
+ROOT_DIR = $(CURDIR)
 
-DEVICE_FAMILY = STM32F0xx
-DEVICE_TYPE = STM32F030x8
-STARTUP_FILE = stm32f030x8
-SYSTEM_FILE = stm32f0xx
+TARGET:=glue
+TOOLCHAIN_ROOT:=/usr
+TOOLCHAIN_PATH:=$(TOOLCHAIN_ROOT)/bin
+TOOLCHAIN_PREFIX:=arm-none-eabi
 
-CMSIS = Drivers/CMSIS
-CMSIS_DEVSUP = $(CMSIS)/Device/ST/$(DEVICE_FAMILY)/
-CMSIS_OPT = -D$(DEVICE_TYPE) -DUSE_HAL_DRIVER
-OTHER_OPT = "-D__weak=__attribute__((weak))" "-D__packed=__attribute__((__packed__))" 
-CPU = -mthumb -mcpu=cortex-m3
-SYSTEM = arm-none-eabi
+# Optimization level, can be [0, 1, 2, 3, s].
+OPTLVL:=3
+DBG:=-g
+#INSTRUMENTATION := -finstrument-functions
 
-#LDSCRIPT = STM32F407ZG_FLASH.ld
-LDSCRIPT = "SW4STM32/cubeMX/STM32F030C8Tx_FLASH.ld"
+STARTUP	:= $(ROOT_DIR)/Drivers/CMSIS/Device/ST/STM32F0xx/Source/Templates/gcc
 
-SRCDIR := Src/
-INCDIR := Inc/
+MODULES+= Src \
+	Drivers/STM32F0xx_HAL_Driver/Src \
 
-LIBDIR := Drivers/
-
-#LIBINC := $(shell find $(INCDIR) -name *.h -printf "-I%h/\n"|sort|uniq)
-#LIBINC += $(shell find $(LIBDIR) -name *.h -printf "-I%h/\n"|sort|uniq)
-#LIBINC += $(shell find $(MDLDIR) -name *.h -printf "-I%h/\n"|sort|uniq|sed -e 's/lwip\///'|sed -e 's/arch\///')
-
-LIBINC := -IInc
-LIBINC += -IDrivers/STM32F0xx_HAL_Driver/Inc
-LIBINC += -IDrivers/CMSIS/Include
-LIBINC += -IDrivers/CMSIS/Device/ST/STM32F0xx/Include
-
-LIBS := ./$(LIBDIR)/STM32F0xx_HAL_Driver/libstm32fw.a
-	   
-LIBS += -lm
-CC      = $(SYSTEM)-gcc
-CCDEP   = $(SYSTEM)-gcc
-LD      = $(SYSTEM)-gcc
-AR      = $(SYSTEM)-ar
-AS      = $(SYSTEM)-gcc
-OBJCOPY = $(SYSTEM)-objcopy
-OBJDUMP	= $(SYSTEM)-objdump
-GDB		= $(SYSTEM)-gdb
-SIZE	= $(SYSTEM)-size
-OCD		= openocd \
-		-f interface/stlink-v2.cfg \
-		-f target/stm32f0x.cfg
+INC_DIRS+= Inc \
+	Drivers/CMSIS/Device/ST/STM32F0xx/Include \
+	Drivers/CMSIS/Include \
+	Drivers/STM32F0xx_HAL_Driver/Inc \
 
 
-  
-# INCLUDES = -I$(SRCDIR) $(LIBINC)
-INCLUDES = $(LIBINC)
-CFLAGS  = $(CPU) $(CMSIS_OPT) $(OTHER_OPT) -Wall -fno-common -fdata-sections -ffunction-sections -fno-strict-aliasing -O2 $(INCLUDES) -Wfatal-errors -g
-ASFLAGS = $(CFLAGS) -x assembler-with-cpp
-LDFLAGS = -Wl,--gc-sections,-Map=$*.map,-cref -T $(LDSCRIPT) $(CPU)
-ARFLAGS = cr
-OBJCOPYFLAGS = -Obinary
-OBJDUMPFLAGS = -S
+LINKER_SCRIPT:=$(ROOT_DIR)/SW4STM32/cubeMX/STM32F030C8Tx_FLASH.ld
 
-STARTUP_OBJ = SW4STM32/startup_$(STARTUP_FILE).o
-SYSTEM_OBJ = Src/system_$(SYSTEM_FILE).o
 
-BIN = main.bin
+SRC_DIRS:= $(addprefix $(ROOT_DIR)/,$(MODULES))
+INC_DIRS+= $(MODULES)
+INCLUDE+= $(addprefix -I$(ROOT_DIR)/,$(INC_DIRS))
 
-OBJS = $(sort \
- $(patsubst %.c,%.o,$(wildcard Src/*.c)) \
- $(patsubst %.s,%.o,$(wildcard Src/*.s)) \
- $(STARTUP_OBJ) \
- $(SYSTEM_OBJ))
 
-all: $(BIN)
-	$(SIZE) main.out
+BUILD_BASE = $(CURDIR)/build
+BIN_DIR = $(CURDIR)/binary
 
-reset:
-	$(OCD) -c init -c "reset run" -c shutdown
-	#$(GDB) main.out <reset.gdb
+BUILD_DIR := $(addprefix $(BUILD_BASE)/,$(MODULES))
 
-flash: $(BIN)
-	$(OCD) -c init -c "reset halt" \
-	               -c "flash write_image erase "$(BIN)" 0x08000000" \
-			       -c "reset run" \
-	               -c shutdown
-	
-$(BIN): main.out
-	$(OBJCOPY) $(OBJCOPYFLAGS) main.out $(BIN)
-	$(OBJDUMP) $(OBJDUMPFLAGS) main.out > main.list
+# vpath is used so object files are written to the current directory instead
+# of the same directory as their source files
+#vpath %.c $(ROOT_DIR)/$(FREERTOS)/portable/MemMang \
+#	$(ROOT_DIR)/$(FATFS)/drivers \
+#	$(ROOT_DIR)/$(FATFS)/option \
+#	$(ROOT_DIR)/core/net/mac/
 
-main.out: $(LIBS) $(OBJS)
-	$(LD) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
 
-$(LIBS): libs
 
-libs:
-	@$(MAKE) -C $(LIBDIR)
+#vpath %.s $(STARTUP)
+ASRC=startup_stm32f030x8.s
 
-libclean: clean
-	@$(MAKE) -C $(LIBDIR) clean
+# miniDTN files
+SRC := $(foreach sdir,$(MODULES),$(wildcard $(sdir)/*.c))
+
+CDEFS+= -DSTM32F030x8
+CDEFS+= -DUSE_HAL_DRIVER
+CDEFS+= -DSTM32F0XX
+
+MCUFLAGS=-O$(OPTLVL) $(DBG) -MMD -std=gnu11 -Wall -Wextra -Wno-unused-parameter -fdata-sections -ffunction-sections -Wno-old-style-declaration -mcpu=cortex-m3 -mthumb 
+CFLAGS+=$(MCUFLAGS) $(INCLUDE) $(CDEFS)
+
+LDLIBS=-lc -lm -lnosys
+LDFLAGS=$(MCUFLAGS) -T$(LINKER_SCRIPT) $(LDLIBS) -Wl,--gc-sections
+
+CC=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)-gcc
+LD=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)-gcc
+OBJCOPY=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)-objcopy
+AS=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)-as
+AR=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)-ar
+GDB=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)-gdb
+SIZE=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)-size
+
+OBJ = $(SRC:%.c=$(BUILD_BASE)/%.o)
+
+all: checkdirs $(OBJ)
+	@echo [AS] $(ASRC)
+	@$(AS) -o $(ASRC:%.s=$(BUILD_BASE)/%.o) $(STARTUP)/$(ASRC)
+	@echo [LD] $(TARGET).elf
+	@$(CC) -o $(BIN_DIR)/$(TARGET).elf $(LDFLAGS) $(OBJ) $(ASRC:%.s=$(BUILD_BASE)/%.o)
+	@echo [OBJCOPY] $(TARGET).hex
+	@$(OBJCOPY) -O ihex $(BIN_DIR)/$(TARGET).elf $(BIN_DIR)/$(TARGET).hex
+	@echo [OBJCOPY] $(TARGET).bin
+	@$(OBJCOPY) -O binary $(BIN_DIR)/$(TARGET).elf $(BIN_DIR)/$(TARGET).bin
+	@$(SIZE) -A -x $(BIN_DIR)/$(TARGET).elf | grep "\.text\|\.data\|\.bss"
+
+-include $(OBJ:.o=.d)
+
+$(BUILD_BASE)/core/net/uDTN/dtn_apps.o: core/net/uDTN/dtn_apps.c core/net/uDTN/dtn_apps_includes.h
+	@echo [CC] $(INSTRUMENTATION) $<
+	@$(CC) $(CFLAGS) $(INSTRUMENTATION) $< -c -o $@
+
+$(BUILD_BASE)/%.o: %.c
+	@echo [CC] $(INSTRUMENTATION) $(notdir $<)
+	@$(CC) $(CFLAGS) $(INSTRUMENTATION) $< -c -o $@
+
+checkdirs: $(BUILD_DIR) $(BIN_DIR)
+#	@echo $(SRC)
+
+
+$(BUILD_DIR) $(BIN_DIR):
+	$(Q) mkdir -p $@
+
+
+.PHONY: clean
 
 clean:
-	-rm -f $(OBJS)
-	-rm -f main.list main.out main.hex main.map main.bin .depend
+	@echo [RM] OBJ
+	@rm -f $(OBJ)
+	@rm -f $(OBJ:.o=.d)
+	@rm -f $(ASRC:%.s=$(BUILD_BASE)/%.o)
+	@echo [RM] BIN
+	@rm -f $(BIN_DIR)/$(TARGET).elf
+	@rm -f $(BIN_DIR)/$(TARGET).hex
+	@rm -f $(BIN_DIR)/$(TARGET).bin
 
-depend dep: .depend
 
-include .depend
+flash: all
+	@st-flash --reset write $(BIN_DIR)/$(TARGET).bin 0x8000000
 
-.depend: Src/*.c
-	$(CCDEP) $(CFLAGS) -MM $^ | sed -e 's@.*.o:@Src/&@' > .depend 
+startgdb:
+	st-util -m &
+	sleep 1
 
-.c.o:
-	@echo cc $<
-	@$(CC) $(CFLAGS) -c -o $@ $<
+stopgdb:
+	killall st-util
 
-.s.o:
-	@echo as $<
-	@$(AS) $(ASFLAGS) -c -o $@ $<
+debug: startgdb
+	$(GDB) --args $(BIN_DIR)/$(TARGET).elf target extended remote :4242 b main
+	killall st-util
+
+idedebug: startgdb
+	qtcreator -debug $(BIN_DIR)/$(TARGET).elf,server=:4242 ./minidtn.creator
+	killall st-util
