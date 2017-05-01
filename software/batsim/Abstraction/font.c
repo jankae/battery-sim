@@ -775,7 +775,7 @@ const uint8_t font4x6[256][6] = {{0x00,0x00,0x00,0x00,0x00,0x00},	// 0x00
 		{0x00,0x00,0x00,0x00,0x00,0x00} 	// 0xFF
 };
 
-font_t Font_Small = { .data = font4x6, .width = 4, .height = 6 };
-font_t Font_Medium = { .data = font6x8, .width = 6, .height = 8 };
-font_t Font_Big = { .data = font12x16, .width = 12, .height = 16 };
+const font_t Font_Small = { .data = font4x6, .width = 4, .height = 6 };
+const font_t Font_Medium = { .data = font6x8, .width = 6, .height = 8 };
+const font_t Font_Big = { .data = font12x16, .width = 12, .height = 16 };
 

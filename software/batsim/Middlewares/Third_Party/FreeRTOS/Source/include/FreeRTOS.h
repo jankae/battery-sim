@@ -578,10 +578,6 @@ extern "C" {
 	#define traceEVENT_GROUP_SYNC_BLOCK( xEventGroup, uxBitsToSet, uxBitsToWaitFor )
 #endif
 
-#ifndef traceTASK_YIELD
-	#define traceTASK_YIELD()
-#endif
-
 #ifndef traceEVENT_GROUP_SYNC_END
 	#define traceEVENT_GROUP_SYNC_END( xEventGroup, uxBitsToSet, uxBitsToWaitFor, xTimeoutOccurred ) ( void ) xTimeoutOccurred
 #endif

@@ -14,19 +14,21 @@ typedef enum {
 	EVENT_TOUCH_RELEASED,
 	EVENT_TOUCH_DRAGGED,
 	EVENT_TOUCH_HELD,
-	EVENT_WINDOW_CLOSE
+	EVENT_WINDOW_CLOSE,
+	EVENT_BUTTON_CLICKED,
+	EVENT_ENCODER_MOVED
 } GUIEventType_t;
 
 struct event {
-    /* indicates the type of event */
+	/* indicates the type of event */
 	GUIEventType_t type;
 	/* data corresponding to the event type */
-    union {
+	union {
 		/* coordinates for position based events */
 		coords_t pos;
 		/* pointer to widget for widget based events */
 		widget_t *w;
-    };
+	};
 };
 
 #endif

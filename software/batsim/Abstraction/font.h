@@ -9,8 +9,8 @@ typedef struct {
     uint8_t height;
 } font_t;
 
-extern font_t Font_Small;
-extern font_t Font_Medium;
-extern font_t Font_Big;
+extern const font_t Font_Small;
+extern const font_t Font_Medium;
+extern const font_t Font_Big;
 
 #endif
