@@ -1,14 +1,13 @@
 #include "../Abstraction/touch.h"
 
-#define CS_LOW()			(GPIOB->BSRR = GPIO_PIN_3<<16u)
-#define CS_HIGH()			(GPIOB->BSRR = GPIO_PIN_3)
-#define DOUT_LOW()			(GPIOC->BSRR = GPIO_PIN_12<<16u)
-#define DOUT_HIGH()			(GPIOC->BSRR = GPIO_PIN_12)
-#define SCK_LOW()			(GPIOC->BSRR = GPIO_PIN_10<<16u)
-#define SCK_HIGH()			(GPIOC->BSRR = GPIO_PIN_10)
-#define DIN()				(GPIOC->IDR & GPIO_PIN_11)
-#define BUSY()				(!(GPIOB->IDR & GPIO_PIN_4))
-#define PENIRQ()			(!(GPIOB->IDR & GPIO_PIN_5))
+#define CS_LOW()			(GPIOB->BSRR = GPIO_PIN_7<<16u)
+#define CS_HIGH()			(GPIOB->BSRR = GPIO_PIN_7)
+#define DOUT_LOW()			(GPIOB->BSRR = GPIO_PIN_5<<16u)
+#define DOUT_HIGH()			(GPIOB->BSRR = GPIO_PIN_5)
+#define SCK_LOW()			(GPIOB->BSRR = GPIO_PIN_3<<16u)
+#define SCK_HIGH()			(GPIOB->BSRR = GPIO_PIN_3)
+#define DIN()				(GPIOB->IDR & GPIO_PIN_4)
+#define PENIRQ()			(!(GPIOB->IDR & GPIO_PIN_8))
 
 /* A2-A0 bits in control word */
 #define CHANNEL_X			(0x10)

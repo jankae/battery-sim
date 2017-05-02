@@ -1,15 +1,15 @@
 #include "display.h"
 
-#define RST_HIGH()			(GPIOB->BSRR = GPIO_PIN_9)
-#define RST_LOW()			(GPIOB->BSRR = GPIO_PIN_9<<16u)
-#define CS_HIGH()			(GPIOB->BSRR = GPIO_PIN_8)
-#define CS_LOW()			(GPIOB->BSRR = GPIO_PIN_8<<16u)
-#define RD_HIGH()			(GPIOC->BSRR = GPIO_PIN_9)
-#define RD_LOW()			(GPIOC->BSRR = GPIO_PIN_9<<16u)
-#define WR_HIGH()			(GPIOC->BSRR = GPIO_PIN_8)
-#define WR_LOW()			(GPIOC->BSRR = GPIO_PIN_8<<16u)
-#define RS_HIGH()			(GPIOC->BSRR = GPIO_PIN_7)
-#define RS_LOW()			(GPIOC->BSRR = GPIO_PIN_7<<16u)
+#define RST_HIGH()			(GPIOE->BSRR = GPIO_PIN_0)
+#define RST_LOW()			(GPIOE->BSRR = GPIO_PIN_0<<16u)
+#define CS_HIGH()			(GPIOB->BSRR = GPIO_PIN_9)
+#define CS_LOW()			(GPIOB->BSRR = GPIO_PIN_9<<16u)
+#define RD_HIGH()			(GPIOC->BSRR = GPIO_PIN_6)
+#define RD_LOW()			(GPIOC->BSRR = GPIO_PIN_6<<16u)
+#define WR_HIGH()			(GPIOB->BSRR = GPIO_PIN_15)
+#define WR_LOW()			(GPIOB->BSRR = GPIO_PIN_15<<16u)
+#define RS_HIGH()			(GPIOB->BSRR = GPIO_PIN_14)
+#define RS_LOW()			(GPIOB->BSRR = GPIO_PIN_14<<16u)
 
 color_t foreground;
 color_t background;
