@@ -54,7 +54,7 @@
 osThreadId defaultTaskHandle;
 
 /* USER CODE BEGIN Variables */
-
+SemaphoreHandle_t xMutexSPI3;
 /* USER CODE END Variables */
 
 /* Function prototypes -------------------------------------------------------*/
@@ -78,6 +78,7 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
+	xMutexSPI3 = xSemaphoreCreateMutex();
   /* USER CODE END RTOS_MUTEX */
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */

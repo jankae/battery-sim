@@ -1,4 +1,6 @@
-#include "../Abstraction/touch.h"
+#include "touch.h"
+
+#include "semphr.h"
 
 #define CS_LOW()			(GPIOB->BSRR = GPIO_PIN_7<<16u)
 #define CS_HIGH()			(GPIOB->BSRR = GPIO_PIN_7)
@@ -35,6 +37,7 @@ float scaleX = (float) TOUCH_RESOLUTION_X / 4096;
 float scaleY = (float) TOUCH_RESOLUTION_Y / 4096;
 
 extern SPI_HandleTypeDef hspi3;
+extern SemaphoreHandle_t xMutexSPI3;
 
 void touch_Init(void) {
 	CS_HIGH();
@@ -57,17 +60,25 @@ static uint16_t ADS7843_Read(uint8_t control) {
 	return read;
 }
 
-uint8_t touch_GetCoordinates(coords_t *c) {
+int8_t touch_GetCoordinates(coords_t *c) {
 	if(calibrating) {
 		/* don't report coordinates while calibrating */
 		return 0;
 	}
 	if (PENIRQ()) {
+		uint32_t rawY, rawX;
 		/* screen is being touched */
-		uint32_t rawX = ADS7843_Read(
-		CHANNEL_X | DIFFERENTIAL | BITS12 | PD_PENIRQ);
-		uint32_t rawY = ADS7843_Read(
-		CHANNEL_Y | DIFFERENTIAL | BITS12 | PD_PENIRQ);
+		/* Acquire SPI resource */
+		if (xSemaphoreTake(xMutexSPI3, 10)) {
+			rawX = ADS7843_Read(CHANNEL_X | DIFFERENTIAL | BITS12 | PD_PENIRQ);
+			rawY = ADS7843_Read(CHANNEL_Y | DIFFERENTIAL | BITS12 | PD_PENIRQ);
+
+			/* Release SPI resource */
+			xSemaphoreGive(xMutexSPI3);
+		} else {
+			/* SPI is busy */
+			return -1;
+		}
 		if (!PENIRQ()) {
 			/* touch has been released during measurement */
 			return 0;
@@ -82,6 +93,10 @@ uint8_t touch_GetCoordinates(coords_t *c) {
 }
 
 void touch_Calibrate(void) {
+	if(!xSemaphoreTake(xMutexSPI3, 500)) {
+		/* SPI is busy */
+		return;
+	}
 	calibrating = 1;
 	uint8_t done = 0;
 	/* display first calibration cross */
@@ -131,6 +146,9 @@ void touch_Calibrate(void) {
 	offsetY = 20 - p1.y * scaleY;
 
 	while(PENIRQ());
+
+	/* Release SPI resource */
+	xSemaphoreGive(xMutexSPI3);
 
 	calibrating = 0;
 }

@@ -99,6 +99,8 @@
 /* Private variables ---------------------------------------------------------*/
 static BYTE CardType; /* b0:MMC, b1:SDv1, b2:SDv2, b3:Block addressing */
 extern SPI_HandleTypeDef hspi3;
+extern SemaphoreHandle_t xMutexSPI3;
+uint8_t mutexAcquired = 0;
 /* Disk status */
 static volatile DSTATUS Stat = STA_NOINIT;
 
@@ -154,6 +156,11 @@ void deselect(void) {
 
 	CS_H();
 	rcvr_mmc(&d, 1); /* Dummy clock (force DO hi-z for multiple slave SPI) */
+	/* Release SPI access */
+	if (mutexAcquired) {
+		xSemaphoreGive(xMutexSPI3);
+		mutexAcquired = 0;
+	}
 }
 
 /*-----------------------------------------------------------------------*/
@@ -164,13 +171,15 @@ static
 int select(void) /* 1:OK, 0:Timeout */
 {
 	BYTE d;
+	if (xSemaphoreTake(xMutexSPI3, 10)) {
+		mutexAcquired = 1;
+		CS_L();
+		rcvr_mmc(&d, 1); /* Dummy clock (force DO enabled) */
 
-	CS_L();
-	rcvr_mmc(&d, 1); /* Dummy clock (force DO enabled) */
-
-	if (wait_ready())
-		return 1; /* OK */
-	deselect();
+		if (wait_ready())
+			return 1; /* OK */
+		deselect();
+	}
 	return 0; /* Failed */
 }
 
