@@ -28,6 +28,8 @@ struct event {
 		coords_t pos;
 		/* pointer to widget for widget based events */
 		widget_t *w;
+		/* Button mask for button related events */
+		uint32_t button;
 	};
 };
 
