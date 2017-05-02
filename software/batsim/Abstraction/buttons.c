@@ -26,6 +26,11 @@
 #define PORT_IN_4			GPIOE
 #define PIN_IN_4			GPIO_PIN_3
 
+#define PORT_ENC_A			GPIOE
+#define PIN_ENC_A			GPIO_PIN_1
+#define PORT_ENC_B			GPIOE
+#define PIN_ENC_B			GPIO_PIN_2
+
 /* Matrix representation of the buttons */
 const uint32_t matrix[BUTTONS_ROWS][BUTTONS_COLUMNS] = {
 		{BUTTON_1,			BUTTON_2,			BUTTON_3,			BUTTON_ENCODER},
@@ -36,10 +41,18 @@ const uint32_t matrix[BUTTONS_ROWS][BUTTONS_COLUMNS] = {
 		{0,					0,					0,					0},
 };
 
+const int8_t encTable[16] = { 0, 0, -1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, -1, 0, 0 };
+
 /* Current state of the buttons */
 uint32_t state;
 /* Active row of the button matrix */
 uint8_t selectedRow;
+/* Last state of encoder lines */
+uint8_t lastEnc;
+/* Direction of last encoder movement */
+int8_t lastEncDir;
+/* Timestamp of last encoder movement */
+uint32_t lastEncChangeTime;
 
 
 /**
@@ -115,6 +128,8 @@ void buttons_Init() {
 	/* no button is pressed at the beginning */
 	state = 0;
 	selectedRow = 0;
+	lastEnc = 0;
+	lastEncChangeTime = 0;
 	setRow(selectedRow);
 }
 
@@ -165,5 +180,42 @@ void buttons_Update(void) {
 				}
 			}
 		}
+	}
+
+	/* Check encoder */
+	lastEnc = (lastEnc << 2) & 0x0F;
+	if (PORT_ENC_A->IDR & PIN_ENC_A)
+		lastEnc |= 0x02;
+	if (PORT_ENC_B->IDR & PIN_ENC_B)
+		lastEnc |= 0x01;
+
+	if (encTable[lastEnc]) {
+		/* got some encoder movement */
+		int32_t movement = encTable[lastEnc];
+		/* calculate time since last movement */
+		uint32_t timediff = xTaskGetTickCountFromISR() - lastEncChangeTime;
+		/* update change timestamp */
+		lastEncChangeTime += timediff;
+
+		if (lastEncDir != encTable[lastEnc]) {
+			/* direction has changed, report only one encoder step */
+			/* store direction of movement */
+			lastEncDir = encTable[lastEnc];
+		} else {
+			/* consecutive turn in the same direction */
+			/* set movement depending on encoder speed */
+			// TODO test and adjust timing constant
+			uint16_t multiplier = 500 / timediff;
+			if (multiplier) {
+				/* speed up movement during fast rotations */
+				movement *= multiplier;
+			}
+		}
+
+		/* notify GUI of movement */
+		GUIEvent_t ev;
+		ev.type = EVENT_ENCODER_MOVED;
+		ev.movement = movement;
+		gui_SendEvent(&ev);
 	}
 }

@@ -30,6 +30,8 @@ struct event {
 		widget_t *w;
 		/* Button mask for button related events */
 		uint32_t button;
+		/* Encoder movement */
+		int32_t movement;
 	};
 };
 
