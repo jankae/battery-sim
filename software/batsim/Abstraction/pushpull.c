@@ -21,7 +21,7 @@
 extern ADC_HandleTypeDef hadc1;
 extern ADC_HandleTypeDef hadc2;
 extern ADC_HandleTypeDef hadc3;
-extern DAC_HandleTypeDef hdac;
+//extern DAC_HandleTypeDef hdac;
 
 struct {
 	/* Controlling task */
@@ -95,8 +95,8 @@ void pushpull_Init(void) {
 	HAL_ADC_Start(&hadc2);
 	HAL_ADCEx_MultiModeStart_DMA(&hadc1, (uint32_t*) rawADCCurrent,
 			PUSHPULL_CURRENT_SAMPLES);
-	HAL_DAC_Start(&hdac, DAC_CHANNEL_2);
-	HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
+//	HAL_DAC_Start(&hdac, DAC_CHANNEL_2);
+//	HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
 	pushpull_SetVoltage(0);
 	pushpull_SetCurrentLimit(0);
 }

@@ -1,12 +1,12 @@
 literature
 data
-sim
+sim/
 Packages
 software/.metadata
 software/test
 software/RemoteSystemsTempFiles
-software/batsim/Debug
-software/batsim/Release
+software/batsim/build
+software/batsim/binary
 software/gluelogic/build
 software/gluelogic/binary
 *.d
