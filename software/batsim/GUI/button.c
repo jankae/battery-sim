@@ -37,7 +37,7 @@ button_t* button_new(const char *name, font_t font, uint8_t minWidth, void (*cb)
 	return button;
 }
 
-GUIResult_t button_draw(widget_t *w, coords_t offset) {
+void button_draw(widget_t *w, coords_t offset) {
     button_t *b = (button_t*) w;
     /* calculate corners */
     coords_t upperLeft = offset;
@@ -83,7 +83,7 @@ GUIResult_t button_draw(widget_t *w, coords_t offset) {
 //        screen_FullRectangle(upperLeft.x + 1, upperLeft.y + 1,
 //                lowerRight.x - 2, lowerRight.y - 2, PIXEL_INVERT);
 //    }
-    return GUI_OK;
+    return;
 }
 
 void button_input(widget_t *w, GUIEvent_t *ev) {

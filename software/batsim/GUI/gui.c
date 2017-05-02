@@ -46,7 +46,6 @@ static void guiThread(void) {
 		if (topWidget) {
 			widget_draw(topWidget, COORDS(0, 0));
 		}
-		usb_DisplayFlush();
 	}
 }
 
@@ -55,7 +54,7 @@ void gui_Init(void) {
 	eventQueue = xQueueCreate(10, sizeof(GUIEvent_t));
 
 	/* create GUI thread */
-	xTaskCreate(guiThread, "GUI", 300, NULL, 3, NULL);
+	xTaskCreate((TaskFunction_t )guiThread, "GUI", 300, NULL, 3, NULL);
 }
 
 void gui_SendEvent(GUIEvent_t *ev) {

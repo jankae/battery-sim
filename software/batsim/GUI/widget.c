@@ -239,7 +239,7 @@ void widget_input(widget_t *w, GUIEvent_t *ev) {
 			}
 		}
 		break;
-	case EVENT_NONE:
+	default:
 		break;
 	}
 //    /* First pass it on to any active child */

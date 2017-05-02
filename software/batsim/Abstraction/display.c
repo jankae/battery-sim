@@ -1,4 +1,4 @@
-#include "../Abstraction/display.h"
+#include "display.h"
 
 #define RST_HIGH()			(GPIOB->BSRR = GPIO_PIN_9)
 #define RST_LOW()			(GPIOB->BSRR = GPIO_PIN_9<<16u)
@@ -323,7 +323,7 @@ void display_Char(uint16_t x, uint16_t y, uint8_t c) {
 	setXY(x, y, x + font.width - 1, y + font.height - 1);
 	/* number of bytes in font per row */
 	uint8_t yInc = (font.width - 1) / 8 + 1;
-	uint8_t *charIndex = font.data + c * yInc * font.height;
+	const uint8_t *charIndex = font.data + c * yInc * font.height;
 	uint8_t i, j;
 	uint8_t startMask = 0x80 >> (yInc * 8 - font.width);
 	for (i = 0; i < font.height; i++) {
@@ -363,7 +363,7 @@ void display_Image(uint16_t x, uint16_t y, const Image_t *im) {
 //	usb_DisplayCommand(3, y + im->height - 1);
 	setXY(x, y, x + im->width - 1, y + im->height - 1);
 	uint32_t i = im->width * im->height;
-	uint16_t *ptr = im->data;
+	const uint16_t *ptr = im->data;
 	for (; i > 0; i--) {
 		writeData(*ptr++);
 //		usb_DisplayCommand(4, *ptr++);
@@ -376,7 +376,7 @@ void display_ImageGrayscale(uint16_t x, uint16_t y, const Image_t *im){
 	//	usb_DisplayCommand(3, y + im->height - 1);
 	setXY(x, y, x + im->width - 1, y + im->height - 1);
 	uint32_t i = im->width * im->height;
-	uint16_t *ptr = im->data;
+	const uint16_t *ptr = im->data;
 	for (; i > 0; i--) {
 		/* convert to grayscale */
 		uint16_t gray = COLOR_R(*ptr) + COLOR_G(*ptr) + COLOR_B(*ptr);

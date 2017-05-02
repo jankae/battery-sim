@@ -4,6 +4,7 @@
 
 #include "definitions.h"
 #include "gui.h"
+#include "task.h"
 
 #define DESKTOP_MAX_APPS		5
 

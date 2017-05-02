@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include "display.h"
+#include "FreeRTOS.h"
 #include "common.h"
 
 typedef struct widgetFunctions widgetFunctions_t;

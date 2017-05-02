@@ -64,5 +64,5 @@ static void inputThread(void) {
 
 void input_Init(){
 	/* create GUI thread */
-	xTaskCreate(inputThread, "input", 300, NULL, 3, NULL);
+	xTaskCreate((TaskFunction_t )inputThread, "input", 300, NULL, 3, NULL);
 }

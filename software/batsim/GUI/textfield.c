@@ -21,7 +21,7 @@ textfield_t* textfield_new(const char *text, const font_t font,
 	uint16_t maxWidth = 0;
 	uint16_t height = font.height;
 	uint16_t width = 0;
-	char *s = text;
+	const char *s = text;
 	while (*text) {
 		if (*text == '\n') {
 			height += font.height;

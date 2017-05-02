@@ -2,6 +2,7 @@
 #define GUI_GUI_H_
 
 #include "FreeRTOS.h"
+#include "queue.h"
 #include "button.h"
 #include "container.h"
 #include "window.h"

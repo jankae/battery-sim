@@ -1,3 +1,0 @@
-[submodule "software/batsim/USB"]
-	path = software/batsim/USB
-	url = https://gitlab.ibr.cs.tu-bs.de/stm32/generic_usb_driver.git

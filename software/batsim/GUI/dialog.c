@@ -127,7 +127,8 @@ static void inputDialog_Finished(widget_t *source) {
 	*dialog.input.ptr = (int32_t) value;
 
 	/* destroy dialog */
-	GUIEvent_t ev = { .type = EVENT_WINDOW_CLOSE, .w = dialog.window };
+	GUIEvent_t ev =
+			{ .type = EVENT_WINDOW_CLOSE, .w = (widget_t*) dialog.window };
 	gui_SendEvent(&ev);
 }
 
@@ -160,21 +161,21 @@ void dialog_InputValue(int32_t * const result,
 	container_t *c = container_new(window_GetAvailableArea(w));
 #define KEY_OFFSET_X		130
 #define KEY_OFFSET_Y		1
-	container_attach(c, label, COORDS(0, 15));
-	container_attach(c, b7, COORDS(KEY_OFFSET_X + 0, KEY_OFFSET_Y + 0));
-	container_attach(c, b8, COORDS(KEY_OFFSET_X + 33, KEY_OFFSET_Y + 0));
-	container_attach(c, b9, COORDS(KEY_OFFSET_X + 66, KEY_OFFSET_Y + 0));
-	container_attach(c, b4, COORDS(KEY_OFFSET_X + 0, KEY_OFFSET_Y + 25));
-	container_attach(c, b5, COORDS(KEY_OFFSET_X + 33, KEY_OFFSET_Y + 25));
-	container_attach(c, b6, COORDS(KEY_OFFSET_X + 66, KEY_OFFSET_Y + 25));
-	container_attach(c, b1, COORDS(KEY_OFFSET_X + 0, KEY_OFFSET_Y + 50));
-	container_attach(c, b2, COORDS(KEY_OFFSET_X + 33, KEY_OFFSET_Y + 50));
-	container_attach(c, b3, COORDS(KEY_OFFSET_X + 66, KEY_OFFSET_Y + 50));
-	container_attach(c, b0, COORDS(KEY_OFFSET_X + 0, KEY_OFFSET_Y + 75));
-	container_attach(c, bdot, COORDS(KEY_OFFSET_X + 33, KEY_OFFSET_Y + 75));
-	container_attach(c, bdel, COORDS(KEY_OFFSET_X + 66, KEY_OFFSET_Y + 75));
+	container_attach(c, (widget_t*) label, COORDS(0, 15));
+	container_attach(c, (widget_t*) b7, COORDS(KEY_OFFSET_X + 0, KEY_OFFSET_Y + 0));
+	container_attach(c, (widget_t*) b8, COORDS(KEY_OFFSET_X + 33, KEY_OFFSET_Y + 0));
+	container_attach(c, (widget_t*) b9, COORDS(KEY_OFFSET_X + 66, KEY_OFFSET_Y + 0));
+	container_attach(c, (widget_t*) b4, COORDS(KEY_OFFSET_X + 0, KEY_OFFSET_Y + 25));
+	container_attach(c, (widget_t*) b5, COORDS(KEY_OFFSET_X + 33, KEY_OFFSET_Y + 25));
+	container_attach(c, (widget_t*) b6, COORDS(KEY_OFFSET_X + 66, KEY_OFFSET_Y + 25));
+	container_attach(c, (widget_t*) b1, COORDS(KEY_OFFSET_X + 0, KEY_OFFSET_Y + 50));
+	container_attach(c, (widget_t*) b2, COORDS(KEY_OFFSET_X + 33, KEY_OFFSET_Y + 50));
+	container_attach(c, (widget_t*) b3, COORDS(KEY_OFFSET_X + 66, KEY_OFFSET_Y + 50));
+	container_attach(c, (widget_t*) b0, COORDS(KEY_OFFSET_X + 0, KEY_OFFSET_Y + 75));
+	container_attach(c, (widget_t*) bdot, COORDS(KEY_OFFSET_X + 33, KEY_OFFSET_Y + 75));
+	container_attach(c, (widget_t*) bdel, COORDS(KEY_OFFSET_X + 66, KEY_OFFSET_Y + 75));
 	// TODO find a place for sign toggle
-	container_attach(c, bsign, COORDS(KEY_OFFSET_X - 33, KEY_OFFSET_Y + 50));
+	container_attach(c, (widget_t*) bsign, COORDS(KEY_OFFSET_X - 33, KEY_OFFSET_Y + 50));
 	/* unit selection buttons */
 	uint8_t i = 0;
 	/* position for first unit button is bottom left corner */
@@ -183,7 +184,7 @@ void dialog_InputValue(int32_t * const result,
 	while((*unit)[i]) {
 		/* got a unitElement_t */
 		button_t *b = button_new((*unit)[i]->name, Font_Big, 41, inputDialog_Finished);
-		container_attach(c, b, COORDS(x, y));
+		container_attach(c, (widget_t*) b, COORDS(x, y));
 		i++;
 		/* position for next button is right of this button */
 		x += 42;
@@ -204,7 +205,7 @@ void dialog_InputValue(int32_t * const result,
 	dialog.input.max = max;
 	dialog.input.unit = unit;
 
-	window_SetMainWidget(w, c);
+	window_SetMainWidget(w, (widget_t*) c);
 
 }
 
@@ -251,11 +252,11 @@ void dialog_MessageBox(const char * const title, const char * const msg,
 	windowSize.y += 50;
 	window_t *w = window_new(title, Font_Big, windowSize);
 	container_t *c = container_new(window_GetAvailableArea(w));
-	container_attach(c, text, COORDS(1, 2));
+	container_attach(c, (widget_t*) text, COORDS(1, 2));
 	switch (type) {
 	case MSG_OK: {
 		button_t *bOK = button_new("OK", Font_Big, 65, MessageBoxButton);
-		container_attach(c, bOK,
+		container_attach(c, (widget_t*) bOK,
 				COORDS((c->base.size.x - bOK->base.size.x) / 2,
 						c->base.size.y - bOK->base.size.y - 1));
 	}
@@ -263,10 +264,10 @@ void dialog_MessageBox(const char * const title, const char * const msg,
 	case MSG_ABORT_OK: {
 		button_t *bOK = button_new("OK", Font_Big, 65, MessageBoxButton);
 		button_t *bAbort = button_new("ABORT", Font_Big, 65, MessageBoxButton);
-		container_attach(c, bAbort,
+		container_attach(c, (widget_t*) bAbort,
 				COORDS(c->base.size.x / 2 - bAbort->base.size.x - 1,
 						c->base.size.y - bAbort->base.size.y - 1));
-		container_attach(c, bOK,
+		container_attach(c, (widget_t*) bOK,
 				COORDS(c->base.size.x / 2 + 1,
 						c->base.size.y - bOK->base.size.y - 1));
 
@@ -277,7 +278,7 @@ void dialog_MessageBox(const char * const title, const char * const msg,
 	dialog.window = w;
 	dialog.msgbox.cb = cb;
 
-	window_SetMainWidget(w, c);
+	window_SetMainWidget(w, (widget_t*) c);
 }
 
 

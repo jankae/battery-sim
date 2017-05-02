@@ -21,7 +21,7 @@ typedef struct {
 } button_t;
 
 button_t* button_new(const char *name, font_t font, uint8_t minWidth, void (*cb)(widget_t*));
-GUIResult_t button_draw(widget_t *w, coords_t offset);
+void button_draw(widget_t *w, coords_t offset);
 void button_input(widget_t *w, GUIEvent_t *ev);
 
 #endif

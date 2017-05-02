@@ -1,12 +1,10 @@
 #ifndef DISPLAY_H_
 #define DISPLAY_H_
 
-//#include "gpio.h"
+#include "gpio.h"
 #include "font.h"
 #include "color.h"
 #include "common.h"
-// TODO remove
-#include "usb_configuration.h"
 
 #define DISPLAY_WIDTH		320
 #define DISPLAY_HEIGHT		240
