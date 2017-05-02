@@ -116,8 +116,8 @@ inline void setXStop(uint16_t stop) {
 
 void setXY(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) {
 	/* convert to landscape mode */
-	x0 = DISPLAY_WIDTH - x0 - 1;
-	x1 = DISPLAY_WIDTH - x1 - 1;
+	y0 = DISPLAY_HEIGHT - y0 - 1;
+	y1 = DISPLAY_HEIGHT - y1 - 1;
 	/* set start and stop values */
 	setYStartStop(y0, y1);
 	setXStart(x1);
@@ -160,7 +160,7 @@ void SSD1289_Init(void) {
 	/* disable sleep mode */
 	writeRegister(0x10, 0x0000);
 	/* 65k color mode, automatic increase of address counter */
-	writeRegister(0x11, 0x6058);
+	writeRegister(0x11, 0x6068);
 	/* clear compare registers */
 	writeRegister(0x05, 0x0000);
 	writeRegister(0x06, 0x0000);
