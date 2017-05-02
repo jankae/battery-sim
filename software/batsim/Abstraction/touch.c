@@ -2,11 +2,11 @@
 
 #define CS_LOW()			(GPIOB->BSRR = GPIO_PIN_7<<16u)
 #define CS_HIGH()			(GPIOB->BSRR = GPIO_PIN_7)
-#define DOUT_LOW()			(GPIOB->BSRR = GPIO_PIN_5<<16u)
-#define DOUT_HIGH()			(GPIOB->BSRR = GPIO_PIN_5)
-#define SCK_LOW()			(GPIOB->BSRR = GPIO_PIN_3<<16u)
-#define SCK_HIGH()			(GPIOB->BSRR = GPIO_PIN_3)
-#define DIN()				(GPIOB->IDR & GPIO_PIN_4)
+//#define DOUT_LOW()			(GPIOB->BSRR = GPIO_PIN_5<<16u)
+//#define DOUT_HIGH()			(GPIOB->BSRR = GPIO_PIN_5)
+//#define SCK_LOW()			(GPIOB->BSRR = GPIO_PIN_3<<16u)
+//#define SCK_HIGH()			(GPIOB->BSRR = GPIO_PIN_3)
+//#define DIN()				(GPIOB->IDR & GPIO_PIN_4)
 #define PENIRQ()			(!(GPIOB->IDR & GPIO_PIN_8))
 
 /* A2-A0 bits in control word */
@@ -34,48 +34,26 @@ int32_t offsetX = 0, offsetY = 0;
 float scaleX = (float) TOUCH_RESOLUTION_X / 4096;
 float scaleY = (float) TOUCH_RESOLUTION_Y / 4096;
 
+extern SPI_HandleTypeDef hspi3;
+
 void touch_Init(void) {
 	CS_HIGH();
 }
 
 static uint16_t ADS7843_Read(uint8_t control) {
-	SCK_LOW();
-	HAL_Delay(1);
 	CS_LOW();
 	HAL_Delay(1);
 	/* highest bit in control must always be one */
 	control |= 0x80;
 	uint16_t read = 0;
-	uint8_t i;
 	/* transmit control word */
-	for (i = 0; i < 8; i++) {
-		if (control & 0x80) {
-			DOUT_HIGH();
-		} else {
-			DOUT_LOW();
-		}
-		SCK_HIGH();
-		HAL_Delay(1);
-		SCK_LOW();
-		HAL_Delay(1);
-		control <<= 1;
-	}
+	HAL_SPI_Transmit(&hspi3, &control, 1, 10);
 	/* read ADC result */
-	for (i = 0; i < 16; i++) {
-		read <<= 1;
-		if (DIN()) {
-			read |= 1;
-		}
-		SCK_HIGH();
-		HAL_Delay(1);
-		SCK_LOW();
-		HAL_Delay(1);
-	}
+	HAL_SPI_Receive(&hspi3, (uint8_t*) &read, 2, 10);
 	/* shift and mask 12-bit result */
 	read >>= 3;
 	read &= 0x0FFF;
 	CS_HIGH();
-	HAL_Delay(1);
 	return read;
 }
 
