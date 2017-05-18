@@ -37,6 +37,7 @@
 #include "dma.h"
 #include "i2c.h"
 #include "spi.h"
+#include "tim.h"
 #include "gpio.h"
 
 /* USER CODE BEGIN Includes */
@@ -47,15 +48,15 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-#define SPI_BLOCK_SIZE        9
+#define SPI_BLOCK_SIZE        10
 /* SPI block words */
-#define SPI_COMMAND_WORD      1
-#define SPI_DAC1_CH_A         2
-#define SPI_DAC1_CH_B         3
-#define SPI_DAC2_CH_A         4
-#define SPI_DAC2_CH_B         5
-#define SPI_DAC3              6
-#define SPI_POT               7
+#define SPI_COMMAND_WORD      0
+#define SPI_DAC1_CH_A         1
+#define SPI_DAC1_CH_B         2
+#define SPI_DAC2_CH_A         3
+#define SPI_DAC2_CH_B         4
+#define SPI_DAC3              5
+#define SPI_POT               6
 
 /* SPI command word flags */
 #define SPI_COMMAND_OUTPUT    0x01
@@ -72,8 +73,7 @@ uint16_t spiCtrl[SPI_BLOCK_SIZE];
 
 extern ADC_HandleTypeDef hadc;
 extern SPI_HandleTypeDef hspi2;
-extern DMA_HandleTypeDef hdma_spi2_rx;
-extern DMA_HandleTypeDef hdma_spi2_tx;
+extern TIM_HandleTypeDef htim6;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -82,54 +82,66 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
-#define SPI_SYNC_WORD   0xAAAA
 
-void transferComplete(DMA_HandleTypeDef * _hdma) {
-  /* received 9 words via SPI */
-  /* check if still synchronized */
-  if(spiCtrl[0] == SPI_SYNC_WORD) {
-    /* handle received commands */
-    if(spiCtrl[SPI_COMMAND_WORD] & SPI_COMMAND_OUTPUT) {
-      /* enable output relay */
-      HAL_GPIO_WritePin(OUTPUT_ENABLE_GPIO_Port, OUTPUT_ENABLE_Pin, GPIO_PIN_SET);
-    } else {
-      /* disable output relay */
-      HAL_GPIO_WritePin(OUTPUT_ENABLE_GPIO_Port, OUTPUT_ENABLE_Pin, GPIO_PIN_RESET);
-    }
+void transferComplete(void) {
+	/* handle received commands */
+	if (spiCtrl[SPI_COMMAND_WORD] & SPI_COMMAND_OUTPUT) {
+		/* enable output relay */
+		HAL_GPIO_WritePin(OUTPUT_ENABLE_GPIO_Port, OUTPUT_ENABLE_Pin,
+				GPIO_PIN_SET);
+	} else {
+		/* disable output relay */
+		HAL_GPIO_WritePin(OUTPUT_ENABLE_GPIO_Port, OUTPUT_ENABLE_Pin,
+				GPIO_PIN_RESET);
+	}
 
-    /* Relay DAC data */
-    if(spiCtrl[SPI_COMMAND_WORD] & SPI_COMMAND_DAC1_CH_A) {
-      DAC8552_SetChannel(0, 0, spiCtrl[SPI_DAC1_CH_A]);
-    }
-    if(spiCtrl[SPI_COMMAND_WORD] & SPI_COMMAND_DAC1_CH_B) {
-      DAC8552_SetChannel(0, 1, spiCtrl[SPI_DAC1_CH_B]);
-    }
-    if(spiCtrl[SPI_COMMAND_WORD] & SPI_COMMAND_DAC2_CH_A) {
-      DAC8552_SetChannel(1, 0, spiCtrl[SPI_DAC2_CH_A]);
-    }
-    if(spiCtrl[SPI_COMMAND_WORD] & SPI_COMMAND_DAC2_CH_B) {
-      DAC8552_SetChannel(1, 1, spiCtrl[SPI_DAC2_CH_B]);
-    }
-    if(spiCtrl[SPI_COMMAND_WORD] & SPI_COMMAND_DAC3) {
-      MCP47X6_SetChannel(spiCtrl[SPI_DAC3]);
-    }
-    /* Relay digital potentiometer data */
-    if(spiCtrl[SPI_COMMAND_WORD] & SPI_COMMAND_POT) {
-      MCP41HVX1_SetWiper(spiCtrl[SPI_POT]);
-    }
+	/* Relay DAC data */
+	if (spiCtrl[SPI_COMMAND_WORD] & SPI_COMMAND_DAC1_CH_A) {
+		DAC8552_SetChannel(0, 0, spiCtrl[SPI_DAC1_CH_A]);
+	}
+	if (spiCtrl[SPI_COMMAND_WORD] & SPI_COMMAND_DAC1_CH_B) {
+		DAC8552_SetChannel(0, 1, spiCtrl[SPI_DAC1_CH_B]);
+	}
+	if (spiCtrl[SPI_COMMAND_WORD] & SPI_COMMAND_DAC2_CH_A) {
+		DAC8552_SetChannel(1, 0, spiCtrl[SPI_DAC2_CH_A]);
+	}
+	if (spiCtrl[SPI_COMMAND_WORD] & SPI_COMMAND_DAC2_CH_B) {
+		DAC8552_SetChannel(1, 1, spiCtrl[SPI_DAC2_CH_B]);
+	}
+	if (spiCtrl[SPI_COMMAND_WORD] & SPI_COMMAND_DAC3) {
+		MCP47X6_SetChannel(spiCtrl[SPI_DAC3]);
+	}
+	/* Relay digital potentiometer data */
+	if (spiCtrl[SPI_COMMAND_WORD] & SPI_COMMAND_POT) {
+		MCP41HVX1_SetWiper(spiCtrl[SPI_POT]);
+	}
+}
 
-  } else {
-    /* scrap last received SPI word and try again */
-    volatile uint16_t dummy = hspi2.Instance->DR;
-  }
-  /* Start DMAs again */
-  HAL_DMA_Start_IT(&hdma_spi2_rx, hspi2.Instance->DR, (uint32_t) spiCtrl, SPI_BLOCK_SIZE);
-  HAL_DMA_Start(&hdma_spi2_tx, hspi2.Instance->DR, (uint32_t) adcData, SPI_BLOCK_SIZE);
+void startSPITransfer(void) {
+	/* synchronize with master, this is necessary because NSS line is not available */
+	HAL_SPI_Abort(&hspi2);
+	/* wait for idle clock, SCL will never be low for more than 2us if transmission is active */
+	uint16_t idleSince = TIM6->CNT;
+	do {
+		if (GPIOB->IDR & GPIO_PIN_13) {
+			/* clock is high, reset timeout */
+			idleSince = TIM6->CNT;
+		}
+	} while (TIM6->CNT - idleSince < 8);
+	/* now the SPI is between transmissions and we start at the beginning of a frame */
+	HAL_SPI_TransmitReceive_DMA(&hspi2, (uint8_t*) adcData, (uint8_t*) spiCtrl,
+			SPI_BLOCK_SIZE);
 }
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
 
+void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi) {
+	/* apply transferred control commands */
+	transferComplete();
+	/* restart SPI for the next transfer */
+	startSPITransfer();
+}
 /* USER CODE END 0 */
 
 int main(void)
@@ -154,27 +166,24 @@ int main(void)
   MX_I2C2_Init();
   MX_SPI1_Init();
   MX_SPI2_Init();
+  MX_TIM6_Init();
 
   /* USER CODE BEGIN 2 */
+  HAL_TIM_Base_Start(&htim6);
   /* Initialize external DACs */
   Peripheral_Init();
   /* Start ADC sampling */
-  HAL_ADC_Start_DMA(&hadc, (uint32_t*)adcData, 9);
+  HAL_ADC_Start_DMA(&hadc, (uint32_t*)adcData, SPI_BLOCK_SIZE);
 
-  /* Configure DMAs for SPI slave */
-  /* receiving data goes into buffer */
-  HAL_DMA_RegisterCallback(&hdma_spi2_rx, HAL_DMA_XFER_CPLT_CB_ID,
-      transferComplete);
-  HAL_DMA_Start_IT(&hdma_spi2_rx, hspi2.Instance->DR, (uint32_t) spiCtrl, SPI_BLOCK_SIZE);
-  /* Transmitting data is read straight from the ADC buffer */
-  HAL_DMA_Start(&hdma_spi2_tx, hspi2.Instance->DR, (uint32_t) adcData, SPI_BLOCK_SIZE);
+  startSPITransfer();
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
-  {
+  HAL_SuspendTick();
+  while (1) {
+	  HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */

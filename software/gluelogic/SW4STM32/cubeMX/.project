@@ -25,6 +25,10 @@
 		<nature>fr.ac6.mcu.ide.core.MCUProjectNature</nature>
 	</natures>
 	<linkedResources><link>
+			<name>Application/User/tim.c</name>
+			<type>1</type>
+			<location>PARENT-2-PROJECT_LOC/Src/tim.c</location>
+		</link><link>
 			<name>Application/User/dma.c</name>
 			<type>1</type>
 			<location>PARENT-2-PROJECT_LOC/Src/dma.c</location>

@@ -9,6 +9,7 @@ software/batsim/build
 software/batsim/binary
 software/gluelogic/build
 software/gluelogic/binary
+software/spiTest
 *.d
 *.dwb
 *.d

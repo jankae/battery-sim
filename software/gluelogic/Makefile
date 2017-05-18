@@ -53,7 +53,7 @@ CDEFS+= -DSTM32F030x8
 CDEFS+= -DUSE_HAL_DRIVER
 CDEFS+= -DSTM32F0XX
 
-MCUFLAGS=-O$(OPTLVL) $(DBG) -MMD -std=gnu11 -Wall -Wextra -Wno-unused-parameter -fdata-sections -ffunction-sections -Wno-old-style-declaration -mcpu=cortex-m3 -mthumb 
+MCUFLAGS=-O$(OPTLVL) $(DBG) -MMD -std=gnu11 -Wall -Wextra -Wno-unused-parameter -fdata-sections -ffunction-sections -Wno-old-style-declaration -mcpu=cortex-m0 -mthumb 
 CFLAGS+=$(MCUFLAGS) $(INCLUDE) $(CDEFS)
 
 LDLIBS=-lc -lm -lnosys
@@ -81,10 +81,6 @@ all: checkdirs $(OBJ)
 	@$(SIZE) -A -x $(BIN_DIR)/$(TARGET).elf | grep "\.text\|\.data\|\.bss"
 
 -include $(OBJ:.o=.d)
-
-$(BUILD_BASE)/core/net/uDTN/dtn_apps.o: core/net/uDTN/dtn_apps.c core/net/uDTN/dtn_apps_includes.h
-	@echo [CC] $(INSTRUMENTATION) $<
-	@$(CC) $(CFLAGS) $(INSTRUMENTATION) $< -c -o $@
 
 $(BUILD_BASE)/%.o: %.c
 	@echo [CC] $(INSTRUMENTATION) $(notdir $<)
