@@ -169,6 +169,8 @@ int main(void)
   MX_TIM6_Init();
 
   /* USER CODE BEGIN 2 */
+  HAL_ADCEx_Calibration_Start(&hadc);
+
   HAL_TIM_Base_Start(&htim6);
   /* Initialize external DACs */
   Peripheral_Init();
