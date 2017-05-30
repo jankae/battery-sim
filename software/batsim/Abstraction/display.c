@@ -347,7 +347,7 @@ void display_Char(uint16_t x, uint16_t y, uint8_t c) {
 	}
 }
 
-void display_String(uint16_t x, uint16_t y, char *s) {
+void display_String(uint16_t x, uint16_t y, const char *s) {
 	while (*s) {
 		display_Char(x, y, *s++);
 		x += font.width;

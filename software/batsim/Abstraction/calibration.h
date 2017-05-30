@@ -5,29 +5,29 @@
 #include <string.h>
 
 /* Defines for automatic calculation of default calibration values */
-#define MAX_VOLTAGE_LOW_SCALE		5000000
-#define MAX_VOLTAGE_HIGH_SCALE		22500000//20000000 1k5 instead of 12k||2k for now
-#define MAX_CURRENT_LOW_ADC			303030
-#define MAX_CURRENT_HIGH_ADC		3030303
-#define MAX_PUSHPULL_OUT			21250000
-#define MAX_BATTERY					21648936
+#define MAX_VOLTAGE					19314705
+#define MAX_SOURCE_CURRENT			3000000
+#define MAX_SINK_CURRENT			3000000
+#define MAX_CURRENT_LOW_ADC			300000
+#define MAX_CURRENT_HIGH_ADC		3000000
+#define MAX_PUSHPULL_OUT			28050000
+#define MAX_BATTERY					28576596
 
-#define DAC_MAX						4096
+#define DAC_MAX						65536
 #define ADC_MAX_SINGLE				4096
 #define ADC_MAX_DIFF				2048
 
 typedef enum {
-	CAL_VOLTAGE_DAC_LOW = 0,
-	CAL_VOLTAGE_DAC_HIGH = 1,
-	CAL_ADC_CURRENT_OFFSET_LOW = 2,
-	CAL_ADC_CURRENT_OFFSET_HIGH = 3,
-	CAL_ADC_CURRENT_FACTOR_LOW = 4,
-	CAL_ADC_CURRENT_FACTOR_HIGH = 5,
-	CAL_ADC_PUSHPULL_OUT = 6,
-	CAL_ADC_BATTERY = 7
+	CAL_VOLTAGE_DAC = 0,
+	CAL_MAX_CURRENT_DAC = 1,
+	CAL_MIN_CURRENT_DAC = 2,
+	CAL_ADC_CURRENT_LOW = 3,
+	CAL_ADC_CURRENT_HIGH = 4,
+	CAL_ADC_PUSHPULL_OUT = 5,
+	CAL_ADC_BATTERY = 6
 } calEntryNum_t;
 
-#define CAL_NUMBER_OF_ENTRIES		8
+#define CAL_NUMBER_OF_ENTRIES		7
 
 /**
  * \brief Initializes the calibration data with default values

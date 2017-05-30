@@ -6,18 +6,16 @@ typedef struct {
 } calEntryData_t;
 
 const calEntryData_t defaultEntries[CAL_NUMBER_OF_ENTRIES] = {
-		/* low voltage to DAC */
-		{0.0f, (float) DAC_MAX / MAX_VOLTAGE_LOW_SCALE},
-		/* high voltage to DAC */
-		{0.0f, (float) DAC_MAX / MAX_VOLTAGE_HIGH_SCALE},
-		/* ADC to current offset low */
-		{0.0f, 0.0f},
-		/* ADC to current offset high */
-		{0.0f, 0.0f},
-		/* ADC to current factor low */
-		{0.0f, (float) MAX_CURRENT_LOW_ADC / ADC_MAX_DIFF},
-		/* ADC to current factor high */
-		{0.0f, (float) MAX_CURRENT_HIGH_ADC / ADC_MAX_DIFF},
+		/* voltage to DAC */
+		{0.0f, (float) DAC_MAX / MAX_VOLTAGE},
+		/* source current */
+		{0.0f, (float) DAC_MAX / MAX_SOURCE_CURRENT},
+		/* sink current */
+		{0.0f, (float) DAC_MAX / MAX_SINK_CURRENT},
+		/* ADC to current low */
+		{ADC_MAX_DIFF, (float) MAX_CURRENT_LOW_ADC / ADC_MAX_DIFF},
+		/* ADC to current high */
+		{ADC_MAX_DIFF, (float) MAX_CURRENT_HIGH_ADC / ADC_MAX_DIFF},
 		/* ADC to push/pull out */
 		{0.0f, (float) MAX_PUSHPULL_OUT / ADC_MAX_SINGLE},
 		/* ADC to battery voltage */

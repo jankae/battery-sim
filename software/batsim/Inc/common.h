@@ -25,7 +25,7 @@ typedef struct {
 
 typedef const unitElement_t *unit_t[];
 
-extern const unit_t Unit_Current;
+extern const unit_t Unit_Current, Unit_Voltage;
 
 #define COORDS(v1, v2)	((coords_t){.x=v1, .y=v2})
 #define SIZE(v1, v2)	COORDS(v1, v2)

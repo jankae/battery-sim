@@ -45,6 +45,7 @@
 #include "stm32f1xx_hal.h"
 #include "cmsis_os.h"
 #include "adc.h"
+#include "dma.h"
 #include "fatfs.h"
 #include "spi.h"
 #include "usart.h"
@@ -93,6 +94,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_ADC1_Init();
   MX_SPI1_Init();
   MX_SPI3_Init();
