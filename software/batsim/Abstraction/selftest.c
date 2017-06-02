@@ -1,13 +1,20 @@
 #include "selftest.h"
+#include "pushpull.h"
 
 #include "adc.h"
 
-/* Maximum allowed deviation of voltages in percent that still passes the test */
-#define VOLTAGE_MAX_DEV		10
+extern uint8_t pushpull_SPI_OK;
+extern uint16_t RawADC[SPI_BLOCK_SIZE];
+
 
 typedef enum {TEST_PASSED = 0, TEST_FAILED} TestResult_t;
 
-#define TEST_RESULT(exp, meas)	abs(((int16_t)(exp) - meas)*100/exp) <= VOLTAGE_MAX_DEV ? TEST_PASSED : TEST_FAILED
+/* Maximum allowed deviation of voltages in percent that still passes the test */
+#define VOLTAGE_MAX_DEV		5
+/* Tests whether exp and meas are the same value with some tolerance */
+#define TEST_PERCENTDEV(exp, meas)	abs(((int32_t)(exp) - meas)*100/exp) <= VOLTAGE_MAX_DEV ? TEST_PASSED : TEST_FAILED
+/* Tests a value for absolute limits */
+#define TEST_ABSLIMITS(min, max, meas) (meas>=min && meas<=max) ? TEST_PASSED : TEST_FAILED
 
 static uint16_t get_5VRail(void) {
 	uint16_t result[2];
@@ -27,6 +34,26 @@ static uint16_t get_3V3Rail(void) {
 	return 4915200UL / result[1];
 }
 
+static uint16_t get_3V3Rail_SPI(void) {
+	/* convert to mV, full scale ADC is around 1.2V -> 1200mV * 4096 = 4915200 */
+	return 4915200UL / RawADC[9];
+}
+
+static uint16_t get_5VRail_SPI(void) {
+	/* convert to mV, full scale ADC is 6.6V */
+	return (uint32_t) RawADC[8] * 6600 / 4096;
+}
+
+static uint16_t get_24VRail_SPI(void) {
+	/* convert to mV, full scale ADC is 36.3V */
+	return (uint32_t) RawADC[7] * 36300 / 4096;
+}
+
+static int16_t get_neg8VRail_SPI(void) {
+	/* convert to mV, full scale ADC is -15.51V */
+	return (int32_t) RawADC[6] * -15510 / 4096;
+}
+
 static void display_TestResult(const char *name, const char *result,
 		TestResult_t res) {
 	static uint8_t line = 1;
@@ -34,22 +61,23 @@ static void display_TestResult(const char *name, const char *result,
 	display_String(0, line * 16, name);
 	if (res == TEST_PASSED) {
 		display_SetForeground(COLOR_GREEN);
-		printf("%s%s PASSED\r\n", name, result);
+		printf("%s  %s PASSED\r\n", name, result);
 	} else if (res == TEST_FAILED) {
 		display_SetForeground(COLOR_RED);
-		printf("%s%s FAILED\r\n", name, result);
+		printf("%s %s FAILED\r\n", name, result);
 	}
-	display_String(160, line * 16, result);
+	display_String(200, line * 16, result);
 	line++;
 }
 
 uint8_t selftest_Run(void) {
+	HAL_ADCEx_Calibration_Start(&hadc1);
 	display_SetBackground(COLOR_BLACK);
 	display_SetForeground(COLOR_WHITE);
 	display_SetFont(Font_Big);
 	display_Clear();
 	display_String(0, 0, "Running selftest...");
-	printf("Running selftest...");
+	printf("Running selftest...\n");
 
 	char buffer[32];
 	TestResult_t res;
@@ -58,18 +86,109 @@ uint8_t selftest_Run(void) {
 
 	/* Check frontpanel board voltages */
 	meas = get_3V3Rail();
-	res = TEST_RESULT(3300, meas);
+	res = TEST_PERCENTDEV(3300, meas);
 	overallRes |= res;
-	common_StringFromValue(buffer, 4, meas * 1000, &Unit_Voltage);
-	display_TestResult("3.3V rail:", buffer, res);
+	common_StringFromValue(buffer, 6, meas * 1000, &Unit_Voltage);
+	display_TestResult("3.3V(1) rail:", buffer, res);
 
 	meas = get_5VRail();
-	res = TEST_RESULT(5000, meas);
+	res = TEST_PERCENTDEV(5000, meas);
 	overallRes |= res;
-	common_StringFromValue(buffer, 4, meas * 1000, &Unit_Voltage);
-	display_TestResult("5V rail:", buffer, res);
+	common_StringFromValue(buffer, 6, meas * 1000, &Unit_Voltage);
+	display_TestResult("5V(1) rail:", buffer, res);
 
-	// TODO check batsim board voltages and output stage
+	if(overallRes != TEST_PASSED) {
+		goto error;
+	}
+
+	/* Check connection to analog board */
+	if(pushpull_SPI_OK) {
+		display_TestResult("SPI Connection:", "OK", TEST_PASSED);
+	} else {
+		display_TestResult("SPI Connection:", "ERROR", TEST_FAILED);
+		goto error;
+	}
+
+	/* Check rails on analog board */
+	meas = get_3V3Rail_SPI();
+	res = TEST_PERCENTDEV(3300, meas);
+	overallRes |= res;
+	common_StringFromValue(buffer, 6, meas * 1000, &Unit_Voltage);
+	display_TestResult("3.3V(2) rail:", buffer, res);
+
+	meas = get_5VRail_SPI();
+	res = TEST_PERCENTDEV(5000, meas);
+	overallRes |= res;
+	common_StringFromValue(buffer, 6, meas * 1000, &Unit_Voltage);
+	display_TestResult("5V(2) rail:", buffer, res);
+
+	meas = get_24VRail_SPI();
+	res = TEST_PERCENTDEV(24000, meas);
+	overallRes |= res;
+	common_StringFromValue(buffer, 6, meas * 1000, &Unit_Voltage);
+	display_TestResult("24V rail:", buffer, res);
+
+	meas = get_neg8VRail_SPI();
+	res = TEST_PERCENTDEV(-8000, meas);
+	overallRes |= res;
+	common_StringFromValue(buffer, 6, meas * 1000, &Unit_Voltage);
+	display_TestResult("-8V rail:", buffer, res);
+
+	if(overallRes != TEST_PASSED) {
+		goto error;
+	}
+
+	/* Sanity check some output stage behavior */
+	/* Bias current should be close to zero at this point */
+	meas = pushpull_GetBiasCurrent();
+	res = TEST_ABSLIMITS(0, 15000, meas);
+	overallRes |= res;
+	common_StringFromValue(buffer, 6, meas, &Unit_Current);
+	display_TestResult("Bias current:", buffer, res);
+
+	/* Output current should be close to zero at this point */
+	meas = pushpull_GetCurrent();
+	res = TEST_ABSLIMITS(-10000, 10000, meas);
+	overallRes |= res;
+	common_StringFromValue(buffer, 6, meas, &Unit_Current);
+	display_TestResult("Output current:", buffer, res);
+
+	pushpull_AcquireControl();
+	pushpull_SetDriveCurrent(200);
+	pushpull_SetSinkCurrent(100000);
+	pushpull_SetSourceCurrent(100000);
+	pushpull_SetVoltage(1000000);
+	/* Wait for changes to take effect */
+	HAL_Delay(100);
+
+	/* Output voltage should be close to 1V at this point */
+	meas = pushpull_GetOutputVoltage();
+	/* Allow up to 250mV (Output does not reach GND) */
+	res = TEST_PERCENTDEV(1000000, meas);
+	overallRes |= res;
+	common_StringFromValue(buffer, 6, meas, &Unit_Voltage);
+	display_TestResult("Output low:", buffer, res);
+
+	/* Set high output voltage */
+	pushpull_SetVoltage(18000000);
+	/* Wait for changes to take effect */
+	HAL_Delay(100);
+
+	/* Output voltage should be around 18V */
+	meas = pushpull_GetOutputVoltage();
+	res = TEST_PERCENTDEV(18000000, meas);
+	overallRes |= res;
+	common_StringFromValue(buffer, 6, meas, &Unit_Voltage);
+	display_TestResult("Output high:", buffer, res);
+
+	pushpull_SetVoltage(0);
+	HAL_Delay(10);
+	pushpull_SetDriveCurrent(0);
+	pushpull_SetSinkCurrent(0);
+	pushpull_SetSourceCurrent(0);
+	pushpull_ReleaseControl();
+
+error:
 
 	return overallRes;
 }

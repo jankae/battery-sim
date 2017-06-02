@@ -67,9 +67,15 @@
 #define SPI_COMMAND_DAC3      0x20
 #define SPI_COMMAND_POT       0x40
 
-uint16_t adcData[SPI_BLOCK_SIZE];
 
+uint32_t adcSum[SPI_BLOCK_SIZE];
+uint16_t nValues;
+uint16_t adcBuffer[SPI_BLOCK_SIZE];
+
+uint16_t adcData[SPI_BLOCK_SIZE];
 uint16_t spiCtrl[SPI_BLOCK_SIZE];
+uint16_t lastCtrl[SPI_BLOCK_SIZE];
+//uint16_t dummyData[10] = {1,2,3,4,5,6,7,8,9,10};
 
 extern ADC_HandleTypeDef hadc;
 extern SPI_HandleTypeDef hspi2;
@@ -96,34 +102,46 @@ void transferComplete(void) {
 	}
 
 	/* Relay DAC data */
-	if (spiCtrl[SPI_COMMAND_WORD] & SPI_COMMAND_DAC1_CH_A) {
+	if (spiCtrl[SPI_DAC1_CH_A] != lastCtrl[SPI_DAC1_CH_A]) {
 		DAC8552_SetChannel(0, 0, spiCtrl[SPI_DAC1_CH_A]);
 	}
-	if (spiCtrl[SPI_COMMAND_WORD] & SPI_COMMAND_DAC1_CH_B) {
+	if (spiCtrl[SPI_DAC1_CH_B] != lastCtrl[SPI_DAC1_CH_B]) {
 		DAC8552_SetChannel(0, 1, spiCtrl[SPI_DAC1_CH_B]);
 	}
-	if (spiCtrl[SPI_COMMAND_WORD] & SPI_COMMAND_DAC2_CH_A) {
+	if (spiCtrl[SPI_DAC2_CH_A] != lastCtrl[SPI_DAC2_CH_A]) {
 		DAC8552_SetChannel(1, 0, spiCtrl[SPI_DAC2_CH_A]);
 	}
-	if (spiCtrl[SPI_COMMAND_WORD] & SPI_COMMAND_DAC2_CH_B) {
+	if (spiCtrl[SPI_DAC2_CH_B] != lastCtrl[SPI_DAC2_CH_B]) {
 		DAC8552_SetChannel(1, 1, spiCtrl[SPI_DAC2_CH_B]);
 	}
-	if (spiCtrl[SPI_COMMAND_WORD] & SPI_COMMAND_DAC3) {
+	if (spiCtrl[SPI_DAC3] != lastCtrl[SPI_DAC3]) {
 		MCP47X6_SetChannel(spiCtrl[SPI_DAC3]);
 	}
 	/* Relay digital potentiometer data */
-	if (spiCtrl[SPI_COMMAND_WORD] & SPI_COMMAND_POT) {
+	if (spiCtrl[SPI_POT] != lastCtrl[SPI_POT]) {
 		MCP41HVX1_SetWiper(spiCtrl[SPI_POT]);
 	}
+	uint8_t i;
+	for (i = 0; i < SPI_BLOCK_SIZE; i++) {
+		/* Store control words for detection of changes */
+		lastCtrl[i] = spiCtrl[i];
+		/* load ADC values into SPI data for next transmission */
+		adcData[i] = adcSum[i] / nValues;
+		adcSum[i] = 0;
+	}
+	nValues = 0;
 }
 
 void startSPITransfer(void) {
 	/* synchronize with master, this is necessary because NSS line is not available */
-	HAL_SPI_Abort(&hspi2);
+//	HAL_SPI_Abort(&hspi2);
 	/* wait for idle clock, SCL will never be low for more than 2us if transmission is active */
 	uint16_t idleSince = TIM6->CNT;
 	do {
 		if (GPIOB->IDR & GPIO_PIN_13) {
+			__HAL_RCC_SPI2_FORCE_RESET();
+			__HAL_RCC_SPI2_RELEASE_RESET();
+			MX_SPI2_Init();
 			/* clock is high, reset timeout */
 			idleSince = TIM6->CNT;
 		}
@@ -141,6 +159,22 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi) {
 	transferComplete();
 	/* restart SPI for the next transfer */
 	startSPITransfer();
+}
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
+	/* Copy ADC values */
+	adcSum[0] += adcBuffer[0];
+	adcSum[1] += adcBuffer[1];
+	adcSum[2] += adcBuffer[2];
+	adcSum[3] += adcBuffer[3];
+	adcSum[4] += adcBuffer[4];
+	adcSum[5] += adcBuffer[5];
+	adcSum[6] += adcBuffer[6];
+	adcSum[7] += adcBuffer[7];
+	adcSum[8] += adcBuffer[8];
+	adcSum[9] += adcBuffer[9];
+	/* one more sample acquired */
+	nValues++;
 }
 /* USER CODE END 0 */
 
@@ -175,7 +209,7 @@ int main(void)
   /* Initialize external DACs */
   Peripheral_Init();
   /* Start ADC sampling */
-  HAL_ADC_Start_DMA(&hadc, (uint32_t*)adcData, SPI_BLOCK_SIZE);
+  HAL_ADC_Start_DMA(&hadc, (uint32_t*)adcBuffer, SPI_BLOCK_SIZE);
 
   startSPITransfer();
 

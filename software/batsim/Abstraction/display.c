@@ -119,9 +119,9 @@ void setXY(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) {
 	y0 = DISPLAY_HEIGHT - y0 - 1;
 	y1 = DISPLAY_HEIGHT - y1 - 1;
 	/* set start and stop values */
-	setYStartStop(y0, y1);
-	setXStart(x1);
-	setXStop(x0);
+	setYStartStop(y1, y0);
+	setXStart(x0);
+	setXStop(x1);
 	/* start in top left corner */
 	writeRegister(0x4e, y0);
 	writeRegister(0x4f, x0);

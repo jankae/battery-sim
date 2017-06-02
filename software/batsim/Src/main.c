@@ -48,12 +48,14 @@
 #include "dma.h"
 #include "fatfs.h"
 #include "spi.h"
+#include "tim.h"
 #include "usart.h"
 #include "usb.h"
 #include "gpio.h"
 
 /* USER CODE BEGIN Includes */
-
+#include "display.h"
+#include "pushpull.h"
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -100,8 +102,24 @@ int main(void)
   MX_SPI3_Init();
   MX_USART1_UART_Init();
   MX_USB_PCD_Init();
+  MX_TIM3_Init();
 
   /* USER CODE BEGIN 2 */
+  HAL_Delay(10);
+  cal_Init();
+  pushpull_Init();
+  display_Init();
+  printf("Hello World\n");
+  HAL_Delay(100);
+  selftest_Run();
+extern PushPull_t pushpull;
+  pushpull_AcquireControl();
+  while(1) {
+//	  pushpull_SetEnabled(0);
+//	  HAL_Delay(1000);
+//	  pushpull_SetEnabled(1);
+//	  HAL_Delay(1000);
+  }
 
   /* USER CODE END 2 */
 
@@ -184,7 +202,11 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi) {
+	if (hspi->Instance == SPI1) {
+		pushpull_SPIComplete();
+	}
+}
 /* USER CODE END 4 */
 
 /**

@@ -1,72 +1,40 @@
 #include "../Abstraction/pushpull.h"
 
-#define SPI_BLOCK_SIZE				10
+#include "spi.h"
+#include "tim.h"
 
 #define PUSHPULL_DEFAULT_DRIVE		200
 
-typedef struct {
-	/* Controlling task */
-	TaskHandle_t control;
-	/* 'should' voltage of the Push-Pull-Stage */
-	uint32_t voltage;
-	/* maximum current allowed to flow */
-	uint32_t currentLimitSource;
-	uint32_t currentLimitSink;
-	/* Current flowing in(-) and out(+) of the Push-Pull-Stage */
-	int32_t outputCurrent;
-	/* Regulated voltage at the PP-Output */
-	uint32_t outputVoltage;
-	/* Voltage at the battery terminals */
-	uint32_t batteryVoltage;
-	/* Bias current through the high- and low-side (only accurate while output is off) */
-	uint32_t biasCurrent;
-	int32_t transferredCharge;
-	/* raw ADC values */
-	int32_t rawCurrentLow;
-	int32_t rawCurrentHigh;
-	uint32_t rawBatteryVoltage;
-	uint32_t rawOutputVoltage;
-	uint32_t rawBiasCurrent;
+static PushPull_t pushpull;
 
-	/* output state */
-	uint8_t enabled;
-
-	/* callback function called whenever a new current value is available */
-	void (*currentChangeCB)(int32_t newCurrent);
-
-	/* state variables for measuring average ADC values */
-	struct {
-		/* average measurement state */
-		volatile uint8_t enabled;
-		/* number of requested samples */
-		uint16_t samples;
-		/* sum of sampled values */
-		ppAvg_t values;
-	} avg;
-} PushPull_t;
-
-PushPull_t pushpull;
+uint8_t pushpull_SPI_OK;
 
 /* SPI block words */
-#define SPI_COMMAND_WORD      0
-#define SPI_DAC1_CH_A         1
-#define SPI_DAC1_CH_B         2
-#define SPI_DAC2_CH_A         3
-#define SPI_DAC2_CH_B         4
-#define SPI_DAC3              5
-#define SPI_POT               6
+#define SPI_COMMAND_WORD      	0
+#define SPI_DAC1_CH_A         	1
+#define SPI_DAC1_CH_B         	2
+#define SPI_DAC2_CH_A         	3
+#define SPI_DAC2_CH_B         	4
+#define SPI_DAC3              	5
+#define SPI_POT               	6
 
 /* SPI command word flags */
-#define SPI_COMMAND_OUTPUT    0x01
-#define SPI_COMMAND_DAC1_CH_A 0x02
-#define SPI_COMMAND_DAC1_CH_B 0x04
-#define SPI_COMMAND_DAC2_CH_A 0x08
-#define SPI_COMMAND_DAC2_CH_B 0x10
-#define SPI_COMMAND_DAC3      0x20
-#define SPI_COMMAND_POT       0x40
+#define SPI_COMMAND_OUTPUT    	0x01
+
+/* Raw ADC word meanings */
+#define ADC_TEMPERATURE			0
+#define ADC_BATTERY				1
+#define ADC_PUSHPULL_OUT		2
+#define ADC_LOW_CURRENT			3
+#define ADC_HIGH_CURRENT		4
+#define ADC_BIAS_CURRENT		5
+
 
 uint16_t CtrlWords[SPI_BLOCK_SIZE];
 uint16_t RawADC[SPI_BLOCK_SIZE];
+
+extern SPI_HandleTypeDef hspi1;
+extern TIM_HandleTypeDef htim3;
 
 void pushpull_Init(void) {
 	pushpull.control = NULL;
@@ -74,11 +42,15 @@ void pushpull_Init(void) {
 	pushpull.transferredCharge = 0;
 	pushpull.currentChangeCB = NULL;
 	pushpull.enabled = 0;
+	pushpull_SPI_OK = 0;
+	pushpull_AcquireControl();
 	pushpull_SetEnabled(0);
-	pushpull_SetDriveCurrent(PUSHPULL_DEFAULT_DRIVE);
+	pushpull_SetDriveCurrent(0);
 	pushpull_SetVoltage(0);
 	pushpull_SetSourceCurrent(0);
 	pushpull_SetSinkCurrent(0);
+	pushpull_ReleaseControl();
+	HAL_TIM_Base_Start_IT(&htim3);
 }
 
 void pushpull_AcquireControl(void) {
@@ -169,8 +141,8 @@ void pushpull_SetVoltage(uint32_t uv) {
 	pushpull.voltage = uv;
 	if (val < 0)
 		val = 0;
-	if (val >= 4096)
-		val = 4095;
+	if (val >= 65535)
+		val = 65535;
 	CtrlWords[SPI_DAC1_CH_B] = val;
 }
 
@@ -187,8 +159,8 @@ void pushpull_SetSourceCurrent(uint32_t ua) {
 	pushpull.currentLimitSource = ua;
 	if (val < 0)
 		val = 0;
-	if (val >= 4096)
-		val = 4095;
+	if (val >= 65535)
+		val = 65535;
 	CtrlWords[SPI_DAC2_CH_B] = val;
 }
 
@@ -205,8 +177,8 @@ void pushpull_SetSinkCurrent(uint32_t ua) {
 	pushpull.currentLimitSink = ua;
 	if (val < 0)
 		val = 0;
-	if (val >= 4096)
-		val = 4095;
+	if (val >= 65535)
+		val = 65535;
 	CtrlWords[SPI_DAC2_CH_A] = val;
 }
 
@@ -233,8 +205,8 @@ void pushpull_SetDriveCurrent(uint32_t ua) {
 	if (ua >= 1900)
 		ua = 1900;
 	/* calculate necessary DAC value */
-	/* 0.6V transistor drop + outputCurrent through 1k resistor */
-	uint32_t Uout = 600 + ua;
+	/* TODO: 0.6V transistor drop + outputCurrent through 1k resistor */
+	uint32_t Uout = 500 + ua;
 	uint32_t DACvalue = (Uout * DAC_MAX) / 3300;
 	CtrlWords[SPI_DAC1_CH_A] = DACvalue;
 }
@@ -253,6 +225,41 @@ inline uint32_t pushpull_GetBatteryVoltage(void) {
 
 inline uint32_t pushpull_GetBiasCurrent(void) {
 	return pushpull.biasCurrent;
+}
+
+inline void pushpull_SPITransfer(void) {
+	HAL_SPI_TransmitReceive_DMA(&hspi1, (uint8_t*) CtrlWords,
+			(uint8_t*) RawADC, SPI_BLOCK_SIZE);
+}
+
+void pushpull_SPIComplete(void) {
+	uint8_t i;
+	for (i = 0; i < SPI_BLOCK_SIZE; i++) {
+		if (RawADC[i] >= 4096) {
+			/* this must be a transmission error as raw ADC value can't be that high */
+			pushpull_SPI_OK = 0;
+			break;
+		}
+	}
+	if (i == SPI_BLOCK_SIZE) {
+		pushpull_SPI_OK = 1;
+		/* Convert raw ADC values */
+		pushpull.batteryVoltage = cal_GetCalibratedValue(CAL_ADC_BATTERY, RawADC[ADC_BATTERY]);
+		pushpull.outputVoltage = cal_GetCalibratedValue(CAL_ADC_PUSHPULL_OUT, RawADC[ADC_PUSHPULL_OUT]);
+		/* No calibration for bias current available */
+		// TODO add zero compensation for voltage dependency
+		/* Bias current is measured as the voltage drop over 0.2 Ohms amplified by 10
+		 * -> ADC full scale (3.3V) corresponds to 1.65A */
+		// TODO at full scale this overflows but bias current must never be that high
+		pushpull.biasCurrent = (RawADC[ADC_BIAS_CURRENT] * 1650000UL) / ADC_MAX_SINGLE;
+		if((RawADC[ADC_LOW_CURRENT] > 200) && (RawADC[ADC_LOW_CURRENT] < ADC_MAX_SINGLE - 200)) {
+			/* Low current sense is not saturated */
+			pushpull.outputCurrent = cal_GetCalibratedValue(CAL_ADC_CURRENT_LOW, RawADC[ADC_LOW_CURRENT]);
+		} else {
+			/* use high current sense as low sense is saturated */
+			pushpull.outputCurrent = cal_GetCalibratedValue(CAL_ADC_CURRENT_HIGH, RawADC[ADC_HIGH_CURRENT]);
+		}
+	}
 }
 
 //static void pushpull_UpdateCurrent(uint32_t *adcStart) {
