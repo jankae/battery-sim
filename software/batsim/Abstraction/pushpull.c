@@ -1,7 +1,6 @@
 #include "../Abstraction/pushpull.h"
 
 #include "spi.h"
-#include "tim.h"
 
 #define PUSHPULL_DEFAULT_DRIVE		200
 
@@ -34,7 +33,6 @@ uint16_t CtrlWords[SPI_BLOCK_SIZE];
 uint16_t RawADC[SPI_BLOCK_SIZE];
 
 extern SPI_HandleTypeDef hspi1;
-extern TIM_HandleTypeDef htim3;
 
 void pushpull_Init(void) {
 	pushpull.control = NULL;
@@ -50,7 +48,6 @@ void pushpull_Init(void) {
 	pushpull_SetSourceCurrent(0);
 	pushpull_SetSinkCurrent(0);
 	pushpull_ReleaseControl();
-	HAL_TIM_Base_Start_IT(&htim3);
 }
 
 void pushpull_AcquireControl(void) {

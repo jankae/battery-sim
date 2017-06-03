@@ -108,6 +108,10 @@ int main(void)
   HAL_Delay(10);
   cal_Init();
   pushpull_Init();
+  buttons_Init();
+
+  HAL_TIM_Base_Start_IT(&htim3);
+
   display_Init();
   printf("Hello World\n");
   HAL_Delay(100);

@@ -225,11 +225,15 @@ void TIM2_IRQHandler(void)
 void TIM3_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM3_IRQn 0 */
-
+  /* Timer 3 is used as a timebase -> 1ms tick period
+   * Calling various functions that are based on this period here.
+   */
+  buttons_Update();
+  pushpull_SPITransfer();
   /* USER CODE END TIM3_IRQn 0 */
   HAL_TIM_IRQHandler(&htim3);
   /* USER CODE BEGIN TIM3_IRQn 1 */
-  pushpull_SPITransfer();
+
   /* USER CODE END TIM3_IRQn 1 */
 }
 

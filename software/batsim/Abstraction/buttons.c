@@ -34,7 +34,7 @@
 /* Matrix representation of the buttons */
 const uint32_t matrix[BUTTONS_ROWS][BUTTONS_COLUMNS] = {
 		{BUTTON_1,			BUTTON_2,			BUTTON_3,			BUTTON_ENCODER},
-		{BUTTON_4,			BUTTON_5,			BUTTON_5,			0},
+		{BUTTON_4,			BUTTON_5,			BUTTON_6,			0},
 		{BUTTON_7,			BUTTON_8,			BUTTON_9,			0},
 		{BUTTON_DOT,		BUTTON_0,			BUTTON_DEL,			0},
 		{BUTTON_ESC,		BUTTON_UP,			BUTTON_ENTER,		0},
@@ -44,16 +44,17 @@ const uint32_t matrix[BUTTONS_ROWS][BUTTONS_COLUMNS] = {
 const int8_t encTable[16] = { 0, 0, -1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, -1, 0, 0 };
 
 /* Current state of the buttons */
-uint32_t state;
+static uint32_t state;
 /* Active row of the button matrix */
-uint8_t selectedRow;
+static uint8_t selectedRow;
 /* Last state of encoder lines */
-uint8_t lastEnc;
+static uint8_t lastEnc;
 /* Direction of last encoder movement */
-int8_t lastEncDir;
+static int8_t lastEncDir;
 /* Timestamp of last encoder movement */
-uint32_t lastEncChangeTime;
+static uint32_t lastEncChangeTime;
 
+static uint8_t initialized = 0;
 
 /**
  * @brief Enables one row of the switch matrix
@@ -131,6 +132,7 @@ void buttons_Init() {
 	lastEnc = 0;
 	lastEncChangeTime = 0;
 	setRow(selectedRow);
+	initialized = 1;
 }
 
 
@@ -140,6 +142,9 @@ void buttons_Init() {
  * This function should be called from an interrupt e.g. every ms
  */
 void buttons_Update(void) {
+	if(!initialized) {
+		return;
+	}
 	/* evaluate columns for the active row */
 	uint8_t i;
 	/* save the old button state */
@@ -170,11 +175,12 @@ void buttons_Update(void) {
 			if ((oldState ^ state) & button) {
 				/* this button has changed */
 				if (state & button) {
+					printf("Clicked 0x%08x\n", button);
 					/* this button has been pressed */
-					GUIEvent_t ev;
-					ev.type = EVENT_BUTTON_CLICKED;
-					ev.button = button;
-					gui_SendEvent(&ev);
+//					GUIEvent_t ev;
+//					ev.type = EVENT_BUTTON_CLICKED;
+//					ev.button = button;
+//					gui_SendEvent(&ev);
 				} else {
 					// TODO could a 'button release'-event be useful?
 				}
@@ -189,11 +195,15 @@ void buttons_Update(void) {
 	if (PORT_ENC_B->IDR & PIN_ENC_B)
 		lastEnc |= 0x01;
 
-	if (encTable[lastEnc]) {
+	static int8_t encDelta = 0;
+	encDelta += encTable[lastEnc];
+
+	if (encDelta >> 1 != 0) {
 		/* got some encoder movement */
-		int32_t movement = encTable[lastEnc];
+		int32_t movement = encDelta >> 1;
+		encDelta &= 1;
 		/* calculate time since last movement */
-		uint32_t timediff = xTaskGetTickCountFromISR() - lastEncChangeTime;
+		uint32_t timediff = HAL_GetTick() - lastEncChangeTime;
 		/* update change timestamp */
 		lastEncChangeTime += timediff;
 
@@ -211,11 +221,12 @@ void buttons_Update(void) {
 				movement *= multiplier;
 			}
 		}
+		printf("Encoder moved: %ld\n", movement);
 
 		/* notify GUI of movement */
-		GUIEvent_t ev;
-		ev.type = EVENT_ENCODER_MOVED;
-		ev.movement = movement;
-		gui_SendEvent(&ev);
+//		GUIEvent_t ev;
+//		ev.type = EVENT_ENCODER_MOVED;
+//		ev.movement = movement;
+//		gui_SendEvent(&ev);
 	}
 }

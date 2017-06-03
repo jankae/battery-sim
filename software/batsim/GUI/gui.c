@@ -58,6 +58,10 @@ void gui_Init(void) {
 }
 
 void gui_SendEvent(GUIEvent_t *ev) {
+	if(!eventQueue || !ev) {
+		/* some pointer error */
+		return;
+	}
 	BaseType_t yield;
 	xQueueSendFromISR(eventQueue, ev, &yield);
 	if (yield) {
