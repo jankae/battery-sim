@@ -48,16 +48,19 @@ static uint16_t ADS7843_Read(uint8_t control) {
 	HAL_Delay(1);
 	/* highest bit in control must always be one */
 	control |= 0x80;
-	uint16_t read = 0;
+	uint8_t read[2];
 	/* transmit control word */
 	HAL_SPI_Transmit(&hspi3, &control, 1, 10);
 	/* read ADC result */
-	HAL_SPI_Receive(&hspi3, (uint8_t*) &read, 2, 10);
+	uint16_t dummy = 0;
+	HAL_SPI_TransmitReceive(&hspi3, (uint8_t*) &dummy, (uint8_t*) read, 2, 10);
 	/* shift and mask 12-bit result */
-	read >>= 3;
-	read &= 0x0FFF;
+	uint16_t res = ((uint16_t) read[0] << 8) + read[1];
+	res >>= 3;
+	res &= 0x0FFF;
 	CS_HIGH();
-	return read;
+	HAL_Delay(1);
+	return 4095 - res;
 }
 
 int8_t touch_GetCoordinates(coords_t *c) {
