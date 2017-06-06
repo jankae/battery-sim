@@ -119,18 +119,30 @@ void Supply(void) {
 	sevensegment_t *sCur = sevensegment_new(&current, 20, 7, 5, 3, COLOR_RED);
 	sevensegment_t *sPow = sevensegment_new(&power, 20, 7, 5, 2, COLOR_BLUE);
 
-	checkbox_t *cOn = checkbox_new(&on, NULL);
+	label_t *lV = label_newWithText("V", Font_Big);
+	lV->color = COLOR_DARKGREEN;
+	label_t *lA = label_newWithText("A", Font_Big);
+	lA->color = COLOR_RED;
+	label_t *lW = label_newWithText("W", Font_Big);
+	lW->color = COLOR_BLUE;
 
-
+	label_t *lOutput = label_newWithText("Output", Font_Big);
+	label_t *lOn = label_newWithLength(6, Font_Big, LABEL_CENTER);
+	label_SetText(lOn, "OFF");
+	lOn->color = COLOR_GRAY;
 
 	container_t *c= container_new(COORDS(280, 240));
 
-	container_attach(c, sVol, COORDS(10, 0));
-	container_attach(c, sCur, COORDS(10, 55));
-	container_attach(c, sPow, COORDS(10, 110));
+	container_attach(c, sVol, COORDS(100, 0));
+	container_attach(c, sCur, COORDS(100, 55));
+	container_attach(c, sPow, COORDS(100, 110));
 
-	container_attach(c, cOn, COORDS(220, 10));
+	container_attach(c, lV, COORDS(267, 3));
+	container_attach(c, lA, COORDS(267, 58));
+	container_attach(c, lW, COORDS(267, 113));
 
+	container_attach(c, lOutput, COORDS(5, 64));
+	container_attach(c, lOn, COORDS(5, 82));
 
 	container_attach(c, lVol, COORDS(0, 182));
 	container_attach(c, eSetVoltage, COORDS(190, 180));
@@ -145,21 +157,11 @@ void Supply(void) {
 	uint32_t signal;
 
 	pushpull_AcquireControl();
+	pushpull_SetAveraging(300);
+	pushpull_SetEnabled(0);
+	pushpull_SetInternalResistance(0);
 
 	while(1) {
-		if (xTaskNotifyWait(ULONG_MAX, ULONG_MAX, &signal, 300)) {
-			/* received a notication */
-			switch (signal) {
-			case SIGNAL_TERMINATE:
-				pushpull_ReleaseControl();
-				desktop_AppStopped(Supply_Start);
-				widget_delete(c);
-				vTaskDelete(NULL);
-				return;
-				break;
-			}
-		}
-
 		/* Update values */
 		voltage = pushpull_GetBatteryVoltage()/10000;
 		current = pushpull_GetCurrent()/1000;
@@ -172,6 +174,31 @@ void Supply(void) {
 		pushpull_SetSourceCurrent(setMaxCurrent);
 		pushpull_SetSinkCurrent(setMinCurrent);
 		pushpull_SetEnabled(on);
+
+		if (xTaskNotifyWait(ULONG_MAX, ULONG_MAX, &signal, 300)) {
+			/* received a notification */
+			if(signal & SIGNAL_TERMINATE) {
+				pushpull_SetEnabled(0);
+				pushpull_ReleaseControl();
+				desktop_AppStopped(Supply_Start);
+				widget_delete(c);
+				vTaskDelete(NULL);
+				return;
+			}
+			if(signal & SIGNAL_ONOFF_BUTTON) {
+				on = !on;
+				if(on) {
+					label_SetText(lOn, "ON");
+					lOn->color = COLOR_RED;
+				} else {
+					label_SetText(lOn, "OFF");
+					lOn->color = COLOR_GRAY;
+				}
+			}
+			if(signal & SIGNAL_PUSHPULL_UPDATE) {
+				/* already handled in while(1) loop, nothing to do here */
+			}
+		}
 	}
 }
 

@@ -62,7 +62,7 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-FATFS fatfs;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/

@@ -18,6 +18,7 @@ typedef struct {
     font_t font;
     labelOrient_t orient;
     uint32_t fontStartX;
+    color_t color;
 } label_t;
 
 label_t* label_newWithLength(const uint8_t length, const font_t font, const labelOrient_t orient);

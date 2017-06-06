@@ -7,7 +7,6 @@ static void inputThread(void) {
 	uint8_t touchMoved = 0;
 	lastTouch.x = -1;
 
-
 	while (1) {
 		vTaskDelay(pdMS_TO_TICKS(20));
 		/* check touch for new input */
@@ -62,7 +61,7 @@ static void inputThread(void) {
 	}
 }
 
-void input_Init(){
+BaseType_t input_Init(){
 	/* create GUI thread */
-	xTaskCreate((TaskFunction_t )inputThread, "input", 300, NULL, 3, NULL);
+	return xTaskCreate((TaskFunction_t )inputThread, "input", 300, NULL, 3, NULL);
 }

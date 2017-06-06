@@ -1,5 +1,7 @@
 #include "gui.h"
 
+#include "buttons.h"
+
 QueueHandle_t eventQueue = NULL;
 widget_t *topWidget;
 
@@ -9,6 +11,9 @@ static void guiThread(void) {
 
 	topWidget = NULL;
 	GUIEvent_t event;
+
+	display_SetBackground(COLOR_BLACK);
+	display_Clear();
 
 	desktop_Draw();
 
@@ -36,6 +41,17 @@ static void guiThread(void) {
 					}
 					break;
 				case EVENT_BUTTON_CLICKED:
+					if(event.button == BUTTON_ONOFF) {
+						/* this is a special case button that is always relayed to the
+						 * App in control of the output stage */
+						if (pushpull_GetControlHandle()) {
+							xTaskNotify(pushpull_GetControlHandle(),
+									SIGNAL_ONOFF_BUTTON,
+									eSetBits);
+						}
+						break;
+					}
+					/* no break */
 				case EVENT_ENCODER_MOVED:
 					/* these events are always valid for the selected widget */
 					if (selectedWidget) {
@@ -60,12 +76,19 @@ static void guiThread(void) {
 	}
 }
 
-void gui_Init(void) {
+uint8_t gui_Init(void) {
 	/* initialize event queue */
 	eventQueue = xQueueCreate(10, sizeof(GUIEvent_t));
 
+	if(!eventQueue) {
+		return 0;
+	}
+
 	/* create GUI thread */
-	xTaskCreate((TaskFunction_t )guiThread, "GUI", 300, NULL, 3, NULL);
+	if(xTaskCreate((TaskFunction_t )guiThread, "GUI", 300, NULL, 3, NULL)!=pdPASS) {
+		return 0;
+	}
+	return 1;
 }
 
 void gui_SendEvent(GUIEvent_t *ev) {

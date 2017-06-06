@@ -5,7 +5,7 @@
 #include "gui.h"
 #include "touch.h"
 
-void input_Init();
+BaseType_t input_Init();
 
 
 #endif

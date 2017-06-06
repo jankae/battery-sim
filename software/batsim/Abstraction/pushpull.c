@@ -1,6 +1,9 @@
 #include "../Abstraction/pushpull.h"
 
 #include "spi.h"
+#include "definitions.h"
+#include "FreeRTOS.h"
+#include "task.h"
 
 #define PUSHPULL_DEFAULT_DRIVE		200
 
@@ -68,68 +71,18 @@ void pushpull_ReleaseControl(void) {
 	pushpull.control = NULL;
 }
 
-//void pushpull_RecalibrateZeroCurrent(void) {
-//	if (xTaskGetCurrentTaskHandle() != pushpull.control)
-//		return;
-//	/* save current settings */
-//	uint8_t enabled = pushpull.enabled;
-//	uint32_t voltage = pushpull.voltage;
-//	uint32_t currentLimitHigh = pushpull.currentLimitHigh;
-//	uint32_t currentLimitLow = pushpull.currentLimitLow;
-//	void (*cb)(int32_t) = pushpull.currentChangeCB;
-//	pushpull.currentChangeCB = NULL;
-//	/* Switch output off */
-//	pushpull_SetEnabled(0);
-//
-//	/* raw measurements at calibration points */
-//	ppAvg_t point1, point2;
-//
-//	/* set first calibration point */
-//	pushpull_SetVoltage(1000000);
-//	pushpull_SetCurrentLimit(100000);
-//	HAL_Delay(5);
-//	point1 = pushpull_GetAverageRaw(100);
-//
-//	/* set second calibration point */
-//	pushpull_SetVoltage(16000000);
-//	HAL_Delay(5);
-//	point2 = pushpull_GetAverageRaw(100);
-//
-//	/* update calibration values */
-//	cal_UpdateEntry(CAL_ADC_CURRENT_OFFSET_LOW, point1.rawOutputVoltage,
-//			point1.rawCurrentLow, point2.rawOutputVoltage,
-//			point2.rawCurrentLow);
-//	cal_UpdateEntry(CAL_ADC_CURRENT_OFFSET_HIGH, point1.rawOutputVoltage,
-//			point1.rawCurrentHigh, point2.rawOutputVoltage,
-//			point2.rawCurrentHigh);
-//
-//	/* set old values again */
-//	pushpull_SetVoltage(voltage);
-////	pushpull_SetCurrentLimit(currentLimit);
-//	pushpull.currentChangeCB = cb;
-//	pushpull_SetEnabled(enabled);
-//}
-
-ppAvg_t pushpull_GetAverageRaw(uint16_t samples) {
-	/* reset last result */
-	memset(&pushpull.avg, 0, sizeof(pushpull.avg));
-	/* set requested number of samples */
-	pushpull.avg.samples = samples;
-	/* start sampling */
-	pushpull.avg.enabled = 1;
-	/* wait for sampling (in interrupt) to finish */
-	while (pushpull.avg.enabled)
-		;
-	/* calculate average values */
-	pushpull.avg.values.rawCurrentHigh /= samples;
-	pushpull.avg.values.rawCurrentLow /= samples;
-	pushpull.avg.values.rawBatteryVoltage /= samples;
-	pushpull.avg.values.rawBiasCurrent /= samples;
-	pushpull.avg.values.rawHighSideSupply /= samples;
-	pushpull.avg.values.rawOutputVoltage /= samples;
-	/* return result */
-	return pushpull.avg.values;
+inline TaskHandle_t pushpull_GetControlHandle(void) {
+	return pushpull.control;
 }
+
+void pushpull_SetAveraging(uint16_t samples) {
+	pushpull.averaging = samples;
+	pushpull.samplecount = 0;
+	pushpull.avgBatVoltage = 0;
+	pushpull.avgOutVoltage = 0;
+	pushpull.avgOutCurrent = 0;
+}
+
 
 void pushpull_SetVoltage(uint32_t uv) {
 	if (xTaskGetCurrentTaskHandle() != pushpull.control)
@@ -214,6 +167,19 @@ void pushpull_SetDriveCurrent(uint32_t ua) {
 	CtrlWords[SPI_DAC1_CH_A] = DACvalue;
 }
 
+void pushpull_SetInternalResistance(uint32_t ur) {
+	if (xTaskGetCurrentTaskHandle() != pushpull.control)
+		return;
+	/* R = R_shunt * (255-Pot_val)/Pot_val
+	 * =>
+	 * Pot_val = R_shunt*255/(R+R_shunt)
+	 */
+	/* Shunt has nominal value of 0.11 Ohm */
+#define R_SHUNT 110000UL
+	uint8_t potval = R_SHUNT * 255 / (ur + R_SHUNT);
+	CtrlWords[SPI_POT] = potval;
+}
+
 inline int32_t pushpull_GetCurrent(void) {
 	return pushpull.outputCurrent;
 }
@@ -228,6 +194,10 @@ inline uint32_t pushpull_GetBatteryVoltage(void) {
 
 inline uint32_t pushpull_GetBiasCurrent(void) {
 	return pushpull.biasCurrent;
+}
+
+inline int8_t pushpull_GetTemperature(void) {
+	return pushpull.temperature;
 }
 
 inline void pushpull_SPITransfer(void) {
@@ -246,22 +216,60 @@ void pushpull_SPIComplete(void) {
 	}
 	if (i == SPI_BLOCK_SIZE) {
 		pushpull_SPI_OK = 1;
+
 		/* Convert raw ADC values */
-		pushpull.batteryVoltage = cal_GetCalibratedValue(CAL_ADC_BATTERY, RawADC[ADC_BATTERY]);
-		pushpull.outputVoltage = cal_GetCalibratedValue(CAL_ADC_PUSHPULL_OUT, RawADC[ADC_PUSHPULL_OUT]);
+		uint32_t battery = cal_GetCalibratedValue(CAL_ADC_BATTERY, RawADC[ADC_BATTERY]);
+		uint32_t voltage = cal_GetCalibratedValue(CAL_ADC_PUSHPULL_OUT, RawADC[ADC_PUSHPULL_OUT]);
+		int32_t current;
+		if((RawADC[ADC_LOW_CURRENT] > 200) && (RawADC[ADC_LOW_CURRENT] < ADC_MAX_SINGLE - 200)) {
+			/* Low current sense is not saturated */
+			current = cal_GetCalibratedValue(CAL_ADC_CURRENT_LOW, RawADC[ADC_LOW_CURRENT]);
+		} else {
+			/* use high current sense as low sense is saturated */
+			current = cal_GetCalibratedValue(CAL_ADC_CURRENT_HIGH, RawADC[ADC_HIGH_CURRENT]);
+		}
+		if(pushpull.averaging) {
+			pushpull.avgBatVoltage += battery;
+			pushpull.avgOutVoltage += voltage;
+			pushpull.avgOutCurrent += current;
+			pushpull.samplecount++;
+			if(pushpull.samplecount >= pushpull.averaging) {
+				/* one averaging cycle has finished */
+				pushpull.batteryVoltage = pushpull.avgBatVoltage / pushpull.samplecount;
+				pushpull.outputVoltage = pushpull.avgOutVoltage / pushpull.samplecount;
+				pushpull.outputCurrent = pushpull.avgOutCurrent / pushpull.samplecount;
+				pushpull.samplecount = 0;
+				pushpull.avgBatVoltage = 0;
+				pushpull.avgOutVoltage = 0;
+				pushpull.avgOutCurrent = 0;
+				if(pushpull.control) {
+					BaseType_t yield;
+					xTaskNotifyFromISR(pushpull.control, SIGNAL_PUSHPULL_UPDATE,
+							eSetValueWithOverwrite, &yield);
+					portYIELD_FROM_ISR(yield);
+				}
+			}
+		} else {
+			/* no averaging -> use values directly */
+			pushpull.batteryVoltage = battery;
+			pushpull.outputVoltage = voltage;
+			pushpull.outputCurrent = current;
+			if(pushpull.control) {
+				BaseType_t yield;
+				xTaskNotifyFromISR(pushpull.control, SIGNAL_PUSHPULL_UPDATE,
+						eSetBits, &yield);
+				portYIELD_FROM_ISR(yield);
+			}
+		}
 		/* No calibration for bias current available */
 		// TODO add zero compensation for voltage dependency
 		/* Bias current is measured as the voltage drop over 0.2 Ohms amplified by 10
 		 * -> ADC full scale (3.3V) corresponds to 1.65A */
 		// TODO at full scale this overflows but bias current must never be that high
 		pushpull.biasCurrent = (RawADC[ADC_BIAS_CURRENT] * 1650000UL) / ADC_MAX_SINGLE;
-		if((RawADC[ADC_LOW_CURRENT] > 200) && (RawADC[ADC_LOW_CURRENT] < ADC_MAX_SINGLE - 200)) {
-			/* Low current sense is not saturated */
-			pushpull.outputCurrent = cal_GetCalibratedValue(CAL_ADC_CURRENT_LOW, RawADC[ADC_LOW_CURRENT]);
-		} else {
-			/* use high current sense as low sense is saturated */
-			pushpull.outputCurrent = cal_GetCalibratedValue(CAL_ADC_CURRENT_HIGH, RawADC[ADC_HIGH_CURRENT]);
-		}
+
+		/* convert to °C, full scale ADC is about 393K */
+		pushpull.temperature = (uint32_t) RawADC[0] * 393 / 4096 - 273; // and subtract °C to K difference
 	}
 }
 

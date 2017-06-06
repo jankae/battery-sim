@@ -15,7 +15,7 @@
 
 #include "desktop.h"
 
-void gui_Init(void);
+uint8_t gui_Init(void);
 
 void gui_SendEvent(GUIEvent_t *ev);
 

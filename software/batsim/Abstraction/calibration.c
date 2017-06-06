@@ -8,7 +8,7 @@ typedef struct {
 const calEntryData_t defaultEntries[CAL_NUMBER_OF_ENTRIES] = {
 		/* voltage to DAC */
 		{0, (float) DAC_MAX / MAX_VOLTAGE},
-		/* surce current */
+		/* source current */
 		{0, (float) DAC_MAX / MAX_SOURCE_CURRENT},
 		/* sink current */
 		{0, (float) DAC_MAX / MAX_SINK_CURRENT},

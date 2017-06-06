@@ -11,6 +11,7 @@ static label_t* label_newGeneric(void) {
 	/* set widget functions */
 	l->base.func.draw = label_draw;
 	l->base.func.input = label_input;
+	l->color = LABEL_FG_COLOR;
 	return l;
 }
 
@@ -84,7 +85,7 @@ void label_SetText(label_t *l, const char * const text) {
 
 void label_draw(widget_t *w, coords_t offset) {
     label_t *l = (label_t*) w;
-    display_SetForeground(LABEL_FG_COLOR);
+    display_SetForeground(l->color);
     display_SetBackground(LABEL_BG_COLOR);
 	display_SetFont(l->font);
 	display_String(offset.x + l->fontStartX, offset.y, l->name);

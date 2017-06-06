@@ -8,15 +8,6 @@
 #define SPI_BLOCK_SIZE				10
 
 typedef struct {
-	int32_t rawCurrentLow;
-	int32_t rawCurrentHigh;
-	uint32_t rawBatteryVoltage;
-	uint32_t rawOutputVoltage;
-	uint32_t rawBiasCurrent;
-	uint32_t rawHighSideSupply;
-} ppAvg_t;
-
-typedef struct {
 	/* Controlling task */
 	TaskHandle_t control;
 	/* 'should' voltage of the Push-Pull-Stage */
@@ -30,6 +21,8 @@ typedef struct {
 	uint32_t outputVoltage;
 	/* Voltage at the battery terminals */
 	uint32_t batteryVoltage;
+	/* Heatsink temperature in °C */
+	int8_t temperature;
 	/* Bias current through the high- and low-side (only accurate while output is off) */
 	uint32_t biasCurrent;
 	int32_t transferredCharge;
@@ -43,18 +36,15 @@ typedef struct {
 	/* output state */
 	uint8_t enabled;
 
+	uint16_t averaging;
+	uint16_t samplecount;
+
+	uint64_t avgBatVoltage;
+	uint64_t avgOutVoltage;
+	int64_t avgOutCurrent;
+
 	/* callback function called whenever a new current value is available */
 	void (*currentChangeCB)(int32_t newCurrent);
-
-	/* state variables for measuring average ADC values */
-	struct {
-		/* average measurement state */
-		volatile uint8_t enabled;
-		/* number of requested samples */
-		uint16_t samples;
-		/* sum of sampled values */
-		ppAvg_t values;
-	} avg;
 } PushPull_t;
 
 typedef struct {
@@ -75,41 +65,25 @@ extern const PushPull_Limits_t Limits;
 void pushpull_Init(void);
 
 void pushpull_AcquireControl(void);
-
 void pushpull_ReleaseControl(void);
+TaskHandle_t pushpull_GetControlHandle(void);
 
-///**
-// * \brief Re-calibrates the zero-current-point
-// *
-// * The output is switched off briefly while a simple 2-point calibration
-// * for the zero-current-point (depends on the output voltage) is executed.
-// * At the end, the original settings are restored.
-// */
-//void pushpull_RecalibrateZeroCurrent(void);
-
-ppAvg_t pushpull_GetAverageRaw(uint16_t samples);
+void pushpull_SetAveraging(uint16_t samples);
 
 void pushpull_SetVoltage(uint32_t uv);
-
 void pushpull_SetSourceCurrent(uint32_t ua);
-
 void pushpull_SetSinkCurrent(uint32_t ua);
-
 void pushpull_SetEnabled(uint8_t enabled);
+void pushpull_SetDriveCurrent(uint32_t ua);
+void pushpull_SetInternalResistance(uint32_t ur);
 
 uint8_t pushpull_GetEnabled(void);
-
-void pushpull_SetDriveCurrent(uint32_t ua);
-
 int32_t pushpull_GetCurrent(void);
-
 uint32_t pushpull_GetOutputVoltage(void);
-
 uint32_t pushpull_GetBatteryVoltage(void);
-
 uint32_t pushpull_GetBiasCurrent(void);
-
 uint32_t pushpull_GetSupplyVoltage(void);
+int8_t pushpull_GetTemperature(void);
 
 void pushpull_SPITransfer(void);
 void pushpull_SPIComplete(void);

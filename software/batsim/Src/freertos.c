@@ -47,7 +47,7 @@
 #include "cmsis_os.h"
 
 /* USER CODE BEGIN Includes */     
-#include "gui.h"
+#include "startup.h"
 /* USER CODE END Includes */
 
 /* Variables -----------------------------------------------------------------*/
@@ -110,15 +110,12 @@ void StartDefaultTask(void const * argument)
   MX_FATFS_Init();
 
   /* USER CODE BEGIN StartDefaultTask */
-  selftest_Run();
+  /* Checking hardware. Will block if error is present */
+  startup_Hardware();
 
-  osDelay(2000);
+  /* Hardware is fine, starting software */
+  startup_Software();
 
-  Supply_Init();
-  settings_Init();
-  gui_Init();
-  input_Init();
-  buttons_Init();
 
   vTaskDelete(NULL);
   /* Infinite loop */

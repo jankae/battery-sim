@@ -1,13 +1,15 @@
-#include "selftest.h"
+#include <startup.h>
 #include "pushpull.h"
 
 #include "adc.h"
 #include "fatfs.h"
+#include "file.h"
+#include "input.h"
 
 extern uint8_t pushpull_SPI_OK;
 extern uint16_t RawADC[SPI_BLOCK_SIZE];
 
-extern FATFS fatfs;
+static uint8_t line;
 
 typedef enum {TEST_PASSED = 0, TEST_FAILED = 1, TEST_WARNING = 2} TestResult_t;
 
@@ -56,9 +58,8 @@ static int16_t get_neg8VRail_SPI(void) {
 	return (int32_t) RawADC[6] * -15510 / 4096;
 }
 
-static void display_TestResult(const char *name, const char *result,
+static void display_TestResult(const char * const name, const char * const result,
 		TestResult_t res) {
-	static uint8_t line = 1;
 	display_SetForeground(COLOR_WHITE);
 	display_String(0, line * 16, name);
 	if (res == TEST_PASSED) {
@@ -75,7 +76,7 @@ static void display_TestResult(const char *name, const char *result,
 	line++;
 }
 
-uint8_t selftest_Run(void) {
+void startup_Hardware(void) {
 	HAL_ADCEx_Calibration_Start(&hadc1);
 	display_SetBackground(COLOR_BLACK);
 	display_SetForeground(COLOR_WHITE);
@@ -83,6 +84,8 @@ uint8_t selftest_Run(void) {
 	display_Clear();
 	display_String(0, 0, "Running selftest...");
 	printf("Running selftest...\n");
+
+	line = 1;
 
 	char buffer[32];
 	TestResult_t res;
@@ -139,6 +142,12 @@ uint8_t selftest_Run(void) {
 	common_StringFromValue(buffer, 6, meas * 1000, &Unit_Voltage);
 	display_TestResult("-8V rail:", buffer, res);
 
+	meas = pushpull_GetTemperature();
+	res = TEST_ABSLIMITS(-10, 60, meas);
+	overallRes |= res;
+	common_StringFromValue(buffer, 5, meas, &Unit_Temperature);
+	display_TestResult("Temperature:", buffer, res);
+
 	if(overallRes != TEST_PASSED) {
 		goto error;
 	}
@@ -194,21 +203,87 @@ uint8_t selftest_Run(void) {
 	pushpull_ReleaseControl();
 
 	if(overallRes != TEST_PASSED) {
-		goto error;
-	}
-
-	/* Check SD card */
-	FRESULT fres = f_mount(&fatfs, "0:/", 1);
-	if (fres == FR_OK) {
-		display_TestResult("SD card", "OK", TEST_PASSED);
-	} else {
-		char buf[7];
-		snprintf(buf, sizeof(buf), "Err:%d", fres);
-		display_TestResult("SD card", buf, TEST_WARNING);
-		overallRes = TEST_WARNING;
-	}
-
 error:
-
-	return overallRes;
+		display_SetForeground(COLOR_RED);
+		display_String(0, 224, "HARDWARE ERROR. STOPPING.");
+		// TODO Add key to continue anyway
+		while (1)
+			;
+	} else {
+		display_SetForeground(COLOR_GREEN);
+		display_String(0, 224, "HARDWARE TESTS PASSED");
+		HAL_Delay(500);
+	}
 }
+
+void startup_Software(void) {
+	display_SetBackground(COLOR_BLACK);
+	display_SetForeground(COLOR_WHITE);
+	display_SetFont(Font_Big);
+	display_Clear();
+	display_String(0, 0, "Booting...");
+
+	line = 1;
+
+	uint8_t error = 0;
+
+	/* Start sampling of frontpanel controls */
+	buttons_Init();
+
+	switch(file_Init()) {
+	case -1:
+		display_TestResult("SD card:", "INT ERR", TEST_FAILED);
+		error = 1;
+		break;
+	case 0:
+		display_TestResult("SD card:", "MISSING", TEST_WARNING);
+		break;
+	case 1:
+		display_TestResult("SD card:", "OK", TEST_PASSED);
+		break;
+	}
+
+	/* Initialize sampling of touch display */
+	if(input_Init()==pdPASS) {
+		display_TestResult("Touch thread:", "STARTED", TEST_PASSED);
+	} else {
+		display_TestResult("Touch thread:", "ERROR", TEST_FAILED);
+		error = 1;
+	}
+
+	/* Load touch calibration */
+	if(touch_LoadCalibration()) {
+		display_TestResult("Touch calib:", "LOADED", TEST_PASSED);
+	} else {
+		display_TestResult("Touch calib:", "MISSING", TEST_WARNING);
+	}
+
+	/* Setup Apps */
+	Supply_Init();
+	settings_Init();
+
+	/* Start GUI thread */
+	if(gui_Init()) {
+		display_TestResult("GUI thread:", "STARTED", TEST_PASSED);
+	} else {
+		display_TestResult("GUI thread:", "ERROR", TEST_FAILED);
+		error = 1;
+	}
+
+	if (error) {
+		display_SetForeground(COLOR_RED);
+		display_String(0, 224, "SOFTWARE ERROR. STOPPING.");
+		while (1)
+			;
+	} else {
+		display_SetForeground(COLOR_WHITE);
+		display_String(0, 208, "Boot process completed.");
+		char buffer[27];
+		snprintf(buffer, sizeof(buffer), "Remaining HEAP: %ld",
+				xPortGetFreeHeapSize());
+		display_String(0, 224, buffer);
+
+		HAL_Delay(1000);
+	}
+}
+

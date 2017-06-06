@@ -23,4 +23,6 @@ int8_t touch_GetCoordinates(coords_t *c);
 
 void touch_Calibrate(void);
 
+uint8_t touch_LoadCalibration(void);
+
 #endif

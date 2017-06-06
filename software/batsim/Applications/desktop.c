@@ -137,7 +137,7 @@ static void msgBoxResult(MsgResult_t res) {
 	if (res == MSG_RESULT_OK) {
 		/* Stop app */
 		xTaskNotify(AppList[iAppToClose].handle, SIGNAL_TERMINATE,
-				eSetValueWithOverwrite);
+				eSetBits);
 		AppList[iAppToClose].state = APP_KILLSEND;
 	}
 }

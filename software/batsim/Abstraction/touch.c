@@ -2,6 +2,7 @@
 
 #include "semphr.h"
 #include "fatfs.h"
+#include "file.h"
 
 #define CS_LOW()			(GPIOB->BSRR = GPIO_PIN_7<<16u)
 #define CS_HIGH()			(GPIOB->BSRR = GPIO_PIN_7)
@@ -37,6 +38,13 @@ int32_t offsetX = 0, offsetY = 0;
 float scaleX = (float) TOUCH_RESOLUTION_X / 4096;
 float scaleY = (float) TOUCH_RESOLUTION_Y / 4096;
 
+const fileEntry_t touchCal[4] = {
+		{"xfactor", &scaleX, PTR_FLOAT},
+		{"xoffset", &offsetX, PTR_INT32},
+		{"yfactor", &scaleY, PTR_FLOAT},
+		{"yoffset", &offsetY, PTR_INT32},
+};
+
 extern SPI_HandleTypeDef hspi3;
 extern SemaphoreHandle_t xMutexSPI3;
 
@@ -62,7 +70,7 @@ static uint16_t ADS7843_Read(uint8_t control) {
 	return 4095 - res;
 }
 
-static touch_SampleADC(uint16_t *rawX, uint16_t *rawY, uint16_t samples) {
+static void touch_SampleADC(uint16_t *rawX, uint16_t *rawY, uint16_t samples) {
 	uint16_t i;
 	uint32_t X = 0;
 	uint32_t Y = 0;
@@ -103,6 +111,30 @@ int8_t touch_GetCoordinates(coords_t *c) {
 		/* convert to screen resolution */
 		c->x = rawX * scaleX + offsetX;
 		c->y = rawY * scaleY + offsetY;
+		if(c->x < 0)
+			c->x = 0;
+		else if(c->x >= TOUCH_RESOLUTION_X)
+			c->x = TOUCH_RESOLUTION_X - 1;
+		if(c->y < 0)
+			c->y = 0;
+		else if(c->y >= TOUCH_RESOLUTION_Y)
+			c->y = TOUCH_RESOLUTION_Y - 1;
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
+static uint8_t touch_SaveCalibration(void) {
+	if(file_WriteParameters("TOUCH.CAL", touchCal, 4)==FILE_OK) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
+uint8_t touch_LoadCalibration(void) {
+	if(file_ReadParameters("TOUCH.CAL", touchCal, 4)==FILE_OK) {
 		return 1;
 	} else {
 		return 0;
@@ -166,25 +198,13 @@ void touch_Calibrate(void) {
 	xSemaphoreGive(xMutexSPI3);
 
 	/* Try to write calibration data to file */
-	FIL calfile;
-	if (f_open(&calfile, "TOUCH.CAL", FA_CREATE_ALWAYS | FA_WRITE) == FR_OK) {
-		printf("Writing touch calibration file...\n");
-		file_WriteLine(&calfile, "#Calibration data for X direction\n");
-		char buf[40];
-		snprintf(buf, sizeof(buf), "xfact = %f\n", scaleX);
-		file_WriteLine(&calfile, buf);
-		snprintf(buf, sizeof(buf), "xoffset = %ld\n", offsetX);
-		file_WriteLine(&calfile, buf);
-		file_WriteLine(&calfile, "#Calibration data for Y direction\n");
-		snprintf(buf, sizeof(buf), "yfact = %f\n", scaleY);
-		file_WriteLine(&calfile, buf);
-		snprintf(buf, sizeof(buf), "yoffset = %ld\n", offsetY);
-		file_WriteLine(&calfile, buf);
-		f_close(&calfile);
-		printf("...done\n");
+	if(touch_SaveCalibration()) {
+		printf("Wrote touch calibration file\n");
 	} else {
 		printf("Failed to create touch calibration file\n");
 	}
 
 	calibrating = 0;
 }
+
+
