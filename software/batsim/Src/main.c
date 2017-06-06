@@ -62,7 +62,7 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-
+FATFS fatfs;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -105,30 +105,18 @@ int main(void)
   MX_TIM3_Init();
 
   /* USER CODE BEGIN 2 */
-  HAL_Delay(10);
+  touch_Init();
   cal_Init();
   pushpull_Init();
-  buttons_Init();
-
   HAL_TIM_Base_Start_IT(&htim3);
-
-  display_Init();
-  printf("Hello World\n");
   HAL_Delay(100);
-  selftest_Run();
-extern PushPull_t pushpull;
-  pushpull_AcquireControl();
-  while(1) {
-//	  pushpull_SetEnabled(0);
-//	  HAL_Delay(1000);
-//	  pushpull_SetEnabled(1);
-//	  HAL_Delay(1000);
-  }
-
+  display_Init();
   /* USER CODE END 2 */
 
   /* Call init function for freertos objects (in freertos.c) */
   MX_FREERTOS_Init();
+
+  volatile bla = common_LeastDigitValueFromString("    0uV", Unit_Voltage);
 
   /* Start scheduler */
   osKernelStart();

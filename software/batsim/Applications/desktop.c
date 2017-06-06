@@ -1,10 +1,14 @@
 #include "desktop.h"
 
+#include "buttons.h"
+
 AppInfo_t AppList[DESKTOP_MAX_APPS];
 uint8_t NumApps;
 uint8_t focussed = 0xff;
+uint8_t selected = 0;
 
 extern widget_t *topWidget;
+extern widget_t *selectedWidget;
 
 void desktop_AddApp(AppInfo_t app) {
 	AppList[NumApps] = app;
@@ -114,6 +118,17 @@ void desktop_Draw(void) {
 		display_HorizontalLine(2, (i + 1) * DESKTOP_ICONSPACING_Y - 2,
 		DESKTOP_ICONBAR_WIDTH - 2);
 	}
+	if(!selectedWidget) {
+		/* no widget is selected, main control is with desktop */
+		display_SetForeground(COLOR_SELECTED);
+		uint8_t i;
+#define ARROW_SIZE		6
+		for (i = 0; i < ARROW_SIZE; i++) {
+			display_VerticalLine(i + 1,
+					selected * DESKTOP_ICONSPACING_Y + DESKTOP_ICONSPACING_Y / 2
+							- ARROW_SIZE + i, 2 * (ARROW_SIZE - i));
+		}
+	}
 }
 
 static uint8_t iAppToClose = 0;
@@ -127,7 +142,49 @@ static void msgBoxResult(MsgResult_t res) {
 	}
 }
 
+static void desktop_SwitchToApp(uint8_t app) {
+	switch(AppList[app].state) {
+	case APP_STOPPED:
+		/* start app */
+		AppList[app].state = APP_STARTSEND;
+		AppList[app].start();
+		break;
+	case APP_RUNNING:
+		if (focussed != app) {
+			/* bring app into focus */
+			topWidget = AppList[app].topWidget;
+			focussed = app;
+			widget_RequestRedrawFull(topWidget);
+			// TODO only draw "active app lines"
+			desktop_Draw();
+		}
+		break;
+	case APP_STARTSEND:
+	case APP_KILLSEND:
+		/* do nothing */
+		break;
+	}
+}
+
+static void desktop_ConfirmClose(uint8_t app) {
+	switch(AppList[app].state) {
+	case APP_RUNNING:
+		iAppToClose = app;
+		dialog_MessageBox("Close?", "Close this app?", MSG_ABORT_OK, msgBoxResult);
+		break;
+	case APP_STARTSEND:
+	case APP_KILLSEND:
+	case APP_STOPPED:
+		/* do nothing */
+		break;
+	}
+}
+
 void desktop_Input(GUIEvent_t *ev) {
+	if(selectedWidget) {
+		/* de-select widget */
+		widget_Select(NULL);
+	}
 	switch (ev->type) {
 	case EVENT_TOUCH_PRESSED:
 		/* get icon number */
@@ -135,27 +192,7 @@ void desktop_Input(GUIEvent_t *ev) {
 				&& ev->pos.y < DESKTOP_ICONSPACING_Y * NumApps) {
 			/* position is a valid icon */
 			uint8_t num = ev->pos.y / DESKTOP_ICONSPACING_Y;
-			switch(AppList[num].state) {
-			case APP_STOPPED:
-				/* start app */
-				AppList[num].state = APP_STARTSEND;
-				AppList[num].start();
-				break;
-			case APP_RUNNING:
-				if (focussed != num) {
-					/* bring app into focus */
-					topWidget = AppList[num].topWidget;
-					focussed = num;
-					widget_RequestRedrawFull(topWidget);
-					// TODO only draw "active app lines"
-					desktop_Draw();
-				}
-				break;
-			case APP_STARTSEND:
-			case APP_KILLSEND:
-				/* do nothing */
-				break;
-			}
+			desktop_SwitchToApp(num);
 		}
 		break;
 	case EVENT_TOUCH_HELD:
@@ -164,18 +201,59 @@ void desktop_Input(GUIEvent_t *ev) {
 				&& ev->pos.y < DESKTOP_ICONSPACING_Y * NumApps) {
 			/* position is a valid icon */
 			uint8_t num = ev->pos.y / DESKTOP_ICONSPACING_Y;
-			switch(AppList[num].state) {
-			case APP_RUNNING:
-				iAppToClose = num;
-				dialog_MessageBox("Close?", "Close this app?", MSG_ABORT_OK, msgBoxResult);
-				break;
-			case APP_STARTSEND:
-			case APP_KILLSEND:
-			case APP_STOPPED:
-				/* do nothing */
-				break;
+			desktop_ConfirmClose(num);
+		}
+		break;
+	case EVENT_BUTTON_CLICKED:
+		/* switch selected App or start/stop App */
+		switch (ev->button) {
+		case BUTTON_DOWN:
+			if (selected < NumApps - 1) {
+				/* move selection down */
+				selected++;
+				desktop_Draw();
+			}
+			break;
+		case BUTTON_UP:
+			if (selected > 0) {
+				/* move selection down */
+				selected--;
+				desktop_Draw();
+			}
+			break;
+		case BUTTON_ENTER:
+		case BUTTON_ENCODER:
+			/* start App */
+			desktop_SwitchToApp(selected);
+			break;
+		case BUTTON_ESC:
+			/* close App */
+			desktop_ConfirmClose(selected);
+			break;
+		}
+		break;
+	case EVENT_ENCODER_MOVED: {
+		/* switch selected App */
+		uint8_t new = selected;
+		if (ev->movement > 0) {
+			/* moving up */
+			if (selected > ev->movement) {
+				new -= ev->movement;
+			} else {
+				new = 0;
+			}
+		} else {
+			if (NumApps - selected - 1 > -ev->movement) {
+				new -= ev->movement;
+			} else {
+				new = NumApps - 1;
 			}
 		}
+		if (new != selected) {
+			selected = new;
+			desktop_Draw();
+		}
+	}
 		break;
 	default:
 		break;

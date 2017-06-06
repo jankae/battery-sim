@@ -43,6 +43,8 @@ textfield_t* textfield_new(const char *text, const font_t font,
 	/* set widget size */
 	t->base.size.x = maxWidth;
 	t->base.size.y = height;
+
+	t->base.flags.selectable = 0;
 	/* copy text */
 	t->text = pvPortMalloc(strlen(s));
 	if(!t->text) {

@@ -17,6 +17,7 @@ MODULES+= Src \
 	Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS \
 	Middlewares/Third_Party/FreeRTOS/Source \
 	Middlewares/Third_Party/FatFs/src \
+	Middlewares/Third_Party/FatFs/src/option \
 	Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM3 \
 	Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang \
 	Abstraction \

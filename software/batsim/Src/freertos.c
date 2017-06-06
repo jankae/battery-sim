@@ -47,7 +47,7 @@
 #include "cmsis_os.h"
 
 /* USER CODE BEGIN Includes */     
-
+#include "gui.h"
 /* USER CODE END Includes */
 
 /* Variables -----------------------------------------------------------------*/
@@ -91,7 +91,7 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the thread(s) */
   /* definition and creation of defaultTask */
-  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
+  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 1024);
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
@@ -110,6 +110,17 @@ void StartDefaultTask(void const * argument)
   MX_FATFS_Init();
 
   /* USER CODE BEGIN StartDefaultTask */
+  selftest_Run();
+
+  osDelay(2000);
+
+  Supply_Init();
+  settings_Init();
+  gui_Init();
+  input_Init();
+  buttons_Init();
+
+  vTaskDelete(NULL);
   /* Infinite loop */
   for(;;)
   {

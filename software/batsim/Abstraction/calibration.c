@@ -13,9 +13,9 @@ const calEntryData_t defaultEntries[CAL_NUMBER_OF_ENTRIES] = {
 		/* sink current */
 		{0, (float) DAC_MAX / MAX_SINK_CURRENT},
 		/* ADC to current low */
-		{ADC_MAX_DIFF, (float) MAX_CURRENT_LOW_ADC / ADC_MAX_DIFF},
+		{ADC_MAX_DIFF, (float) -MAX_CURRENT_LOW_ADC / ADC_MAX_DIFF},
 		/* ADC to current high */
-		{ADC_MAX_DIFF, (float) MAX_CURRENT_HIGH_ADC / ADC_MAX_DIFF},
+		{ADC_MAX_DIFF, (float) -MAX_CURRENT_HIGH_ADC / ADC_MAX_DIFF},
 		/* ADC to push/pull out */
 		{0, (float) MAX_PUSHPULL_OUT / ADC_MAX_SINGLE},
 		/* ADC to battery voltage */

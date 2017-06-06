@@ -1,4 +1,4 @@
-#include <Settings/Settings.h>
+#include "Settings.h"
 
 static const uint16_t imagedata[1024] = {
 0x0000,0x0000,0x0000,0x0000,0x4228,0x8cd2,0x94f3,0x7c30,0x39e7,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x18c3,0x7c10,0x73ef,0x0020,0x0000,
@@ -35,7 +35,7 @@ static const uint16_t imagedata[1024] = {
 0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,
 };
 
-
+static uint8_t calibrate = 0;
 
 static Image_t icon = { .width = 32, .height = 32, .data = imagedata };
 
@@ -53,13 +53,11 @@ void settings_Init() {
 }
 
 static void calibrateTouch() {
-	touch_Calibrate();
-	widget_RequestRedrawFull(topWidget);
-	desktop_Draw();
+	calibrate = 1;
 }
 
 void settings_Start(){
-	xTaskCreate(settings, "GUI", 300, NULL, 3, NULL);
+	xTaskCreate(settings, "GUI", 2000, NULL, 3, NULL);
 }
 
 void settings(void) {
@@ -88,6 +86,12 @@ void settings(void) {
 				return;
 				break;
 			}
+		}
+		if(calibrate) {
+			touch_Calibrate();
+			widget_RequestRedrawFull(topWidget);
+			desktop_Draw();
+			calibrate = 0;
 		}
 	}
 }

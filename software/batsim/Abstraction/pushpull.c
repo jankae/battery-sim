@@ -28,6 +28,12 @@ uint8_t pushpull_SPI_OK;
 #define ADC_HIGH_CURRENT		4
 #define ADC_BIAS_CURRENT		5
 
+const PushPull_Limits_t Limits = {
+		.minVoltage = 0,
+		.maxVoltage = MAX_VOLTAGE,
+		.minCurrent = MAX_SINK_CURRENT,
+		.maxCurrent = MAX_SOURCE_CURRENT,
+};
 
 uint16_t CtrlWords[SPI_BLOCK_SIZE];
 uint16_t RawADC[SPI_BLOCK_SIZE];

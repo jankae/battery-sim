@@ -3,6 +3,8 @@
 QueueHandle_t eventQueue = NULL;
 widget_t *topWidget;
 
+extern widget_t *selectedWidget;
+
 static void guiThread(void) {
 
 	topWidget = NULL;
@@ -29,6 +31,15 @@ static void guiThread(void) {
 											+ topWidget->size.y) {
 						/* send event to top widget */
 						widget_input(topWidget, &event);
+					} else {
+						desktop_Input(&event);
+					}
+					break;
+				case EVENT_BUTTON_CLICKED:
+				case EVENT_ENCODER_MOVED:
+					/* these events are always valid for the selected widget */
+					if (selectedWidget) {
+						selectedWidget->func.input(selectedWidget, &event);
 					} else {
 						desktop_Input(&event);
 					}

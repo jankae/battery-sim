@@ -35,13 +35,13 @@
 const uint32_t matrix[BUTTONS_ROWS][BUTTONS_COLUMNS] = {
 		{BUTTON_1,			BUTTON_2,			BUTTON_3,			BUTTON_ENCODER},
 		{BUTTON_4,			BUTTON_5,			BUTTON_6,			0},
-		{BUTTON_7,			BUTTON_8,			BUTTON_9,			0},
-		{BUTTON_DOT,		BUTTON_0,			BUTTON_DEL,			0},
+		{BUTTON_7,			BUTTON_8,			BUTTON_9,			BUTTON_DEL},
+		{BUTTON_DOT,		BUTTON_0,			BUTTON_SIGN,		0},
 		{BUTTON_ESC,		BUTTON_UP,			BUTTON_ENTER,		0},
 		{BUTTON_LEFT,		BUTTON_DOWN,		BUTTON_RIGHT,		0},
 };
 
-const int8_t encTable[16] = { 0, 0, -1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, -1, 0, 0 };
+const int8_t encTable[16] = { 0, 0, 1, 0, 0, 0, 0, -1, -1, 0, 0, 0, 0, 1, 0, 0 };
 
 /* Current state of the buttons */
 static uint32_t state;
@@ -175,12 +175,11 @@ void buttons_Update(void) {
 			if ((oldState ^ state) & button) {
 				/* this button has changed */
 				if (state & button) {
-					printf("Clicked 0x%08x\n", button);
 					/* this button has been pressed */
-//					GUIEvent_t ev;
-//					ev.type = EVENT_BUTTON_CLICKED;
-//					ev.button = button;
-//					gui_SendEvent(&ev);
+					GUIEvent_t ev;
+					ev.type = EVENT_BUTTON_CLICKED;
+					ev.button = button;
+					gui_SendEvent(&ev);
 				} else {
 					// TODO could a 'button release'-event be useful?
 				}
@@ -221,12 +220,10 @@ void buttons_Update(void) {
 				movement *= multiplier;
 			}
 		}
-		printf("Encoder moved: %ld\n", movement);
-
 		/* notify GUI of movement */
-//		GUIEvent_t ev;
-//		ev.type = EVENT_ENCODER_MOVED;
-//		ev.movement = movement;
-//		gui_SendEvent(&ev);
+		GUIEvent_t ev;
+		ev.type = EVENT_ENCODER_MOVED;
+		ev.movement = movement;
+		gui_SendEvent(&ev);
 	}
 }

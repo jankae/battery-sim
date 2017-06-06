@@ -123,7 +123,9 @@ static
 void rcvr_mmc(BYTE *buff, /* Pointer to read buffer */
 UINT bc /* Number of bytes to receive */
 ) {
-	HAL_SPI_Receive(&hspi3, buff, bc, 10);
+	uint8_t dummyTX[bc];
+	memset(dummyTX, 0xFF, bc);
+	HAL_SPI_TransmitReceive(&hspi3, dummyTX, buff, bc, 10);
 }
 
 /*-----------------------------------------------------------------------*/

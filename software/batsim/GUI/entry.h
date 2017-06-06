@@ -9,6 +9,10 @@
 
 #define ENTRY_INPUT_MAX_LENGTH      12
 
+#define ENTRY_BG_COLOR				COLOR_BG_DEFAULT
+#define ENTRY_FG_COLOR				COLOR_FG_DEFAULT
+#define ENTRY_BORDER_COLOR			COLOR_FG_DEFAULT
+
 typedef struct {
     widget_t base;
     int32_t *value;
@@ -18,14 +22,13 @@ typedef struct {
     const unit_t *unit;
     uint8_t length;
 //    void (*changeCallback)(void);
-//
-//    struct {
-//        uint8_t editing :1;
-//        uint8_t dotSet :1;
-//        uint8_t encoderEdit :1;
-//    } flags;
-//    uint8_t encEditPos;
-//    char inputString[ENTRY_INPUT_MAX_LENGTH];
+
+    struct {
+        uint8_t editing :1;
+        uint8_t dotSet :1;
+    } flags;
+    uint8_t editPos;
+    char inputString[ENTRY_INPUT_MAX_LENGTH];
 } entry_t;
 
 entry_t* entry_new(int32_t *value, const int32_t *max, const int32_t *min,

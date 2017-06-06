@@ -57,6 +57,15 @@ typedef struct {
 	} avg;
 } PushPull_t;
 
+typedef struct {
+	int32_t minVoltage;
+	int32_t maxVoltage;
+	int32_t maxCurrent;
+	int32_t minCurrent;
+} PushPull_Limits_t;
+
+extern const PushPull_Limits_t Limits;
+
 /**
  * \brief Initializes the Push-Pull-Stage, Output switched off
  *

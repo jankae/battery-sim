@@ -2,12 +2,14 @@
 #include "pushpull.h"
 
 #include "adc.h"
+#include "fatfs.h"
 
 extern uint8_t pushpull_SPI_OK;
 extern uint16_t RawADC[SPI_BLOCK_SIZE];
 
+extern FATFS fatfs;
 
-typedef enum {TEST_PASSED = 0, TEST_FAILED} TestResult_t;
+typedef enum {TEST_PASSED = 0, TEST_FAILED = 1, TEST_WARNING = 2} TestResult_t;
 
 /* Maximum allowed deviation of voltages in percent that still passes the test */
 #define VOLTAGE_MAX_DEV		5
@@ -65,6 +67,9 @@ static void display_TestResult(const char *name, const char *result,
 	} else if (res == TEST_FAILED) {
 		display_SetForeground(COLOR_RED);
 		printf("%s %s FAILED\r\n", name, result);
+	} else if (res == TEST_WARNING) {
+		display_SetForeground(COLOR_YELLOW);
+		printf("%s %s WARNING\r\n", name, result);
 	}
 	display_String(200, line * 16, result);
 	line++;
@@ -187,6 +192,21 @@ uint8_t selftest_Run(void) {
 	pushpull_SetSinkCurrent(0);
 	pushpull_SetSourceCurrent(0);
 	pushpull_ReleaseControl();
+
+	if(overallRes != TEST_PASSED) {
+		goto error;
+	}
+
+	/* Check SD card */
+	FRESULT fres = f_mount(&fatfs, "0:/", 1);
+	if (fres == FR_OK) {
+		display_TestResult("SD card", "OK", TEST_PASSED);
+	} else {
+		char buf[7];
+		snprintf(buf, sizeof(buf), "Err:%d", fres);
+		display_TestResult("SD card", buf, TEST_WARNING);
+		overallRes = TEST_WARNING;
+	}
 
 error:
 

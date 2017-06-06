@@ -1,6 +1,7 @@
 #include "touch.h"
 
 #include "semphr.h"
+#include "fatfs.h"
 
 #define CS_LOW()			(GPIOB->BSRR = GPIO_PIN_7<<16u)
 #define CS_HIGH()			(GPIOB->BSRR = GPIO_PIN_7)
@@ -45,7 +46,6 @@ void touch_Init(void) {
 
 static uint16_t ADS7843_Read(uint8_t control) {
 	CS_LOW();
-	HAL_Delay(1);
 	/* highest bit in control must always be one */
 	control |= 0x80;
 	uint8_t read[2];
@@ -59,8 +59,24 @@ static uint16_t ADS7843_Read(uint8_t control) {
 	res >>= 3;
 	res &= 0x0FFF;
 	CS_HIGH();
-	HAL_Delay(1);
 	return 4095 - res;
+}
+
+static touch_SampleADC(uint16_t *rawX, uint16_t *rawY, uint16_t samples) {
+	uint16_t i;
+	uint32_t X = 0;
+	uint32_t Y = 0;
+	for (i = 0; i < samples; i++) {
+		X += ADS7843_Read(
+		CHANNEL_X | DIFFERENTIAL | BITS12 | PD_PENIRQ);
+	}
+	for (i = 0; i < samples; i++) {
+
+		Y += ADS7843_Read(
+		CHANNEL_Y | DIFFERENTIAL | BITS12 | PD_PENIRQ);
+	}
+	*rawX = X / samples;
+	*rawY = Y / samples;
 }
 
 int8_t touch_GetCoordinates(coords_t *c) {
@@ -69,13 +85,11 @@ int8_t touch_GetCoordinates(coords_t *c) {
 		return 0;
 	}
 	if (PENIRQ()) {
-		uint32_t rawY, rawX;
+		uint16_t rawY, rawX;
 		/* screen is being touched */
 		/* Acquire SPI resource */
 		if (xSemaphoreTake(xMutexSPI3, 10)) {
-			rawX = ADS7843_Read(CHANNEL_X | DIFFERENTIAL | BITS12 | PD_PENIRQ);
-			rawY = ADS7843_Read(CHANNEL_Y | DIFFERENTIAL | BITS12 | PD_PENIRQ);
-
+			touch_SampleADC(&rawX, &rawY, 20);
 			/* Release SPI resource */
 			xSemaphoreGive(xMutexSPI3);
 		} else {
@@ -108,15 +122,14 @@ void touch_Calibrate(void) {
 	display_Clear();
 	display_Line(0, 0, 40, 40);
 	display_Line(40, 0, 0, 40);
-	volatile coords_t p1;
+	coords_t p1;
 	do {
 		/* wait for touch to be pressed */
 		while (!PENIRQ())
 			;
 		/* get raw data */
-		p1.x = ADS7843_Read(CHANNEL_X | DIFFERENTIAL | BITS12 | PD_PENIRQ);
-		p1.y = ADS7843_Read(CHANNEL_X | DIFFERENTIAL | BITS12 | PD_PENIRQ);
-		if (p1.x <= 1024 && p1.y <= 682)
+		touch_SampleADC(&p1.x, &p1.y, 1000);
+		if (p1.x <= 1000 && p1.y <= 1000)
 			done = 1;
 	} while (!done);
 	while (PENIRQ())
@@ -127,16 +140,15 @@ void touch_Calibrate(void) {
 	DISPLAY_HEIGHT - 41);
 	display_Line(DISPLAY_WIDTH - 41, DISPLAY_HEIGHT - 1, DISPLAY_WIDTH - 1,
 	DISPLAY_HEIGHT - 41);
-	volatile coords_t p2;
+	coords_t p2;
 	done = 0;
 	do {
 		/* wait for touch to be pressed */
 		while (!PENIRQ())
 			;
 		/* get raw data */
-		p2.x = ADS7843_Read(CHANNEL_X | DIFFERENTIAL | BITS12 | PD_PENIRQ);
-		p2.y = ADS7843_Read(CHANNEL_X | DIFFERENTIAL | BITS12 | PD_PENIRQ);
-		if (p2.x >= 3584 && p2.y >= 3413)
+		touch_SampleADC(&p2.x, &p2.y, 1000);
+		if (p2.x >= 3000 && p2.y >= 3000)
 			done = 1;
 	} while (!done);
 
@@ -152,6 +164,27 @@ void touch_Calibrate(void) {
 
 	/* Release SPI resource */
 	xSemaphoreGive(xMutexSPI3);
+
+	/* Try to write calibration data to file */
+	FIL calfile;
+	if (f_open(&calfile, "TOUCH.CAL", FA_CREATE_ALWAYS | FA_WRITE) == FR_OK) {
+		printf("Writing touch calibration file...\n");
+		file_WriteLine(&calfile, "#Calibration data for X direction\n");
+		char buf[40];
+		snprintf(buf, sizeof(buf), "xfact = %f\n", scaleX);
+		file_WriteLine(&calfile, buf);
+		snprintf(buf, sizeof(buf), "xoffset = %ld\n", offsetX);
+		file_WriteLine(&calfile, buf);
+		file_WriteLine(&calfile, "#Calibration data for Y direction\n");
+		snprintf(buf, sizeof(buf), "yfact = %f\n", scaleY);
+		file_WriteLine(&calfile, buf);
+		snprintf(buf, sizeof(buf), "yoffset = %ld\n", offsetY);
+		file_WriteLine(&calfile, buf);
+		f_close(&calfile);
+		printf("...done\n");
+	} else {
+		printf("Failed to create touch calibration file\n");
+	}
 
 	calibrating = 0;
 }

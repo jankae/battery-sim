@@ -1,5 +1,7 @@
 #include "widget.h"
 
+widget_t *selectedWidget;
+
 void widget_init(widget_t *w) {
     memset(w, 0, sizeof(widget_t));
     w->flags.visible = 1;
@@ -17,6 +19,9 @@ void widget_init(widget_t *w) {
 static void widget_deleteInt(widget_t *w) {
 	/* delete children first as we still have the firstChild pointer */
 	widget_t *next = w->firstChild;
+	if(w->flags.selected) {
+		widget_Select(NULL);
+	}
 	while(next) {
 		/* save pointer to this widget */
 		widget_t *this = next;
@@ -60,111 +65,130 @@ void widget_delete(widget_t *w) {
 	widget_deleteInt(w);
 }
 
-GUIResult_t widget_selectNext(widget_t *first) {
-    if (!first)
-        return GUI_ERROR;
-    widget_t *eligible = NULL;
-    /* find selected item */
-    while (first) {
-        if (first->flags.selected)
-            break;
-        first = first->next;
-    }
-    if (!first) {
-        /* no widget selected */
-        return GUI_UNABLE;
-    }
-    /* find next selectable item */
-    eligible = first->next;
-    while (eligible) {
-        if (eligible->flags.selectable && eligible->flags.visible)
-            /* this item can be selected */
-            break;
-        eligible = eligible->next;
-    }
-    if (!eligible) {
-        /* no next item selectable */
-        return GUI_UNABLE;
-    }
-    /* select next item */
-    first->flags.selected = 0;
-    eligible->flags.selected = 1;
-    return GUI_OK;
+void widget_Select(widget_t *w) {
+	/* de-select currently selected widget */
+	if (selectedWidget) {
+		selectedWidget->flags.selected = 0;
+		widget_RequestRedraw(selectedWidget);
+	}
+	if(w) {
+		w->flags.selected = 1;
+		widget_RequestRedraw(w);
+	}
+	if ((w && !selectedWidget) || (!w && selectedWidget)) {
+		/* focus changed from/to desktop */
+		selectedWidget = w;
+		desktop_Draw();
+	} else {
+		selectedWidget = w;
+	}
 }
 
-GUIResult_t widget_selectPrevious(widget_t *first) {
-    if (!first)
-        return GUI_ERROR;
-    widget_t *eligible = NULL;
-    /* find selected item */
-    while (first) {
-        if (first->flags.selected)
-            break;
-        if (first->flags.selectable && first->flags.visible)
-            /* this widget could be selected */
-            eligible = first;
-        first = first->next;
-    }
-    if (!first) {
-        /* no widget selected */
-        return GUI_UNABLE;
-    }
-    if (!eligible) {
-        /* no previous item selectable */
-        return GUI_UNABLE;
-    }
-    /* select previous item */
-    first->flags.selected = 0;
-    eligible->flags.selected = 1;
-    return GUI_OK;
-}
-
-GUIResult_t widget_selectFirst(widget_t *first) {
-    if (!first)
-        return GUI_ERROR;
-    /* find first eligible item */
-    while (first) {
-        if (first->flags.selectable && first->flags.visible)
-            break;
-        first = first->next;
-    }
-    if (!first) {
-        /* no widget eligible */
-        return GUI_UNABLE;
-    }
-    /* select first eligible widget */
-    first->flags.selected = 1;
-    return GUI_OK;
-}
-
-GUIResult_t widget_selectWidget(widget_t *first, uint8_t num) {
-    if (!first)
-        return GUI_ERROR;
-    while (first && num--) {
-        first = first->next;
-    }
-    if (!first) {
-        /* not enough widgets for num */
-        return GUI_ERROR;
-    }
-    if (!first->flags.visible || !first->flags.selectable) {
-        /* widget 'num' not selectable */
-        return GUI_UNABLE;
-    }
-    first->flags.selected = 1;
-    return GUI_OK;
-}
-
-GUIResult_t widget_deselectAll(widget_t *first) {
-    if (!first)
-        return GUI_ERROR;
-    /* iterate over all widgets and deselect them */
-    while (first) {
-        first->flags.selected = 0;
-        first = first->next;
-    }
-    return GUI_OK;
-}
+//GUIResult_t widget_selectNext(widget_t *first) {
+//    if (!first)
+//        return GUI_ERROR;
+//    widget_t *eligible = NULL;
+//    /* find selected item */
+//    while (first) {
+//        if (first->flags.selected)
+//            break;
+//        first = first->next;
+//    }
+//    if (!first) {
+//        /* no widget selected */
+//        return GUI_UNABLE;
+//    }
+//    /* find next selectable item */
+//    eligible = first->next;
+//    while (eligible) {
+//        if (eligible->flags.selectable && eligible->flags.visible)
+//            /* this item can be selected */
+//            break;
+//        eligible = eligible->next;
+//    }
+//    if (!eligible) {
+//        /* no next item selectable */
+//        return GUI_UNABLE;
+//    }
+//    /* select next item */
+//    first->flags.selected = 0;
+//    eligible->flags.selected = 1;
+//    return GUI_OK;
+//}
+//
+//GUIResult_t widget_selectPrevious(widget_t *first) {
+//    if (!first)
+//        return GUI_ERROR;
+//    widget_t *eligible = NULL;
+//    /* find selected item */
+//    while (first) {
+//        if (first->flags.selected)
+//            break;
+//        if (first->flags.selectable && first->flags.visible)
+//            /* this widget could be selected */
+//            eligible = first;
+//        first = first->next;
+//    }
+//    if (!first) {
+//        /* no widget selected */
+//        return GUI_UNABLE;
+//    }
+//    if (!eligible) {
+//        /* no previous item selectable */
+//        return GUI_UNABLE;
+//    }
+//    /* select previous item */
+//    first->flags.selected = 0;
+//    eligible->flags.selected = 1;
+//    return GUI_OK;
+//}
+//
+//GUIResult_t widget_selectFirst(widget_t *first) {
+//    if (!first)
+//        return GUI_ERROR;
+//    /* find first eligible item */
+//    while (first) {
+//        if (first->flags.selectable && first->flags.visible)
+//            break;
+//        first = first->next;
+//    }
+//    if (!first) {
+//        /* no widget eligible */
+//        return GUI_UNABLE;
+//    }
+//    /* select first eligible widget */
+//    first->flags.selected = 1;
+//    return GUI_OK;
+//}
+//
+//GUIResult_t widget_selectWidget(widget_t *first, uint8_t num) {
+//    if (!first)
+//        return GUI_ERROR;
+//    while (first && num--) {
+//        first = first->next;
+//    }
+//    if (!first) {
+//        /* not enough widgets for num */
+//        return GUI_ERROR;
+//    }
+//    if (!first->flags.visible || !first->flags.selectable) {
+//        /* widget 'num' not selectable */
+//        return GUI_UNABLE;
+//    }
+//    first->flags.selected = 1;
+//    return GUI_OK;
+//}
+//
+//GUIResult_t widget_deselectAll(widget_t *first) {
+//    if (!first)
+//        return GUI_ERROR;
+//    /* iterate over all widgets and deselect them */
+//    while (first) {
+//        first->flags.selected = 0;
+//        first = first->next;
+//    }
+//    return GUI_OK;
+//}
 
 //void widget_gotFocus(widget_t *w) {
 //    GUISignal_t s;
@@ -237,6 +261,13 @@ void widget_input(widget_t *w, GUIEvent_t *ev) {
 					}
 				}
 			}
+			/* Couldn't find any matching children -> this widget will be selected */
+			if (ev->type == EVENT_TOUCH_PRESSED)
+				widget_Select(w);
+		} else {
+			/* widget handled the input itself -> it is now selected */
+			if (ev->type == EVENT_TOUCH_PRESSED)
+				widget_Select(w);
 		}
 		break;
 	default:

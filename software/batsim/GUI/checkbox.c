@@ -1,5 +1,7 @@
 #include "checkbox.h"
 
+#include "buttons.h"
+
 checkbox_t* checkbox_new(uint8_t *value, void (*cb)(widget_t*)) {
 	checkbox_t* c = pvPortMalloc(sizeof(checkbox_t));
 	if (!c) {
@@ -16,8 +18,8 @@ checkbox_t* checkbox_new(uint8_t *value, void (*cb)(widget_t*)) {
     /* set callback */
     c->value = value;
     c->callback = cb;
-    c->base.size.x = 19;
-    c->base.size.y = 19;
+    c->base.size.x = 29;
+    c->base.size.y = 29;
 
     return c;
 }
@@ -29,7 +31,11 @@ void checkbox_draw(widget_t *w, coords_t offset) {
     coords_t lowerRight = upperLeft;
     lowerRight.x += c->base.size.x - 1;
     lowerRight.y += c->base.size.y - 1;
-    display_SetForeground(CHECKBOX_BORDER_COLOR);
+	if (w->flags.selected) {
+		display_SetForeground(COLOR_SELECTED);
+	} else {
+		display_SetForeground(CHECKBOX_BORDER_COLOR);
+	}
     display_Rectangle(upperLeft.x, upperLeft.y, lowerRight.x, lowerRight.y);
     if (*c->value) {
     	display_SetForeground(CHECKBOX_TICKED_COLOR);
@@ -64,12 +70,21 @@ void checkbox_draw(widget_t *w, coords_t offset) {
 
 void checkbox_input(widget_t *w, GUIEvent_t *ev) {
 	checkbox_t *c = (checkbox_t*) w;
-	if (ev->type == EVENT_TOUCH_RELEASED) {
+	switch(ev->type) {
+	case EVENT_BUTTON_CLICKED:
+		if(ev->button!=BUTTON_ENTER && ev->button != BUTTON_ENCODER) {
+			break;
+		}
+		/* no break */
+	case EVENT_TOUCH_RELEASED:
 		*c->value = !*c->value;
 		widget_RequestRedrawFull(w);
 		if (c->callback)
 			c->callback(w);
 		ev->type = EVENT_NONE;
+		break;
+	default:
+		break;
 	}
 	return;
 }

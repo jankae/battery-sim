@@ -11,6 +11,7 @@
 #include "entry.h"
 #include "textfield.h"
 #include "checkbox.h"
+#include "sevensegment.h"
 
 #include "desktop.h"
 

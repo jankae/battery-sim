@@ -12,7 +12,7 @@ static void inputThread(void) {
 		vTaskDelay(pdMS_TO_TICKS(20));
 		/* check touch for new input */
 		coords_t touch;
-		if (touch_GetCoordinates(&touch)) {
+		if (touch_GetCoordinates(&touch) > 0) {
 			if (lastTouch.x == -1) {
 				/* touch wasn't pressed before */
 				initialTouch = touch;

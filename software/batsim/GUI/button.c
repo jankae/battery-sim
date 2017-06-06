@@ -45,7 +45,11 @@ void button_draw(widget_t *w, coords_t offset) {
     lowerRight.x += b->base.size.x - 1;
     lowerRight.y += b->base.size.y - 1;
     /* draw outline */
-    display_SetForeground(BUTTON_FG_COLOR);
+	if (w->flags.selected) {
+		display_SetForeground(COLOR_SELECTED);
+	} else {
+		display_SetForeground(BUTTON_FG_COLOR);
+	}
     display_VerticalLine(upperLeft.x, upperLeft.y + 1, b->base.size.y - 2);
     display_VerticalLine(lowerRight.x, upperLeft.y + 1, b->base.size.y - 2);
     display_HorizontalLine(upperLeft.x + 1, upperLeft.y, b->base.size.x - 2);
