@@ -220,6 +220,9 @@ void entry_input(widget_t *w, GUIEvent_t *ev) {
 			*e->value = entry_constrainValue(e, newval);
 			widget_RequestRedraw(w);
     	}
+    	break;
+    default:
+    	break;
     }
     return;
 }

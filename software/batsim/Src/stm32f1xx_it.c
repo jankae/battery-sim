@@ -37,7 +37,8 @@
 #include "cmsis_os.h"
 
 /* USER CODE BEGIN 0 */
-
+#include "buttons.h"
+#include "pushpull.h"
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/

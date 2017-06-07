@@ -1,6 +1,7 @@
 #include "desktop.h"
 
 #include "buttons.h"
+#include "app.h"
 
 AppInfo_t AppList[DESKTOP_MAX_APPS];
 uint8_t NumApps;
@@ -11,22 +12,35 @@ extern widget_t *topWidget;
 extern widget_t *selectedWidget;
 
 void desktop_AddApp(AppInfo_t app) {
-	AppList[NumApps] = app;
+	if (NumApps < DESKTOP_MAX_APPS) {
+		AppList[NumApps] = app;
 
-	/* TaskHandle will be known only at startup */
-	AppList[NumApps].handle = NULL;
-	AppList[NumApps].topWidget = NULL;
-	/* App is not started */
-	AppList[NumApps].state = APP_STOPPED;
+		/* TaskHandle will be known only at startup */
+		AppList[NumApps].handle = NULL;
+		AppList[NumApps].topWidget = NULL;
+		/* App is not started */
+		AppList[NumApps].state = APP_STOPPED;
 
-	/* one more app */
-	NumApps++;
+		/* one more app */
+		NumApps++;
+	}
 }
 
 static uint8_t AppNumFromStartFunction(void (*start)(void)) {
 	uint8_t num = 0;
 	while (num < NumApps) {
 		if (AppList[num].start == start)
+			/* found right one */
+			break;
+		num++;
+	}
+	return num;
+}
+
+static uint8_t AppNumFromTaskHandle(TaskHandle_t handle) {
+	uint8_t num = 0;
+	while (num < NumApps) {
+		if (AppList[num].handle == handle)
 			/* found right one */
 			break;
 		num++;
@@ -50,14 +64,16 @@ void desktop_AppStarted(void (*start)(void), widget_t *top) {
 	desktop_Draw();
 }
 
-void desktop_AppStopped(void (*start)(void)){
-	uint8_t num = AppNumFromStartFunction(start);
+void desktop_AppStopped(){
+	uint8_t num = AppNumFromTaskHandle(xTaskGetCurrentTaskHandle());
 	if (num >= NumApps) {
 		/* failed to find correct app */
 		return;
 	}
 	AppList[num].handle = NULL;
 	AppList[num].state = APP_STOPPED;
+	/* Remove the widgets this app created */
+	widget_delete(AppList[num].topWidget);
 	/* change focus if this app had it */
 	if (focussed == num) {
 		/* choose next running app */

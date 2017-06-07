@@ -56,6 +56,8 @@
 /* USER CODE BEGIN Includes */
 #include "display.h"
 #include "pushpull.h"
+#include "touch.h"
+#include "logging.h"
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -115,8 +117,6 @@ int main(void)
 
   /* Call init function for freertos objects (in freertos.c) */
   MX_FREERTOS_Init();
-
-  volatile bla = common_LeastDigitValueFromString("    0uV", Unit_Voltage);
 
   /* Start scheduler */
   osKernelStart();

@@ -43,50 +43,46 @@ static xTaskHandle hTask;
 
 extern widget_t *topWidget;
 
+static void settings_Start(){
+	xTaskCreate(settings, "Settings", 2000, NULL, 3, NULL);
+}
+
 void settings_Init() {
-	/* register app at desktop module */
-	AppInfo_t app;
-	strcpy(app.name, "Settings");
-	app.start = settings_Start;
-	app.icon = icon;
-	desktop_AddApp(app);
+	App_Register("Settings", settings_Start, icon);
 }
 
 static void calibrateTouch() {
 	calibrate = 1;
 }
 
-void settings_Start(){
-	xTaskCreate(settings, "GUI", 2000, NULL, 3, NULL);
-}
-
-void settings(void) {
+void settings(void *unused) {
 	hTask = xTaskGetCurrentTaskHandle();
 
 	/* create GUI */
 	container_t *c = container_new(COORDS(280, 240));
 	button_t *b = button_new("Calibrate", Font_Big, 0, calibrateTouch);
-	int32_t val, min = -30000000, max = 30000000;
-	entry_t *e = entry_new(&val, &max, &min, Font_Big, 9, Unit_Current);
-	container_attach(c, b, COORDS(40, 20));
-	container_attach(c, e, COORDS(40, 60));
+
+
+	char eventCompParamNames[4][10] = { "Test1", "Test2", "Tegt3", "Test4" };
+	char* compParamList[5] = { eventCompParamNames[0],
+			eventCompParamNames[1], eventCompParamNames[2], eventCompParamNames[3], 0 };
+
+	uint8_t val = 0;
+	itemChooser_t *e = itemChooser_new(compParamList, &val, Font_Big, 3, 100);
+
+
+	container_attach(c, (widget_t*) b, COORDS(40, 20));
+	container_attach(c, (widget_t*) e, COORDS(40, 60));
 	c->base.position.x = 40;
 
-	desktop_AppStarted(settings_Start, c);
+	desktop_AppStarted(settings_Start, (widget_t*) c);
 	uint32_t signal;
 
 	while (1) {
-		if (xTaskNotifyWait(ULONG_MAX, ULONG_MAX, &signal, 10)) {
-			/* received a notication */
-			switch (signal) {
-			case SIGNAL_TERMINATE:
-				desktop_AppStopped(settings_Start);
-				widget_delete(c);
-				vTaskDelete(NULL);
-				return;
-				break;
-			}
+		if (App_Handler(&signal, 100)) {
+			/* no special signals handled in this app */
 		}
+
 		if(calibrate) {
 			touch_Calibrate();
 			widget_RequestRedrawFull(topWidget);

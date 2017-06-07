@@ -143,12 +143,3 @@ void common_StringFromValue(char *to, uint8_t len, int32_t val,
 		to[--pos] = ' ';
 	}
 }
-
-FRESULT file_WriteLine(FIL* fp, const char *s) {
-	uint16_t bw;
-	FRESULT res = f_write(fp, s, strlen(s), &bw);
-	if (bw != strlen(s)) {
-		return FR_DENIED;
-	}
-	return res;
-}

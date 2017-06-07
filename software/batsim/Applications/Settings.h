@@ -9,9 +9,7 @@
 
 void settings_Init();
 
-void settings_Start();
-
-void settings(void);
+void settings(void *unused);
 
 
 

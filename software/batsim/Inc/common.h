@@ -39,6 +39,4 @@ uint32_t common_LeastDigitValueFromString(const char *s,
 
 void common_StringFromValue(char *to, uint8_t len, int32_t val, const unit_t * const unit);
 
-FRESULT file_WriteLine(FIL* fp, const char *s);
-
 #endif

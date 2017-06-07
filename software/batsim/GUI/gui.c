@@ -1,13 +1,17 @@
 #include "gui.h"
 
 #include "buttons.h"
+#include "pushpull.h"
 
 QueueHandle_t eventQueue = NULL;
 widget_t *topWidget;
 
+TaskHandle_t GUIHandle;
+
 extern widget_t *selectedWidget;
 
 static void guiThread(void) {
+	GUIHandle = xTaskGetCurrentTaskHandle();
 
 	topWidget = NULL;
 	GUIEvent_t event;

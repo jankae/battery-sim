@@ -12,6 +12,7 @@
 #include "textfield.h"
 #include "checkbox.h"
 #include "sevensegment.h"
+#include "itemChooser.h"
 
 #include "desktop.h"
 

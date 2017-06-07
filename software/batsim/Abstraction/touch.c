@@ -160,7 +160,7 @@ void touch_Calibrate(void) {
 		while (!PENIRQ())
 			;
 		/* get raw data */
-		touch_SampleADC(&p1.x, &p1.y, 1000);
+		touch_SampleADC((uint16_t*) &p1.x, (uint16_t*) &p1.y, 1000);
 		if (p1.x <= 1000 && p1.y <= 1000)
 			done = 1;
 	} while (!done);
@@ -179,7 +179,7 @@ void touch_Calibrate(void) {
 		while (!PENIRQ())
 			;
 		/* get raw data */
-		touch_SampleADC(&p2.x, &p2.y, 1000);
+		touch_SampleADC((uint16_t*) &p2.x, (uint16_t*) &p2.y, 1000);
 		if (p2.x >= 3000 && p2.y >= 3000)
 			done = 1;
 	} while (!done);

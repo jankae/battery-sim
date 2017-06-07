@@ -1,8 +1,9 @@
 #include "Supply.h"
 
 #include "pushpull.h"
+#include "gui.h"
 
-const uint16_t imagedata[1024] = {
+static const uint16_t imagedata[1024] = {
 0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,
 0x0000,0x0000,0x0000,0x0000,0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,0x0000,0x0000,0x0000,0x0000,
 0x0000,0x0000,0xffff,0xffff,0xbdf7,0xbdf7,0xbdf7,0xbdf7,0xbdf7,0xbdf7,0xbdf7,0xbdf7,0xbdf7,0xbdf7,0xbdf7,0xbdf7,0xbdf7,0xbdf7,0xbdf7,0xbdf7,0xbdf7,0xbdf7,0xbdf7,0xbdf7,0xbdf7,0xbdf7,0xbdf7,0xbdf7,0xffff,0xffff,0x0000,0x0000,
@@ -74,28 +75,17 @@ const uint16_t imagedata[1024] = {
 
 static Image_t icon = { .width = 32, .height = 32, .data = imagedata };
 
-static xTaskHandle hTask;
+static void Supply(void *unused);
 
-void Supply_Init() {
-	/* register app at desktop module */
-	AppInfo_t app;
-	strcpy(app.name, "SupplyApp");
-	app.start = Supply_Start;
-	app.icon = icon;
-	desktop_AddApp(app);
-}
-
-static void stop() {
-	xTaskNotify(hTask, SIGNAL_TERMINATE, eSetValueWithOverwrite);
-}
-
-void Supply_Start(){
+static void Supply_Start(){
 	xTaskCreate(Supply, "Supply", 300, NULL, 3, NULL);
 }
 
-void Supply(void) {
-	hTask = xTaskGetCurrentTaskHandle();
+void Supply_Init() {
+	App_Register("Suppy", Supply_Start, icon);
+}
 
+static void Supply(void *unused) {
 	int32_t voltage, current, power;
 
 	int32_t setVoltage = 0, setMaxCurrent = 0, setMinCurrent = 0;
@@ -105,8 +95,6 @@ void Supply(void) {
 
 	/* create GUI */
 	/* Read back of current/voltage */
-
-
 	entry_t *eSetVoltage = entry_new(&setVoltage, &Limits.maxVoltage, &Limits.minVoltage, Font_Big, 7, &Unit_Voltage);
 	entry_t *eMaxCurrent = entry_new(&setMaxCurrent, &Limits.maxCurrent, &null, Font_Big, 7, &Unit_Current);
 	entry_t *eMinCurrent = entry_new(&setMinCurrent, &Limits.minCurrent, &null, Font_Big, 7, &Unit_Current);
@@ -133,27 +121,27 @@ void Supply(void) {
 
 	container_t *c= container_new(COORDS(280, 240));
 
-	container_attach(c, sVol, COORDS(100, 0));
-	container_attach(c, sCur, COORDS(100, 55));
-	container_attach(c, sPow, COORDS(100, 110));
+	container_attach(c, (widget_t*) sVol, COORDS(100, 0));
+	container_attach(c, (widget_t*) sCur, COORDS(100, 55));
+	container_attach(c, (widget_t*) sPow, COORDS(100, 110));
 
-	container_attach(c, lV, COORDS(267, 3));
-	container_attach(c, lA, COORDS(267, 58));
-	container_attach(c, lW, COORDS(267, 113));
+	container_attach(c, (widget_t*) lV, COORDS(267, 3));
+	container_attach(c, (widget_t*) lA, COORDS(267, 58));
+	container_attach(c, (widget_t*) lW, COORDS(267, 113));
 
-	container_attach(c, lOutput, COORDS(5, 64));
-	container_attach(c, lOn, COORDS(5, 82));
+	container_attach(c, (widget_t*) lOutput, COORDS(5, 64));
+	container_attach(c, (widget_t*) lOn, COORDS(5, 82));
 
-	container_attach(c, lVol, COORDS(0, 182));
-	container_attach(c, eSetVoltage, COORDS(190, 180));
-	container_attach(c, lMax, COORDS(0, 202));
-	container_attach(c, eMaxCurrent, COORDS(190, 200));
-	container_attach(c, lMin, COORDS(0, 222));
-	container_attach(c, eMinCurrent, COORDS(190, 220));
+	container_attach(c, (widget_t*) lVol, COORDS(0, 182));
+	container_attach(c, (widget_t*) eSetVoltage, COORDS(190, 180));
+	container_attach(c, (widget_t*) lMax, COORDS(0, 202));
+	container_attach(c, (widget_t*) eMaxCurrent, COORDS(190, 200));
+	container_attach(c, (widget_t*) lMin, COORDS(0, 222));
+	container_attach(c, (widget_t*) eMinCurrent, COORDS(190, 220));
 
 	c->base.position.x = 40;
 
-	desktop_AppStarted(Supply_Start, c);
+	desktop_AppStarted(Supply_Start, (widget_t*) c);
 	uint32_t signal;
 
 	pushpull_AcquireControl();
@@ -165,26 +153,18 @@ void Supply(void) {
 		/* Update values */
 		voltage = pushpull_GetBatteryVoltage()/10000;
 		current = pushpull_GetCurrent()/1000;
-		power = (int64_t) voltage * current / 1000;
-		widget_RequestRedraw(sVol);
-		widget_RequestRedraw(sCur);
-		widget_RequestRedraw(sPow);
+		power = voltage * current / 1000;
+		widget_RequestRedraw((widget_t*) sVol);
+		widget_RequestRedraw((widget_t*) sCur);
+		widget_RequestRedraw((widget_t*) sPow);
 
 		pushpull_SetVoltage(setVoltage);
 		pushpull_SetSourceCurrent(setMaxCurrent);
 		pushpull_SetSinkCurrent(setMinCurrent);
 		pushpull_SetEnabled(on);
 
-		if (xTaskNotifyWait(ULONG_MAX, ULONG_MAX, &signal, 300)) {
+		if (App_Handler(&signal, 300)) {
 			/* received a notification */
-			if(signal & SIGNAL_TERMINATE) {
-				pushpull_SetEnabled(0);
-				pushpull_ReleaseControl();
-				desktop_AppStopped(Supply_Start);
-				widget_delete(c);
-				vTaskDelete(NULL);
-				return;
-			}
 			if(signal & SIGNAL_ONOFF_BUTTON) {
 				on = !on;
 				if(on) {

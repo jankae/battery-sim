@@ -1,8 +1,13 @@
 #include "widget.h"
 
+#include "desktop.h"
+
 widget_t *selectedWidget;
 
 void widget_init(widget_t *w) {
+	if (!w)
+		/* no widget given */
+		return;
     memset(w, 0, sizeof(widget_t));
     w->flags.visible = 1;
     w->flags.selectable = 1;
@@ -17,6 +22,9 @@ void widget_init(widget_t *w) {
  * @param w Widget to delete
  */
 static void widget_deleteInt(widget_t *w) {
+	if (!w)
+		/* no widget given */
+		return;
 	/* delete children first as we still have the firstChild pointer */
 	widget_t *next = w->firstChild;
 	if(w->flags.selected) {
@@ -39,6 +47,9 @@ static void widget_deleteInt(widget_t *w) {
 }
 
 void widget_delete(widget_t *w) {
+	if (!w)
+		/* no widget given */
+		return;
 	/* remove this widget from its parents list */
 	if(w->parent) {
 		/* remove widget from parent linked list */
@@ -234,6 +245,9 @@ void widget_draw(widget_t *w, coords_t pos) {
 }
 
 void widget_input(widget_t *w, GUIEvent_t *ev) {
+	if (!w || !ev)
+		/* no widget given */
+		return;
 	switch(ev->type) {
 	case EVENT_TOUCH_PRESSED:
 	case EVENT_TOUCH_RELEASED:

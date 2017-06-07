@@ -68,6 +68,8 @@ void pushpull_AcquireControl(void);
 void pushpull_ReleaseControl(void);
 TaskHandle_t pushpull_GetControlHandle(void);
 
+void pushpull_SetDefault(void);
+
 void pushpull_SetAveraging(uint16_t samples);
 
 void pushpull_SetVoltage(uint32_t uv);

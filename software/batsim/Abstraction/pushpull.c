@@ -1,9 +1,9 @@
 #include "../Abstraction/pushpull.h"
 
 #include "spi.h"
-#include "definitions.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#include "app.h"
 
 #define PUSHPULL_DEFAULT_DRIVE		200
 
@@ -51,11 +51,7 @@ void pushpull_Init(void) {
 	pushpull.enabled = 0;
 	pushpull_SPI_OK = 0;
 	pushpull_AcquireControl();
-	pushpull_SetEnabled(0);
-	pushpull_SetDriveCurrent(0);
-	pushpull_SetVoltage(0);
-	pushpull_SetSourceCurrent(0);
-	pushpull_SetSinkCurrent(0);
+	pushpull_SetDefault();
 	pushpull_ReleaseControl();
 }
 
@@ -68,11 +64,24 @@ void pushpull_AcquireControl(void) {
 }
 
 void pushpull_ReleaseControl(void) {
-	pushpull.control = NULL;
+	/* Check if this task had control */
+	if(pushpull.control == xTaskGetCurrentTaskHandle()) {
+		/* release control and set pushpull stage to default values */
+		pushpull_SetDefault();
+		pushpull.control = NULL;
+	}
 }
 
 inline TaskHandle_t pushpull_GetControlHandle(void) {
 	return pushpull.control;
+}
+
+void pushpull_SetDefault(void) {
+	pushpull_SetEnabled(0);
+	pushpull_SetDriveCurrent(0);
+	pushpull_SetVoltage(0);
+	pushpull_SetSourceCurrent(0);
+	pushpull_SetSinkCurrent(0);
 }
 
 void pushpull_SetAveraging(uint16_t samples) {
