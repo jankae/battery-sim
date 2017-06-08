@@ -149,8 +149,8 @@ void desktop_Draw(void) {
 
 static uint8_t iAppToClose = 0;
 
-static void msgBoxResult(MsgResult_t res) {
-	if (res == MSG_RESULT_OK) {
+static void msgBoxResult(DialogResult_t res) {
+	if (res == DIALOG_RESULT_OK) {
 		/* Stop app */
 		xTaskNotify(AppList[iAppToClose].handle, SIGNAL_TERMINATE,
 				eSetBits);

@@ -2,6 +2,7 @@
 
 #include "pushpull.h"
 #include "gui.h"
+#include "file.h"
 
 static const uint16_t imagedata[1024] = {
 0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,
@@ -75,17 +76,40 @@ static const uint16_t imagedata[1024] = {
 
 static Image_t icon = { .width = 32, .height = 32, .data = imagedata };
 
+static TaskHandle_t handle;
+
+int32_t vol, source, sink;
+static const fileEntry_t SupplyConfig[3] = {
+		{ "voltage",&vol, PTR_INT32 },
+		{ "source", &source, PTR_INT32 },
+		{ "sink", &sink, PTR_INT32 },
+};
+
 static void Supply(void *unused);
 
 static void Supply_Start(){
-	xTaskCreate(Supply, "Supply", 300, NULL, 3, NULL);
+	xTaskCreate(Supply, "Supply", 600, NULL, 3, NULL);
 }
 
 void Supply_Init() {
 	App_Register("Suppy", Supply_Start, icon);
 }
 
+static uint8_t loadDialog = 0;
+static void load() {
+	loadDialog = 1;
+	xTaskNotify(handle, SIGNAL_WAKEUP, eSetBits);
+}
+
+static uint8_t saveDialog = 0;
+static void save() {
+	saveDialog = 1;
+	xTaskNotify(handle, SIGNAL_WAKEUP, eSetBits);
+}
+
 static void Supply(void *unused) {
+	handle = xTaskGetCurrentTaskHandle();
+
 	int32_t voltage, current, power;
 
 	int32_t setVoltage = 0, setMaxCurrent = 0, setMinCurrent = 0;
@@ -102,6 +126,9 @@ static void Supply(void *unused) {
 	label_t *lVol = label_newWithText("Voltage set:", Font_Big);
 	label_t *lMax = label_newWithText("Source I set:", Font_Big);
 	label_t *lMin = label_newWithText("Sink I set:", Font_Big);
+
+	button_t *bLoad = button_new("Load", Font_Big, 0, load);
+	button_t *bSave = button_new("Save", Font_Big, 0, save);
 
 	sevensegment_t *sVol = sevensegment_new(&voltage, 20, 7, 5, 2, COLOR_DARKGREEN);
 	sevensegment_t *sCur = sevensegment_new(&current, 20, 7, 5, 3, COLOR_RED);
@@ -129,8 +156,11 @@ static void Supply(void *unused) {
 	container_attach(c, (widget_t*) lA, COORDS(267, 58));
 	container_attach(c, (widget_t*) lW, COORDS(267, 113));
 
-	container_attach(c, (widget_t*) lOutput, COORDS(5, 64));
-	container_attach(c, (widget_t*) lOn, COORDS(5, 82));
+	container_attach(c, (widget_t*) lOutput, COORDS(5, 9));
+	container_attach(c, (widget_t*) lOn, COORDS(5, 27));
+
+	container_attach(c, (widget_t*) bLoad, COORDS(5, 120));
+	container_attach(c, (widget_t*) bSave, COORDS(5, 150));
 
 	container_attach(c, (widget_t*) lVol, COORDS(0, 182));
 	container_attach(c, (widget_t*) eSetVoltage, COORDS(190, 180));
@@ -149,6 +179,7 @@ static void Supply(void *unused) {
 	pushpull_SetEnabled(0);
 	pushpull_SetInternalResistance(0);
 
+	uint8_t lastOn = on;
 	while(1) {
 		/* Update values */
 		voltage = pushpull_GetBatteryVoltage()/10000;
@@ -163,20 +194,56 @@ static void Supply(void *unused) {
 		pushpull_SetSinkCurrent(setMinCurrent);
 		pushpull_SetEnabled(on);
 
+		if(lastOn != on) {
+			if(on) {
+				label_SetText(lOn, "ON");
+				lOn->color = COLOR_RED;
+			} else {
+				label_SetText(lOn, "OFF");
+				lOn->color = COLOR_GRAY;
+			}
+			lastOn = on;
+		}
+
 		if (App_Handler(&signal, 300)) {
 			/* received a notification */
 			if(signal & SIGNAL_ONOFF_BUTTON) {
 				on = !on;
-				if(on) {
-					label_SetText(lOn, "ON");
-					lOn->color = COLOR_RED;
-				} else {
-					label_SetText(lOn, "OFF");
-					lOn->color = COLOR_GRAY;
-				}
 			}
 			if(signal & SIGNAL_PUSHPULL_UPDATE) {
 				/* already handled in while(1) loop, nothing to do here */
+			}
+			if (loadDialog) {
+				char filename[_MAX_LFN + 1];
+				if (dialog_FileChooser("Select Preset:", filename, "0:/", "SUP")
+						== DIALOG_RESULT_OK) {
+					if (file_ReadParameters(filename, SupplyConfig, 3)
+							== FILE_OK) {
+						/* got all new parameters */
+						on = 0;
+						setVoltage = vol;
+						setMaxCurrent = source;
+						setMinCurrent = sink;
+					} else {
+						dialog_MessageBox("Error", "Failed to read file", MSG_OK, NULL);
+					}
+				}
+				loadDialog = 0;
+			}
+			if (saveDialog) {
+				char filename[_MAX_LFN + 1];
+				if (dialog_StringInput("Preset name:", filename, _MAX_LFN - 4)
+						== DIALOG_RESULT_OK) {
+					/* add file extension */
+					strcat(filename, ".SUP");
+					vol = setVoltage;
+					source = setMaxCurrent;
+					sink = setMinCurrent;
+					if(file_WriteParameters(filename, SupplyConfig, 3) != FILE_OK) {
+						dialog_MessageBox("Error", "Failed to write file", MSG_OK, NULL);
+					}
+				}
+				saveDialog = 0;
 			}
 		}
 	}

@@ -19,7 +19,7 @@ void Log_CritError(const char *filename, uint16_t line, const char *fmt, ...) {
 
 	va_list arp;
 	va_start(arp, fmt);
-	snprintf(buffer, sizeof(buffer), fmt, arp);
+	vsnprintf(buffer, sizeof(buffer), fmt, arp);
 	va_end(arp);
 
 	display_String(0, 40, buffer);

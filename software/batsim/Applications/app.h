@@ -6,7 +6,10 @@
 #include "FreeRTOS.h"
 #include "widget.h"
 
-#define SIGNAL_TERMINATE		0x10000000
+/* Stop this app */
+#define SIGNAL_TERMINATE		0x80000000
+/* No specific action, just trigger the app task */
+#define SIGNAL_WAKEUP	0x40000000
 
 #define SIGNAL_ONOFF_BUTTON		0x00000001
 #define SIGNAL_PUSHPULL_UPDATE	0x00000002

@@ -1,5 +1,7 @@
 #include "button.h"
 
+#include "buttons.h"
+
 button_t* button_new(const char *name, font_t font, uint8_t minWidth, void (*cb)(widget_t*)) {
 	button_t* button = pvPortMalloc(sizeof(button_t));
 	if (!button) {
@@ -92,20 +94,29 @@ void button_draw(widget_t *w, coords_t offset) {
 
 void button_input(widget_t *w, GUIEvent_t *ev) {
     button_t *b = (button_t*) w;
-    if(ev->type == EVENT_TOUCH_PRESSED) {
+    switch(ev->type) {
+    case EVENT_TOUCH_PRESSED:
 		if (!b->pressed) {
 			b->pressed = 1;
 			widget_RequestRedraw(w);
 		}
-		ev->type = EVENT_NONE;
-	} else if (ev->type == EVENT_TOUCH_RELEASED) {
+		break;
+    case EVENT_TOUCH_RELEASED:
 		if (b->pressed) {
 			b->pressed = 0;
 			widget_RequestRedraw(w);
-			if(b->callback)
+			if (b->callback)
 				b->callback(w);
 		}
-		ev->type = EVENT_NONE;
+		break;
+    case EVENT_BUTTON_CLICKED:
+    	if(ev->button & (BUTTON_ENTER|BUTTON_ENCODER)) {
+			if (b->callback)
+				b->callback(w);
+    	}
+		break;
+    default:
+    	break;
 	}
     return;
 }

@@ -1,7 +1,7 @@
 #include "itemChooser.h"
 
 itemChooser_t* itemChooser_new(const char * const * const items, uint8_t *value,
-		font_t font, uint8_t visibleLines, uint8_t minSizeX) {
+		font_t font, uint8_t visibleLines, uint16_t minSizeX) {
 	itemChooser_t* i = pvPortMalloc(sizeof(itemChooser_t));
 	if (!i) {
 		/* malloc failed */
@@ -77,6 +77,10 @@ void itemChooser_draw(widget_t *w, coords_t offset) {
     uint8_t line;
     for(line = 0;line < i->lines; line++) {
     	uint8_t index = line + i->topVisibleEntry;
+    	if(index >= numItems) {
+    		/* item chooser has more lines than entries -> abort */
+    		break;
+    	}
     	if(index == *i->value) {
     		/* this is the currently selected entry */
     		display_SetBackground(ITEMCHOOSER_SELECTED_BG_COLOR);
@@ -102,8 +106,11 @@ void itemChooser_draw(widget_t *w, coords_t offset) {
 	/* calculate beginning and end of scrollbar */
 	uint8_t scrollBegin = common_Map(i->topVisibleEntry, 0, numItems, 0,
 			i->base.size.y);
-	uint8_t scrollEnd = common_Map(i->topVisibleEntry + i->lines, 0, numItems,
-			0, i->base.size.y);
+	uint8_t scrollEnd = i->base.size.y;
+	if (numItems > i->lines) {
+		scrollEnd = common_Map(i->topVisibleEntry + i->lines, 0, numItems, 0,
+				i->base.size.y);
+	}
 	/* display position indicator */
 	display_SetForeground(ITEMCHOOSER_SCROLLBAR_COLOR);
 	display_RectangleFull(lowerRight.x - ITEMCHOOSER_SCROLLBAR_SIZE + 1,

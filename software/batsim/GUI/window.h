@@ -26,6 +26,7 @@ typedef struct {
     char title[WINDOW_MAX_NAME + 1];
     font_t font;
     widget_t *lastTopWidget;
+    uint8_t lastPopup;
 } window_t;
 
 window_t* window_new(const char *titel, font_t font, coords_t size);

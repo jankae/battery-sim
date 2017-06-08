@@ -34,6 +34,12 @@
 							BUTTON_4|BUTTON_5|BUTTON_6|BUTTON_7|BUTTON_8| \
 							BUTTON_9|BUTTON_DOT|BUTTON_SIGN) ? 1 : 0)
 
+#define BUTTON_IS_DIGIT(b) (b & (BUTTON_0|BUTTON_1|BUTTON_2|BUTTON_3| \
+							BUTTON_4|BUTTON_5|BUTTON_6|BUTTON_7|BUTTON_8| \
+							BUTTON_9) ? 1 : 0)
+
+#define BUTTON_IS_ARROW(b) (b & (BUTTON_LEFT|BUTTON_RIGHT|BUTTON_UP|BUTTON_DOWN))
+
 #define BUTTON_TODIGIT(b)  (b>= BUTTON_9 ? __builtin_clz(b) : 0)
 
 void buttons_Init();

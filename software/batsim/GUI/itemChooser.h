@@ -22,10 +22,8 @@ typedef struct {
 } itemChooser_t;
 
 itemChooser_t* itemChooser_new(const char * const * const items, uint8_t *value,
-		font_t font, uint8_t visibleLines, uint8_t minSizeX);
+		font_t font, uint8_t visibleLines, uint16_t minSizeX);
 void itemChooser_draw(widget_t *w, coords_t offset);
 void itemChooser_input(widget_t *w, GUIEvent_t *ev);
-
-
 
 #endif

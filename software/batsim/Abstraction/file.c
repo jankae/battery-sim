@@ -3,7 +3,7 @@
 #include "fatfs.h"
 #include "semphr.h"
 
-static SemaphoreHandle_t fileAccess;
+SemaphoreHandle_t fileAccess;
 
 static FIL file;
 

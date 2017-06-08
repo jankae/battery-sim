@@ -5,6 +5,7 @@
 
 QueueHandle_t eventQueue = NULL;
 widget_t *topWidget;
+uint8_t isPopup;
 
 TaskHandle_t GUIHandle;
 
@@ -40,7 +41,8 @@ static void guiThread(void) {
 											+ topWidget->size.y) {
 						/* send event to top widget */
 						widget_input(topWidget, &event);
-					} else {
+					} else if (!isPopup) {
+						// TODO block desktop input if topwidget is a popup window
 						desktop_Input(&event);
 					}
 					break;

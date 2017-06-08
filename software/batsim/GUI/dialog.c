@@ -1,222 +1,41 @@
 #include "dialog.h"
 
+#include "logging.h"
+
 #define INPUT_DIALOG_LENGTH		10
+
+extern SemaphoreHandle_t fileAccess;
+extern TaskHandle_t GUIHandle;
 
 struct {
 	window_t *window;
 	union {
 		struct {
-			char string[INPUT_DIALOG_LENGTH + 1];
-			uint8_t pos;
-			label_t *label;
-			button_t *bdot;
-			int32_t *ptr;
-			int32_t min;
-			int32_t max;
-			const unit_t *unit;
-		} input;
-		struct {
-			void (*cb)(MsgResult_t);
+			void (*cb)(DialogResult_t);
 		} msgbox;
+		struct {
+			SemaphoreHandle_t dialogDone;
+			uint8_t OKclicked;
+		} fileChooser;
+		struct {
+			SemaphoreHandle_t dialogDone;
+			uint8_t OKclicked;
+			char *string;
+			label_t *lString;
+			uint8_t pos;
+			uint8_t maxLength;
+		} StringInput;
 	};
 } dialog;
 
-static void inputDialog_AddChar(widget_t *source) {
-	if (dialog.input.pos < 10) {
-		/* still room in input */
-		button_t *b = (button_t*) source;
-		/* copy first char of button text */
-		dialog.input.string[dialog.input.pos] = b->name[0];
-		if (b->name[0] == '.') {
-			/* prevent further dots */
-			source->flags.selectable = 0;
-		}
-		dialog.input.pos++;
-		/* text has changed */
-		label_SetText(dialog.input.label, dialog.input.string);
-	}
-}
-
-static void inputDialog_DeleteChar(widget_t *source) {
-	if (dialog.input.pos > 0) {
-		/* input available */
-		dialog.input.pos--;
-		if(dialog.input.string[dialog.input.pos]=='.') {
-			/* deleted dot, allow new dot */
-			dialog.input.bdot->base.flags.selectable = 1;
-		}
-		dialog.input.string[dialog.input.pos] = 0;
-		/* text has changed */
-		label_SetText(dialog.input.label, dialog.input.string);
-	}
-}
-
-static void inputDialog_ToggleSign(widget_t *source) {
-	if (dialog.input.string[0] == '-') {
-		/* remove sign from string */
-		memmove(&dialog.input.string[0], &dialog.input.string[1], dialog.input.pos);
-		dialog.input.pos--;
-	} else if(dialog.input.pos < 10) {
-		/* space for sign available, add at the beginning */
-		memmove(&dialog.input.string[1], &dialog.input.string[0], dialog.input.pos);
-		/* add sign at the beginning */
-		dialog.input.string[0] = '-';
-		dialog.input.pos++;
-	}
-	/* text has changed */
-	label_SetText(dialog.input.label, dialog.input.string);
-}
-
-static void inputDialog_Finished(widget_t *source) {
-	button_t *b = (button_t*) source;
-	uint32_t factor = 0;
-	/* find unit of source button */
-	uint8_t i = 0;
-	while((*dialog.input.unit)[i]) {
-		/* does the source button match this unit? */
-		if(!strcmp((*dialog.input.unit)[i]->name, b->name)) {
-			/* this unit was selected */
-			factor = (*dialog.input.unit)[i]->factor;
-			break;
-		}
-		i++;
-	}
-//	if(!factor) {
-//		/* couldn't find unit. This should not be possible, as unit buttons
-//		 * are created from the same array against which they are compared here */
-//	}
-	/* build value from string */
-	int64_t value = 0;
-	uint32_t div = 0;
-	int8_t sign = 1;
-	i = 0;
-	if (dialog.input.string[0] == '-') {
-		/* value is negative */
-		sign = -1;
-		i = 1;
-	}
-	for (; i < INPUT_DIALOG_LENGTH; i++) {
-		if (!dialog.input.string[i]) {
-			/* found end of string */
-			break;
-		} else if (dialog.input.string[i] == '.') {
-			/* found dot */
-			div = 1;
-		} else {
-			/* add digit to value */
-			value *= 10;
-			value += dialog.input.string[i] - '0';
-			div *= 10;
-		}
-	}
-	/* correct by unit factor */
-	value *= factor;
-	/* correct by dot position */
-	if (div)
-		value /= div;
-	/* set sign */
-	value *= sign;
-
-	/* constrain value */
-	if (value > dialog.input.max)
-		value = dialog.input.max;
-	else if (value < dialog.input.min)
-		value = dialog.input.min;
-
-	/* update value pointer */
-	*dialog.input.ptr = (int32_t) value;
-
-	/* destroy dialog */
-	GUIEvent_t ev =
-			{ .type = EVENT_WINDOW_CLOSE, .w = (widget_t*) dialog.window };
-	gui_SendEvent(&ev);
-}
-
-void dialog_InputValue(int32_t * const result,
-		const int32_t min, const int32_t max, const unit_t * const unit){
-	/* check pointers */
-	if (!result || !unit) {
-		return;
-	}
-	/* initialize input string */
-	memset(dialog.input.string, 0, sizeof(dialog.input.string));
-	dialog.input.pos = 0;
-	/* create dialog window and elements */
-	label_t *label = label_newWithLength(INPUT_DIALOG_LENGTH, Font_Big, LABEL_CENTER);
-	/* keypad */
-	button_t *b1 = button_new("1", Font_Big, 30, inputDialog_AddChar);
-	button_t *b2 = button_new("2", Font_Big, 30, inputDialog_AddChar);
-	button_t *b3 = button_new("3", Font_Big, 30, inputDialog_AddChar);
-	button_t *b4 = button_new("4", Font_Big, 30, inputDialog_AddChar);
-	button_t *b5 = button_new("5", Font_Big, 30, inputDialog_AddChar);
-	button_t *b6 = button_new("6", Font_Big, 30, inputDialog_AddChar);
-	button_t *b7 = button_new("7", Font_Big, 30, inputDialog_AddChar);
-	button_t *b8 = button_new("8", Font_Big, 30, inputDialog_AddChar);
-	button_t *b9 = button_new("9", Font_Big, 30, inputDialog_AddChar);
-	button_t *b0 = button_new("0", Font_Big, 30, inputDialog_AddChar);
-	button_t *bdot = button_new(".", Font_Big, 30, inputDialog_AddChar);
-	button_t *bdel = button_new("\x1B", Font_Big, 30, inputDialog_DeleteChar);
-	button_t *bsign = button_new("\xF1", Font_Big, 30, inputDialog_ToggleSign);
-	window_t *w = window_new("New value:", Font_Big, SIZE(230, 120));
-	container_t *c = container_new(window_GetAvailableArea(w));
-#define KEY_OFFSET_X		130
-#define KEY_OFFSET_Y		1
-	container_attach(c, (widget_t*) label, COORDS(0, 15));
-	container_attach(c, (widget_t*) b7, COORDS(KEY_OFFSET_X + 0, KEY_OFFSET_Y + 0));
-	container_attach(c, (widget_t*) b8, COORDS(KEY_OFFSET_X + 33, KEY_OFFSET_Y + 0));
-	container_attach(c, (widget_t*) b9, COORDS(KEY_OFFSET_X + 66, KEY_OFFSET_Y + 0));
-	container_attach(c, (widget_t*) b4, COORDS(KEY_OFFSET_X + 0, KEY_OFFSET_Y + 25));
-	container_attach(c, (widget_t*) b5, COORDS(KEY_OFFSET_X + 33, KEY_OFFSET_Y + 25));
-	container_attach(c, (widget_t*) b6, COORDS(KEY_OFFSET_X + 66, KEY_OFFSET_Y + 25));
-	container_attach(c, (widget_t*) b1, COORDS(KEY_OFFSET_X + 0, KEY_OFFSET_Y + 50));
-	container_attach(c, (widget_t*) b2, COORDS(KEY_OFFSET_X + 33, KEY_OFFSET_Y + 50));
-	container_attach(c, (widget_t*) b3, COORDS(KEY_OFFSET_X + 66, KEY_OFFSET_Y + 50));
-	container_attach(c, (widget_t*) b0, COORDS(KEY_OFFSET_X + 0, KEY_OFFSET_Y + 75));
-	container_attach(c, (widget_t*) bdot, COORDS(KEY_OFFSET_X + 33, KEY_OFFSET_Y + 75));
-	container_attach(c, (widget_t*) bdel, COORDS(KEY_OFFSET_X + 66, KEY_OFFSET_Y + 75));
-	// TODO find a place for sign toggle
-	container_attach(c, (widget_t*) bsign, COORDS(KEY_OFFSET_X - 33, KEY_OFFSET_Y + 50));
-	/* unit selection buttons */
-	uint8_t i = 0;
-	/* position for first unit button is bottom left corner */
-	uint8_t x = 1;
-	uint8_t y = KEY_OFFSET_Y + 75;
-	while((*unit)[i]) {
-		/* got a unitElement_t */
-		button_t *b = button_new((*unit)[i]->name, Font_Big, 41, inputDialog_Finished);
-		container_attach(c, (widget_t*) b, COORDS(x, y));
-		i++;
-		/* position for next button is right of this button */
-		x += 42;
-		if (x >= KEY_OFFSET_X - 42) {
-			/* reached keypad, move up one row */
-			y -= 25;
-			x = 1;
-		}
-	}
-
-	/* save pointer to widgets */
-	dialog.input.bdot = bdot;
-	dialog.input.label = label;
-	dialog.window = w;
-
-	dialog.input.ptr = result;
-	dialog.input.min = min;
-	dialog.input.max = max;
-	dialog.input.unit = unit;
-
-	window_SetMainWidget(w, (widget_t*) c);
-
-}
-
 static void MessageBoxButton(widget_t *source) {
 	button_t *b = (button_t*) source;
-	MsgResult_t res = MSG_RESULT_ERR;
+	DialogResult_t res = DIALOG_RESULT_ERR;
 	/* find which button has been pressed */
 	if(!strcmp(b->name, "OK")) {
-		res = MSG_RESULT_OK;
+		res = DIALOG_RESULT_OK;
 	} else if(!strcmp(b->name, "ABORT")) {
-		res = MSG_RESULT_ABORT;
+		res = DIALOG_RESULT_ABORT;
 	}
 
 	if (dialog.msgbox.cb)
@@ -232,7 +51,7 @@ static void MessageBoxButton(widget_t *source) {
 }
 
 void dialog_MessageBox(const char * const title, const char * const msg,
-		MsgBox_t type, void (*cb)(MsgResult_t)){
+		MsgBox_t type, void (*cb)(DialogResult_t)){
 	/* check pointers */
 	if (!title || !msg) {
 		return;
@@ -278,7 +97,246 @@ void dialog_MessageBox(const char * const title, const char * const msg,
 	dialog.window = w;
 	dialog.msgbox.cb = cb;
 
+	widget_Select((widget_t*) w);
 	window_SetMainWidget(w, (widget_t*) c);
 }
 
+static void FileChooserButton(widget_t *source) {
+	button_t *b = (button_t*) source;
+	/* find which button has been pressed */
+	if(!strcmp(b->name, "OK")) {
+		dialog.fileChooser.OKclicked = 1;
+	} else if(!strcmp(b->name, "ABORT")) {
+		dialog.fileChooser.OKclicked = 0;
+	}
+	xSemaphoreGive(dialog.fileChooser.dialogDone);
+}
+
+DialogResult_t dialog_FileChooser(const char * const title, char *result,
+		const char * const dir, const char * const filetype) {
+	if(xTaskGetCurrentTaskHandle() == GUIHandle) {
+		/* This dialog must never be called by the GUI thread (Deadlock) */
+		CRIT_ERROR("Dialog started from GUI thread.");
+	}
+
+	/* check pointers */
+	if (!title || !dir) {
+		return DIALOG_RESULT_ERR;
+	}
+
+	dialog.fileChooser.dialogDone = xSemaphoreCreateBinary();
+	if(!dialog.fileChooser.dialogDone) {
+		/* failed to create semaphore */
+		return DIALOG_RESULT_ERR;
+	}
+
+	/* Find applicable files */
+	if(!xSemaphoreTake(fileAccess, 1000)) {
+		/* failed to allocate fileAccess */
+		return DIALOG_RESULT_ERR;
+	}
+
+#define MAX_NUMBER_OF_FILES		50
+	char *filenames[MAX_NUMBER_OF_FILES + 1];
+	uint8_t foundFiles = 0;
+	FRESULT fr; /* Return value */
+	DIR dj; /* Directory search object */
+	FILINFO fno; /* File information */
+
+#if _USE_LFN
+	static char lfn[_MAX_LFN + 1]; /* Buffer to store the LFN */
+	fno.lfname = lfn;
+	fno.lfsize = sizeof lfn;
+#endif
+
+	fr = f_opendir(&dj, dir);
+
+	if (fr == FR_OK) {
+		while (f_readdir(&dj, &fno) == FR_OK) {
+			char *fn;
+#if _USE_LFN
+			fn = *fno.lfname ? fno.lfname : fno.fname;
+#else
+			fn = fno.fname;
+#endif
+			if(!fn[0] || foundFiles >= MAX_NUMBER_OF_FILES)
+				/* no more files */
+				break;
+			if (filetype) {
+				/* check file for filetype */
+				char *typestart = strchr(fn, '.');
+				if (!typestart) {
+					/* file has not type */
+					continue;
+				}
+				typestart++;
+				if (strcmp(typestart, filetype)) {
+					/* type doesn't match */
+					continue;
+				}
+			}
+			/* allocate memory for filename */
+			filenames[foundFiles] = pvPortMalloc(strlen(fn));
+			if (!filenames[foundFiles]) {
+				/* malloc failed */
+				/* free already allocated names and return with error */
+				while (foundFiles > 0) {
+					foundFiles--;
+					vPortFree(filenames[foundFiles]);
+				}
+				return DIALOG_RESULT_ERR;
+			}
+			/* copy filename */
+			strcpy(filenames[foundFiles], fn);
+			/* switch to next filename */
+			foundFiles++;
+		}
+		f_closedir(&dj);
+	}
+	xSemaphoreGive(fileAccess);
+	/* Got all matching filenames */
+	/* mark end of filename strings */
+	filenames[foundFiles] = 0;
+
+	/* Create window */
+	window_t *w = window_new(title, Font_Big, COORDS(280, 200));
+	container_t *c = container_new(window_GetAvailableArea(w));
+
+	button_t *bAbort = button_new("ABORT", Font_Big, 80, FileChooserButton);
+
+	uint8_t selectedFile = 0;
+	if (foundFiles) {
+		itemChooser_t *i = itemChooser_new(filenames, &selectedFile, Font_Big,
+				(c->base.size.y - 30) / Font_Big.height, c->base.size.x);
+		container_attach(c, (widget_t*) i, COORDS(0, 0));
+		button_t *bOK = button_new("OK", Font_Big, 80, FileChooserButton);
+		container_attach(c, (widget_t*) bOK,
+				COORDS(c->base.size.x - bOK->base.size.x - 5,
+						c->base.size.y - bOK->base.size.y - 5));
+		widget_Select((widget_t*) i);
+	} else {
+		/* got no files */
+		label_t *lNoFiles = label_newWithText("No files available", Font_Big);
+		container_attach(c, (widget_t*) lNoFiles,
+				COORDS((c->base.size.x - lNoFiles->base.size.x) / 2, 40));
+		widget_Select((widget_t*) bAbort);
+	}
+
+
+	container_attach(c, (widget_t*) bAbort,
+			COORDS(5, c->base.size.y - bAbort->base.size.y - 5));
+
+	window_SetMainWidget(w, (widget_t*) c);
+
+	/* Wait for button to be clicked */
+	xSemaphoreTake(dialog.fileChooser.dialogDone, portMAX_DELAY);
+
+	if(dialog.fileChooser.OKclicked) {
+		strcpy(result, filenames[selectedFile]);
+	}
+
+	/* free all allocated filenames */
+	while (foundFiles > 0) {
+		foundFiles--;
+		vPortFree(filenames[foundFiles]);
+	}
+
+	/* delete window */
+	window_destroy((window_t*) w);
+
+	if(dialog.fileChooser.OKclicked) {
+		return DIALOG_RESULT_OK;
+	} else {
+		return DIALOG_RESULT_ABORT;
+	}
+}
+
+static void stringInputChar(char c) {
+	if(c == 0x08) {
+		/* backspace, delete last char */
+		if(dialog.StringInput.pos>0) {
+			dialog.StringInput.pos--;
+			dialog.StringInput.string[dialog.StringInput.pos] = 0;
+			label_SetText(dialog.StringInput.lString, dialog.StringInput.string);
+		}
+	} else {
+		/* append character if space is available */
+		if(dialog.StringInput.pos<dialog.StringInput.maxLength - 1) {
+			dialog.StringInput.string[dialog.StringInput.pos] = c;
+			dialog.StringInput.pos++;
+			label_SetText(dialog.StringInput.lString, dialog.StringInput.string);
+		}
+	}
+}
+
+static void StringInputButton(widget_t *source) {
+	button_t *b = (button_t*) source;
+	/* find which button has been pressed */
+	if(!strcmp(b->name, "OK")) {
+		dialog.StringInput.OKclicked = 1;
+	} else if(!strcmp(b->name, "ABORT")) {
+		dialog.StringInput.OKclicked = 0;
+	}
+	xSemaphoreGive(dialog.StringInput.dialogDone);
+}
+
+DialogResult_t dialog_StringInput(const char * const title, char *result, uint8_t maxLength) {
+	if(xTaskGetCurrentTaskHandle() == GUIHandle) {
+		/* This dialog must never be called by the GUI thread (Deadlock) */
+		CRIT_ERROR("Dialog started from GUI thread.");
+	}
+
+	/* check pointers */
+	if (!title || !result) {
+		return DIALOG_RESULT_ERR;
+	}
+
+	dialog.StringInput.dialogDone = xSemaphoreCreateBinary();
+	if(!dialog.StringInput.dialogDone) {
+		/* failed to create semaphore */
+		return DIALOG_RESULT_ERR;
+	}
+
+	dialog.StringInput.string = result;
+	dialog.StringInput.maxLength = maxLength;
+	dialog.StringInput.pos = 0;
+
+	memset(result, 0, maxLength);
+
+	/* Create window */
+	window_t *w = window_new(title, Font_Big, COORDS(313, 233));
+	container_t *c = container_new(window_GetAvailableArea(w));
+
+	keyboard_t *k = keyboard_new(stringInputChar);
+
+	dialog.StringInput.lString = label_newWithLength(
+			c->base.size.x / Font_Big.width, Font_Big, LABEL_CENTER);
+
+	/* Create buttons */
+	button_t *bOK = button_new("OK", Font_Big, 80, StringInputButton);
+	button_t *bAbort = button_new("ABORT", Font_Big, 80, StringInputButton);
+
+	container_attach(c, (widget_t*) dialog.StringInput.lString, COORDS(0, 8));
+	container_attach(c, (widget_t*) k, COORDS(0, 30));
+	container_attach(c, (widget_t*) bOK,
+			COORDS(c->base.size.x - bOK->base.size.x - 5,
+					c->base.size.y - bOK->base.size.y - 5));
+	container_attach(c, (widget_t*) bAbort,
+			COORDS(5, c->base.size.y - bAbort->base.size.y - 5));
+
+	widget_Select((widget_t*) k);
+	window_SetMainWidget(w, (widget_t*) c);
+
+	/* Wait for button to be clicked */
+	xSemaphoreTake(dialog.StringInput.dialogDone, portMAX_DELAY);
+
+	/* delete window */
+	window_destroy((window_t*) w);
+
+	if(dialog.StringInput.OKclicked) {
+		return DIALOG_RESULT_OK;
+	} else {
+		return DIALOG_RESULT_ABORT;
+	}
+}
 

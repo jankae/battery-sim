@@ -36,7 +36,7 @@ static const uint16_t imagedata[1024] = {
 };
 
 static uint8_t calibrate = 0;
-
+static uint8_t fileDialog = 0;
 static Image_t icon = { .width = 32, .height = 32, .data = imagedata };
 
 static xTaskHandle hTask;
@@ -55,24 +55,21 @@ static void calibrateTouch() {
 	calibrate = 1;
 }
 
+static void fileChooser() {
+	fileDialog = 1;
+}
+
 void settings(void *unused) {
 	hTask = xTaskGetCurrentTaskHandle();
 
 	/* create GUI */
 	container_t *c = container_new(COORDS(280, 240));
 	button_t *b = button_new("Calibrate", Font_Big, 0, calibrateTouch);
-
-
-	char eventCompParamNames[4][10] = { "Test1", "Test2", "Tegt3", "Test4" };
-	char* compParamList[5] = { eventCompParamNames[0],
-			eventCompParamNames[1], eventCompParamNames[2], eventCompParamNames[3], 0 };
-
-	uint8_t val = 0;
-	itemChooser_t *e = itemChooser_new(compParamList, &val, Font_Big, 3, 100);
+	button_t *file = button_new("File", Font_Big, 0, fileChooser);
 
 
 	container_attach(c, (widget_t*) b, COORDS(40, 20));
-	container_attach(c, (widget_t*) e, COORDS(40, 60));
+	container_attach(c, (widget_t*) file, COORDS(40, 60));
 	c->base.position.x = 40;
 
 	desktop_AppStarted(settings_Start, (widget_t*) c);
@@ -88,6 +85,16 @@ void settings(void *unused) {
 			widget_RequestRedrawFull(topWidget);
 			desktop_Draw();
 			calibrate = 0;
+		}
+
+		if(fileDialog) {
+			char result[15];
+			if(dialog_FileChooser("Filename", result, "0:/", NULL)==DIALOG_RESULT_OK) {
+				dialog_MessageBox("Chosen:",result, MSG_OK, NULL);
+			} else {
+				dialog_MessageBox("Aborted","No file chosen", MSG_OK, NULL);
+			}
+			fileDialog = 0;
 		}
 	}
 }

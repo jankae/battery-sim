@@ -1,6 +1,7 @@
 #include "window.h"
 
 extern widget_t *topWidget;
+extern uint8_t isPopup;
 
 window_t* window_new(const char *titel, font_t font, coords_t size) {
 	window_t *w = pvPortMalloc(sizeof(window_t));
@@ -28,6 +29,8 @@ window_t* window_new(const char *titel, font_t font, coords_t size) {
 	/* store last top widget (will be restored when this window closes) */
 	w->lastTopWidget = topWidget;
 	topWidget = (widget_t*) w;
+	w->lastPopup = isPopup;
+	isPopup = 1;
 
 	return w;
 }
@@ -35,6 +38,7 @@ window_t* window_new(const char *titel, font_t font, coords_t size) {
 void window_destroy(window_t *w) {
 	/* restore last top widget */
 	topWidget = w->lastTopWidget;
+	isPopup = w->lastPopup;
 	/* delete this window and all its sub-widgets */
 	widget_delete((widget_t*) w);
 	/* request full redraw of new top widget */
@@ -76,29 +80,30 @@ void window_draw(widget_t *w, coords_t offset) {
 	/* draw dividing line under the title bar */
 	display_HorizontalLine(upperLeft.x + 1, upperLeft.y + window->font.height + 3, w->size.x - 2);
 	/* draw dividing line between title and close button */
-	display_VerticalLine(upperLeft.x + window->font.height + 3, upperLeft.y + 1,
-			window->font.height + 2);
-	/* fill close area with background color */
-	display_SetForeground(WINDOW_CLOSE_AREA_COLOR);
-	display_RectangleFull(upperLeft.x + 1, upperLeft.y + 1,
-			upperLeft.x + window->font.height + 2,
-			upperLeft.y + window->font.height + 2);
-	/* draw X in close area */
-	display_SetForeground(WINDOW_CLOSE_X_COLOR);
-	display_Line(upperLeft.x + 2, upperLeft.y + 2,
-			upperLeft.x + window->font.height + 1,
-			upperLeft.y + window->font.height + 1);
-	display_Line(upperLeft.x + 2, upperLeft.y + window->font.height + 1,
-			upperLeft.x + window->font.height + 1, upperLeft.y + 2);
+//	display_VerticalLine(upperLeft.x + window->font.height + 3, upperLeft.y + 1,
+//			window->font.height + 2);
+//	/* fill close area with background color */
+//	display_SetForeground(WINDOW_CLOSE_AREA_COLOR);
+//	display_RectangleFull(upperLeft.x + 1, upperLeft.y + 1,
+//			upperLeft.x + window->font.height + 2,
+//			upperLeft.y + window->font.height + 2);
+//	/* draw X in close area */
+//	display_SetForeground(WINDOW_CLOSE_X_COLOR);
+//	display_Line(upperLeft.x + 2, upperLeft.y + 2,
+//			upperLeft.x + window->font.height + 1,
+//			upperLeft.y + window->font.height + 1);
+//	display_Line(upperLeft.x + 2, upperLeft.y + window->font.height + 1,
+//			upperLeft.x + window->font.height + 1, upperLeft.y + 2);
 	/* fill title bar with background color */
 	display_SetForeground(WINDOW_TITLE_BG_COLOR);
-	display_RectangleFull(upperLeft.x + window->font.height + 4,
+	display_RectangleFull(upperLeft.x + 1/*+ window->font.height + 4*/,
 			upperLeft.y + 1, lowerRight.x - 1,
 			upperLeft.y + window->font.height + 2);
 	/* add title */
 	display_SetForeground(WINDOW_TITLE_FG_COLOR);
 	display_SetBackground(WINDOW_TITLE_BG_COLOR);
-	display_String(upperLeft.x + window->font.height + 5, upperLeft.y + 2,
+	display_SetFont(window->font);
+	display_String(upperLeft.x + 1/*+ window->font.height + 5*/, upperLeft.y + 2,
 			window->title);
 }
 
@@ -113,20 +118,20 @@ coords_t window_GetAvailableArea(window_t *w) {
 }
 
 void window_input(widget_t *w, GUIEvent_t *ev) {
-	window_t *window = (window_t*) w;
-	switch (ev->type) {
-	case EVENT_TOUCH_RELEASED:
-		if (ev->pos.y <= window->font.height + 3) {
-			/* mark event as handled */
-			ev->type = EVENT_NONE;
-			if (ev->pos.x <= window->font.height + 3) {
-				/* clicked into window close area, close this window */
-				GUIEvent_t ev = { .type = EVENT_WINDOW_CLOSE, .w = w };
-				gui_SendEvent(&ev);
-			}
-		}
-		break;
-	default:
-		break;
-	}
+//	window_t *window = (window_t*) w;
+//	switch (ev->type) {
+//	case EVENT_TOUCH_RELEASED:
+//		if (ev->pos.y <= window->font.height + 3) {
+//			/* mark event as handled */
+//			ev->type = EVENT_NONE;
+//			if (ev->pos.x <= window->font.height + 3) {
+//				/* clicked into window close area, close this window */
+//				GUIEvent_t ev = { .type = EVENT_WINDOW_CLOSE, .w = w };
+//				gui_SendEvent(&ev);
+//			}
+//		}
+//		break;
+//	default:
+//		break;
+//	}
 }
