@@ -20,10 +20,8 @@ entry_t* entry_new(int32_t *value, const int32_t *max, const int32_t *min,
 	e->font = font;
 	e->unit = unit;
 	e->length = length;
-//    e->changeCallback = cb;
+    e->changeCallback = NULL;
     e->flags.editing = 0;
-//    e->flags.encoderEdit = 0;
-//    e->encEditPos = digits - 1;
 	e->base.size.y = font.height + 3;
 	e->base.size.x = font.width * length + 3;
 
@@ -140,11 +138,19 @@ void entry_draw(widget_t *w, coords_t offset) {
 	if (!e->flags.editing) {
 		/* construct value string */
 		common_StringFromValue(e->inputString, e->length, *e->value, e->unit);
-		display_SetForeground(ENTRY_FG_COLOR);
+		if (w->flags.selectable) {
+			display_SetForeground(ENTRY_FG_COLOR);
+		} else {
+			display_SetForeground(COLOR_GRAY);
+		}
 	} else {
 		display_SetForeground(COLOR_SELECTED);
 	}
-	display_SetBackground(ENTRY_BG_COLOR);
+	if (e->base.flags.selectable) {
+		display_SetBackground(ENTRY_BG_COLOR);
+	} else {
+		display_SetBackground(COLOR_UNSELECTABLE);
+	}
 	display_SetFont(e->font);
 	display_String(upperLeft.x + 1, upperLeft.y + 2, e->inputString);
 }
@@ -206,10 +212,15 @@ void entry_input(widget_t *w, GUIEvent_t *ev) {
 		} else if (ev->button == BUTTON_ESC && e->flags.editing) {
 			e->flags.editing = 0;
 			widget_RequestRedraw(w);
-		} else if(ev->button == BUTTON_ENTER && e->flags.editing) {
+		} else if ((ev->button & (BUTTON_ENTER | BUTTON_ENCODER))
+				&& e->flags.editing) {
 			e->flags.editing = 0;
+			/* TODO adjust multiplier to unit */
 			int32_t newval = entry_GetInputStringValue(e, 1000000);
 			*e->value = entry_constrainValue(e, newval);
+			if(e->changeCallback) {
+				e->changeCallback(w);
+			}
 			widget_RequestRedraw(w);
 		}
 		break;
@@ -218,6 +229,9 @@ void entry_input(widget_t *w, GUIEvent_t *ev) {
 			int32_t newval = *e->value += ev->movement
 					* common_LeastDigitValueFromString(e->inputString, e->unit);
 			*e->value = entry_constrainValue(e, newval);
+			if(e->changeCallback) {
+				e->changeCallback(w);
+			}
 			widget_RequestRedraw(w);
     	}
     	break;

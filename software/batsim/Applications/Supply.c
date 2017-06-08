@@ -92,7 +92,7 @@ static void Supply_Start(){
 }
 
 void Supply_Init() {
-	App_Register("Suppy", Supply_Start, icon);
+	App_Register("Bench Supply", Supply_Start, icon);
 }
 
 static uint8_t loadDialog = 0;
@@ -176,6 +176,7 @@ static void Supply(void *unused) {
 
 	pushpull_AcquireControl();
 	pushpull_SetAveraging(300);
+	pushpull_SetDriveCurrent(200);
 	pushpull_SetEnabled(0);
 	pushpull_SetInternalResistance(0);
 

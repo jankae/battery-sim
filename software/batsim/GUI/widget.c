@@ -95,125 +95,18 @@ void widget_Select(widget_t *w) {
 	}
 }
 
-//GUIResult_t widget_selectNext(widget_t *first) {
-//    if (!first)
-//        return GUI_ERROR;
-//    widget_t *eligible = NULL;
-//    /* find selected item */
-//    while (first) {
-//        if (first->flags.selected)
-//            break;
-//        first = first->next;
-//    }
-//    if (!first) {
-//        /* no widget selected */
-//        return GUI_UNABLE;
-//    }
-//    /* find next selectable item */
-//    eligible = first->next;
-//    while (eligible) {
-//        if (eligible->flags.selectable && eligible->flags.visible)
-//            /* this item can be selected */
-//            break;
-//        eligible = eligible->next;
-//    }
-//    if (!eligible) {
-//        /* no next item selectable */
-//        return GUI_UNABLE;
-//    }
-//    /* select next item */
-//    first->flags.selected = 0;
-//    eligible->flags.selected = 1;
-//    return GUI_OK;
-//}
-//
-//GUIResult_t widget_selectPrevious(widget_t *first) {
-//    if (!first)
-//        return GUI_ERROR;
-//    widget_t *eligible = NULL;
-//    /* find selected item */
-//    while (first) {
-//        if (first->flags.selected)
-//            break;
-//        if (first->flags.selectable && first->flags.visible)
-//            /* this widget could be selected */
-//            eligible = first;
-//        first = first->next;
-//    }
-//    if (!first) {
-//        /* no widget selected */
-//        return GUI_UNABLE;
-//    }
-//    if (!eligible) {
-//        /* no previous item selectable */
-//        return GUI_UNABLE;
-//    }
-//    /* select previous item */
-//    first->flags.selected = 0;
-//    eligible->flags.selected = 1;
-//    return GUI_OK;
-//}
-//
-//GUIResult_t widget_selectFirst(widget_t *first) {
-//    if (!first)
-//        return GUI_ERROR;
-//    /* find first eligible item */
-//    while (first) {
-//        if (first->flags.selectable && first->flags.visible)
-//            break;
-//        first = first->next;
-//    }
-//    if (!first) {
-//        /* no widget eligible */
-//        return GUI_UNABLE;
-//    }
-//    /* select first eligible widget */
-//    first->flags.selected = 1;
-//    return GUI_OK;
-//}
-//
-//GUIResult_t widget_selectWidget(widget_t *first, uint8_t num) {
-//    if (!first)
-//        return GUI_ERROR;
-//    while (first && num--) {
-//        first = first->next;
-//    }
-//    if (!first) {
-//        /* not enough widgets for num */
-//        return GUI_ERROR;
-//    }
-//    if (!first->flags.visible || !first->flags.selectable) {
-//        /* widget 'num' not selectable */
-//        return GUI_UNABLE;
-//    }
-//    first->flags.selected = 1;
-//    return GUI_OK;
-//}
-//
-//GUIResult_t widget_deselectAll(widget_t *first) {
-//    if (!first)
-//        return GUI_ERROR;
-//    /* iterate over all widgets and deselect them */
-//    while (first) {
-//        first->flags.selected = 0;
-//        first = first->next;
-//    }
-//    return GUI_OK;
-//}
-
-//void widget_gotFocus(widget_t *w) {
-//    GUISignal_t s;
-//    memset(&s, 0, sizeof(s));
-//    s.gotFocus = 1;
-//    w->func.input(w, s);
-//}
-//
-//void widget_lostFocus(widget_t *w) {
-//    GUISignal_t s;
-//    memset(&s, 0, sizeof(s));
-//    s.lostFocus = 1;
-//    w->func.input(w, s);
-//}
+void widget_SetSelectable(widget_t *w, uint8_t selectable) {
+	if (!w)
+		/* no widget given */
+		return;
+	if (selectable && !w->flags.selectable) {
+		w->flags.selectable = 1;
+		widget_RequestRedrawFull(w);
+	} else if (!selectable && w->flags.selectable) {
+		w->flags.selectable = 0;
+		widget_RequestRedrawFull(w);
+	}
+}
 
 void widget_draw(widget_t *w, coords_t pos) {
 	if (!w)
@@ -224,7 +117,11 @@ void widget_draw(widget_t *w, coords_t pos) {
 	pos.y += w->position.y;
 	if (w->flags.redraw) {
 		if (w->flags.redrawClear) {
-			display_SetForeground(COLOR_BG_DEFAULT);
+			if (w->flags.selectable) {
+				display_SetForeground(COLOR_BG_DEFAULT);
+			} else {
+				display_SetForeground(COLOR_UNSELECTABLE);
+			}
 			/* widget needs a full redraw, clear widget area */
 			display_RectangleFull(pos.x, pos.y, pos.x + w->size.x - 1,
 					pos.y + w->size.y - 1);

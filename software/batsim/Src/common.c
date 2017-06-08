@@ -20,11 +20,16 @@ static const unitElement_t uR = {"uR", 1};
 static const unitElement_t mR = {"mR", 1000};
 static const unitElement_t R = {"R ", 1000000};
 
+static const unitElement_t none = {"", 1};
+
 const unit_t Unit_Current = { &uA, &mA, &A, NULL };
 const unit_t Unit_Voltage = { &uV, &mV, &V, NULL };
 const unit_t Unit_Power = { &uW, &mW, &W, NULL };
 const unit_t Unit_Temperature = {&C, NULL };
 const unit_t Unit_Resistance = { &uR, &mR, &R, NULL };
+const unit_t Unit_None = {&none, NULL };
+
+const int32_t null = 0;
 
 int32_t common_Map(int32_t value, int32_t scaleFromLow, int32_t scaleFromHigh,
 		int32_t scaleToLow, int32_t scaleToHigh) {
@@ -67,7 +72,7 @@ uint32_t common_LeastDigitValueFromString(const char *s,
 		return 0;
 	} else {
 		/* string ended before detecting unit */
-		return 0;
+		return 1;
 	}
 }
 

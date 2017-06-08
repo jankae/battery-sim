@@ -261,6 +261,7 @@ void startup_Software(void) {
 
 	/* Setup Apps */
 	Supply_Init();
+	Charger_Init();
 	settings_Init();
 
 	/* Start GUI thread */

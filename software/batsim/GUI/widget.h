@@ -49,11 +49,7 @@ struct widget {
 void widget_init(widget_t *w);
 void widget_delete(widget_t *w);
 void widget_Select(widget_t *w);
-//GUIResult_t widget_selectNext(widget_t *first);
-//GUIResult_t widget_selectPrevious(widget_t *first);
-//GUIResult_t widget_selectFirst(widget_t *first);
-//GUIResult_t widget_selectWidget(widget_t *first, uint8_t num);
-//GUIResult_t widget_deselectAll(widget_t *first);
+void widget_SetSelectable(widget_t *w, uint8_t selectable);
 void widget_gotFocus(widget_t *w);
 void widget_lostFocus(widget_t *w);
 void widget_draw(widget_t *w, coords_t offset);

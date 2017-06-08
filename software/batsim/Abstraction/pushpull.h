@@ -52,6 +52,8 @@ typedef struct {
 	int32_t maxVoltage;
 	int32_t maxCurrent;
 	int32_t minCurrent;
+	int32_t maxResistance;
+	int32_t minResistance;
 } PushPull_Limits_t;
 
 extern const PushPull_Limits_t Limits;

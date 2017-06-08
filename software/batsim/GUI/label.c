@@ -25,7 +25,6 @@ label_t* label_newWithLength(const uint8_t length, const font_t font,
 	l->font = font;
 	l->orient = orient;
 	l->name[0] = 0;
-	l->base.flags.selectable = 0;
 	/* calculate size */
 	l->base.size.y = font.height;
 	l->base.size.x = font.width * length;

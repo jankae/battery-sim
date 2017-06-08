@@ -21,7 +21,7 @@ typedef struct {
     font_t font;
     const unit_t *unit;
     uint8_t length;
-//    void (*changeCallback)(void);
+    void (*changeCallback)(widget_t*);
 
     struct {
         uint8_t editing :1;

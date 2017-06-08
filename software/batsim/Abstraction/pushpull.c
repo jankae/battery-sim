@@ -36,6 +36,8 @@ const PushPull_Limits_t Limits = {
 		.maxVoltage = MAX_VOLTAGE,
 		.minCurrent = MAX_SINK_CURRENT,
 		.maxCurrent = MAX_SOURCE_CURRENT,
+		.maxResistance = MAX_RESISTANCE,
+		.minResistance = MIN_RESISTANCE,
 };
 
 uint16_t CtrlWords[SPI_BLOCK_SIZE];
@@ -58,7 +60,7 @@ void pushpull_Init(void) {
 void pushpull_AcquireControl(void) {
 	if (pushpull.control) {
 		/* Currently controlled by another task -> send termination signal */
-		xTaskNotify(pushpull.control, 15, eSetValueWithOverwrite);
+		xTaskNotify(pushpull.control, SIGNAL_TERMINATE, eSetBits);
 	}
 	pushpull.control = xTaskGetCurrentTaskHandle();
 }
@@ -179,14 +181,42 @@ void pushpull_SetDriveCurrent(uint32_t ua) {
 void pushpull_SetInternalResistance(uint32_t ur) {
 	if (xTaskGetCurrentTaskHandle() != pushpull.control)
 		return;
+
+/* Shunt has nominal value of 0.11 Ohm */
+#define R_SHUNT 110000UL
+/* Use a simplified model for the digital potentiometer setting
+ * the internal resistance. Values (especially for large R_i) won't
+ * be accurate */
+//#define POT_MODEL_SIMPLE
+#ifdef POT_MODEL_SIMPLE
+
 	/* R = R_shunt * (255-Pot_val)/Pot_val
 	 * =>
 	 * Pot_val = R_shunt*255/(R+R_shunt)
 	 */
-	/* Shunt has nominal value of 0.11 Ohm */
-#define R_SHUNT 110000UL
 	uint8_t potval = R_SHUNT * 255 / (ur + R_SHUNT);
 	CtrlWords[SPI_POT] = potval;
+#else
+/* Use more complex potentiometer model, see datasheet (MCP41HVX1) */
+#define R_ZS			80
+#define R_FS			60
+#define R_S				19.06f
+
+	/* R = R_shunt * (R_FS+R_S*(255-potval))/(R_ZS+R_S*potval)
+	 * =>
+	 * potval = (R_shunt*R_FS/R_S+R_shunt*255+R*R_ZS/R_S)/(R+R_shunt)
+	 */
+#define MAX_RI	(int)(R_SHUNT*(R_FS+R_S*255)/R_ZS)
+#define MIN_RI	(int)(R_SHUNT*R_FS/(R_ZS+R_S*255)+1)
+	if (ur < MIN_RI) {
+		ur = MIN_RI;
+	} else if (ur > MAX_RI) {
+		ur = MAX_RI;
+	}
+	uint8_t potval = (R_SHUNT * R_FS / R_S + 255 * R_SHUNT + R_ZS / R_S * ur)
+			/ (ur + R_SHUNT);
+	CtrlWords[SPI_POT] = potval;
+#endif
 }
 
 inline int32_t pushpull_GetCurrent(void) {

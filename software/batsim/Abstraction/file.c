@@ -63,8 +63,11 @@ fileResult_t file_WriteParameters(char *filename, const fileEntry_t *paramList,
 				}
 				f_puts(buf, &file);
 			}
-			f_close(&file);
-			res = FILE_OK;
+			if (f_close(&file) == FR_OK) {
+				res = FILE_OK;
+			} else {
+				res = FILE_ERROR;
+			}
 		}
 		xSemaphoreGive(fileAccess);
 	}

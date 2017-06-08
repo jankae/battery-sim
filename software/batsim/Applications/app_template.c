@@ -26,10 +26,11 @@ void Template_Init() {
 
 static void Template(void *unused) {
 	/* Create GUI elements */
-	void *topWidget = NULL;
+	container_t *c= container_new(COORDS(280, 240));
+	c->base.position.x = 40;
 
 	/* Notify desktop of started app */
-	desktop_AppStarted(Template_Start, (widget_t*) topWidget);
+	desktop_AppStarted(Template_Start, (widget_t*) c);
 
 	while(1) {
 		uint32_t signal;

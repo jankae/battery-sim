@@ -17,7 +17,7 @@ typedef struct {
     const char * const * itemlist;
     font_t font;
     uint8_t lines;
-    void (*changeCallback)(void);
+    void (*changeCallback)(widget_t*);
     uint8_t topVisibleEntry;
 } itemChooser_t;
 

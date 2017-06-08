@@ -140,15 +140,19 @@ void itemChooser_input(widget_t *w, GUIEvent_t *ev) {
 		}
 		if (*i->value != newVal) {
 			*i->value = newVal;
+			if (i->changeCallback) {
+				i->changeCallback(i);
+			}
 			widget_RequestRedrawFull(w);
 		}
 	}
 		break;
 	case EVENT_TOUCH_PRESSED:
-		if(w->flags.selected) {
+		if (w->flags.selected) {
 			/* only react to touch if already selected. This allows
 			 * the user to select the widget without already changing the value */
-			int16_t newVal = i->topVisibleEntry + (ev->pos.y - 2) / i->font.height;
+			int16_t newVal = i->topVisibleEntry
+					+ (ev->pos.y - 2) / i->font.height;
 			if (newVal < 0) {
 				newVal = 0;
 			} else if (newVal >= numItems) {
@@ -156,6 +160,9 @@ void itemChooser_input(widget_t *w, GUIEvent_t *ev) {
 			}
 			if (*i->value != newVal) {
 				*i->value = newVal;
+				if (i->changeCallback) {
+					i->changeCallback(i);
+				}
 				widget_RequestRedrawFull(w);
 			}
 		}
