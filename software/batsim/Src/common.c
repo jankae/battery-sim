@@ -20,6 +20,15 @@ static const unitElement_t uR = {"uR", 1};
 static const unitElement_t mR = {"mR", 1000};
 static const unitElement_t R = {"R ", 1000000};
 
+static const unitElement_t uWh = {"uWh", 1};
+static const unitElement_t mWh = {"mWh", 1000};
+static const unitElement_t Wh = {"Wh ", 1000000};
+
+static const unitElement_t ms = {"ms", 1};
+static const unitElement_t s = {"s", 1000};
+static const unitElement_t min = {"m", 60000};
+static const unitElement_t hour = {"h", 3600000};
+
 static const unitElement_t none = {"", 1};
 
 const unit_t Unit_Current = { &uA, &mA, &A, NULL };
@@ -27,6 +36,8 @@ const unit_t Unit_Voltage = { &uV, &mV, &V, NULL };
 const unit_t Unit_Power = { &uW, &mW, &W, NULL };
 const unit_t Unit_Temperature = {&C, NULL };
 const unit_t Unit_Resistance = { &uR, &mR, &R, NULL };
+const unit_t Unit_Energy = { &uWh, &mWh, &Wh, NULL };
+const unit_t Unit_Time = {&ms, &s, &min, &hour, NULL };
 const unit_t Unit_None = {&none, NULL };
 
 const int32_t null = 0;

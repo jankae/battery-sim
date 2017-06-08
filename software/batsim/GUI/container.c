@@ -30,7 +30,11 @@ GUIResult_t container_attach(container_t *c, widget_t *w, coords_t position) {
     if (c->base.firstChild) {
         /* find end of children list */
         widget_t *child = c->base.firstChild;
-        while (child->next) {
+		while (child->next) {
+			if (child == w) {
+				/* this widget has already been added, this must never happen */
+				CRIT_ERROR("Duplicate widget in container");
+			}
             child = child->next;
         }
         /* add widget to the end */

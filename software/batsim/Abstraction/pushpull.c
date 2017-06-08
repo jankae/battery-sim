@@ -7,7 +7,7 @@
 
 #define PUSHPULL_DEFAULT_DRIVE		200
 
-static PushPull_t pushpull;
+static PushPull_t output;
 
 uint8_t pushpull_SPI_OK;
 
@@ -46,11 +46,11 @@ uint16_t RawADC[SPI_BLOCK_SIZE];
 extern SPI_HandleTypeDef hspi1;
 
 void pushpull_Init(void) {
-	pushpull.control = NULL;
-	pushpull.outputCurrent = 0;
-	pushpull.transferredCharge = 0;
-	pushpull.currentChangeCB = NULL;
-	pushpull.enabled = 0;
+	output.control = NULL;
+	output.outputCurrent = 0;
+	output.transferredCharge = 0;
+	output.currentChangeCB = NULL;
+	output.enabled = 0;
 	pushpull_SPI_OK = 0;
 	pushpull_AcquireControl();
 	pushpull_SetDefault();
@@ -58,24 +58,24 @@ void pushpull_Init(void) {
 }
 
 void pushpull_AcquireControl(void) {
-	if (pushpull.control) {
+	if (output.control) {
 		/* Currently controlled by another task -> send termination signal */
-		xTaskNotify(pushpull.control, SIGNAL_TERMINATE, eSetBits);
+		xTaskNotify(output.control, SIGNAL_TERMINATE, eSetBits);
 	}
-	pushpull.control = xTaskGetCurrentTaskHandle();
+	output.control = xTaskGetCurrentTaskHandle();
 }
 
 void pushpull_ReleaseControl(void) {
 	/* Check if this task had control */
-	if(pushpull.control == xTaskGetCurrentTaskHandle()) {
-		/* release control and set pushpull stage to default values */
+	if(output.control == xTaskGetCurrentTaskHandle()) {
+		/* release control and set output stage to default values */
 		pushpull_SetDefault();
-		pushpull.control = NULL;
+		output.control = NULL;
 	}
 }
 
 inline TaskHandle_t pushpull_GetControlHandle(void) {
-	return pushpull.control;
+	return output.control;
 }
 
 void pushpull_SetDefault(void) {
@@ -87,16 +87,16 @@ void pushpull_SetDefault(void) {
 }
 
 void pushpull_SetAveraging(uint16_t samples) {
-	pushpull.averaging = samples;
-	pushpull.samplecount = 0;
-	pushpull.avgBatVoltage = 0;
-	pushpull.avgOutVoltage = 0;
-	pushpull.avgOutCurrent = 0;
+	output.averaging = samples;
+	output.samplecount = 0;
+	output.avgBatVoltage = 0;
+	output.avgOutVoltage = 0;
+	output.avgOutCurrent = 0;
 }
 
 
 void pushpull_SetVoltage(uint32_t uv) {
-	if (xTaskGetCurrentTaskHandle() != pushpull.control)
+	if (xTaskGetCurrentTaskHandle() != output.control)
 		return;
 	int32_t val = 0;
 	if (uv > MAX_VOLTAGE) {
@@ -105,7 +105,7 @@ void pushpull_SetVoltage(uint32_t uv) {
 	/* calculate DAC value for given voltage */
 	val = cal_GetCalibratedValue(CAL_VOLTAGE_DAC, uv);
 
-	pushpull.voltage = uv;
+	output.voltage = uv;
 	if (val < 0)
 		val = 0;
 	if (val >= 65535)
@@ -114,7 +114,7 @@ void pushpull_SetVoltage(uint32_t uv) {
 }
 
 void pushpull_SetSourceCurrent(uint32_t ua) {
-	if (xTaskGetCurrentTaskHandle() != pushpull.control)
+	if (xTaskGetCurrentTaskHandle() != output.control)
 		return;
 	int32_t val = 0;
 	if (ua >= MAX_SOURCE_CURRENT) {
@@ -123,7 +123,7 @@ void pushpull_SetSourceCurrent(uint32_t ua) {
 	/* calculate DAC value for given voltage */
 	val = cal_GetCalibratedValue(CAL_MAX_CURRENT_DAC, ua);
 
-	pushpull.currentLimitSource = ua;
+	output.currentLimitSource = ua;
 	if (val < 0)
 		val = 0;
 	if (val >= 65535)
@@ -132,7 +132,7 @@ void pushpull_SetSourceCurrent(uint32_t ua) {
 }
 
 void pushpull_SetSinkCurrent(uint32_t ua) {
-	if (xTaskGetCurrentTaskHandle() != pushpull.control)
+	if (xTaskGetCurrentTaskHandle() != output.control)
 		return;
 	int32_t val = 0;
 	if (ua >= MAX_SINK_CURRENT) {
@@ -141,7 +141,7 @@ void pushpull_SetSinkCurrent(uint32_t ua) {
 	/* calculate DAC value for given voltage */
 	val = cal_GetCalibratedValue(CAL_MIN_CURRENT_DAC, ua);
 
-	pushpull.currentLimitSink = ua;
+	output.currentLimitSink = ua;
 	if (val < 0)
 		val = 0;
 	if (val >= 65535)
@@ -150,23 +150,23 @@ void pushpull_SetSinkCurrent(uint32_t ua) {
 }
 
 void pushpull_SetEnabled(uint8_t enabled) {
-	if (xTaskGetCurrentTaskHandle() != pushpull.control)
+	if (xTaskGetCurrentTaskHandle() != output.control)
 		return;
 	if (enabled) {
-		pushpull.enabled = 1;
+		output.enabled = 1;
 		CtrlWords[SPI_COMMAND_WORD] |= SPI_COMMAND_OUTPUT;
 	} else {
-		pushpull.enabled = 0;
+		output.enabled = 0;
 		CtrlWords[SPI_COMMAND_WORD] &= ~SPI_COMMAND_OUTPUT;
 	}
 }
 
 inline uint8_t pushpull_GetEnabled(void){
-	return pushpull.enabled;
+	return output.enabled;
 }
 
 void pushpull_SetDriveCurrent(uint32_t ua) {
-	if (xTaskGetCurrentTaskHandle() != pushpull.control)
+	if (xTaskGetCurrentTaskHandle() != output.control)
 		return;
 	/* limit drive current to 1.9mA */
 	if (ua >= 1900)
@@ -179,7 +179,7 @@ void pushpull_SetDriveCurrent(uint32_t ua) {
 }
 
 void pushpull_SetInternalResistance(uint32_t ur) {
-	if (xTaskGetCurrentTaskHandle() != pushpull.control)
+	if (xTaskGetCurrentTaskHandle() != output.control)
 		return;
 
 /* Shunt has nominal value of 0.11 Ohm */
@@ -220,23 +220,23 @@ void pushpull_SetInternalResistance(uint32_t ur) {
 }
 
 inline int32_t pushpull_GetCurrent(void) {
-	return pushpull.outputCurrent;
+	return output.outputCurrent;
 }
 
 inline uint32_t pushpull_GetOutputVoltage(void) {
-	return pushpull.outputVoltage;
+	return output.outputVoltage;
 }
 
 inline uint32_t pushpull_GetBatteryVoltage(void) {
-	return pushpull.batteryVoltage;
+	return output.batteryVoltage;
 }
 
 inline uint32_t pushpull_GetBiasCurrent(void) {
-	return pushpull.biasCurrent;
+	return output.biasCurrent;
 }
 
 inline int8_t pushpull_GetTemperature(void) {
-	return pushpull.temperature;
+	return output.temperature;
 }
 
 inline void pushpull_SPITransfer(void) {
@@ -267,35 +267,35 @@ void pushpull_SPIComplete(void) {
 			/* use high current sense as low sense is saturated */
 			current = cal_GetCalibratedValue(CAL_ADC_CURRENT_HIGH, RawADC[ADC_HIGH_CURRENT]);
 		}
-		if(pushpull.averaging) {
-			pushpull.avgBatVoltage += battery;
-			pushpull.avgOutVoltage += voltage;
-			pushpull.avgOutCurrent += current;
-			pushpull.samplecount++;
-			if(pushpull.samplecount >= pushpull.averaging) {
+		if(output.averaging) {
+			output.avgBatVoltage += battery;
+			output.avgOutVoltage += voltage;
+			output.avgOutCurrent += current;
+			output.samplecount++;
+			if(output.samplecount >= output.averaging) {
 				/* one averaging cycle has finished */
-				pushpull.batteryVoltage = pushpull.avgBatVoltage / pushpull.samplecount;
-				pushpull.outputVoltage = pushpull.avgOutVoltage / pushpull.samplecount;
-				pushpull.outputCurrent = pushpull.avgOutCurrent / pushpull.samplecount;
-				pushpull.samplecount = 0;
-				pushpull.avgBatVoltage = 0;
-				pushpull.avgOutVoltage = 0;
-				pushpull.avgOutCurrent = 0;
-				if(pushpull.control) {
+				output.batteryVoltage = output.avgBatVoltage / output.samplecount;
+				output.outputVoltage = output.avgOutVoltage / output.samplecount;
+				output.outputCurrent = output.avgOutCurrent / output.samplecount;
+				output.samplecount = 0;
+				output.avgBatVoltage = 0;
+				output.avgOutVoltage = 0;
+				output.avgOutCurrent = 0;
+				if(output.control) {
 					BaseType_t yield;
-					xTaskNotifyFromISR(pushpull.control, SIGNAL_PUSHPULL_UPDATE,
+					xTaskNotifyFromISR(output.control, SIGNAL_PUSHPULL_UPDATE,
 							eSetValueWithOverwrite, &yield);
 					portYIELD_FROM_ISR(yield);
 				}
 			}
 		} else {
 			/* no averaging -> use values directly */
-			pushpull.batteryVoltage = battery;
-			pushpull.outputVoltage = voltage;
-			pushpull.outputCurrent = current;
-			if(pushpull.control) {
+			output.batteryVoltage = battery;
+			output.outputVoltage = voltage;
+			output.outputCurrent = current;
+			if(output.control) {
 				BaseType_t yield;
-				xTaskNotifyFromISR(pushpull.control, SIGNAL_PUSHPULL_UPDATE,
+				xTaskNotifyFromISR(output.control, SIGNAL_PUSHPULL_UPDATE,
 						eSetBits, &yield);
 				portYIELD_FROM_ISR(yield);
 			}
@@ -305,10 +305,10 @@ void pushpull_SPIComplete(void) {
 		/* Bias current is measured as the voltage drop over 0.2 Ohms amplified by 10
 		 * -> ADC full scale (3.3V) corresponds to 1.65A */
 		// TODO at full scale this overflows but bias current must never be that high
-		pushpull.biasCurrent = (RawADC[ADC_BIAS_CURRENT] * 1650000UL) / ADC_MAX_SINGLE;
+		output.biasCurrent = (RawADC[ADC_BIAS_CURRENT] * 1650000UL) / ADC_MAX_SINGLE;
 
 		/* convert to °C, full scale ADC is about 393K */
-		pushpull.temperature = (uint32_t) RawADC[0] * 393 / 4096 - 273; // and subtract °C to K difference
+		output.temperature = (uint32_t) RawADC[0] * 393 / 4096 - 273; // and subtract °C to K difference
 	}
 }
 

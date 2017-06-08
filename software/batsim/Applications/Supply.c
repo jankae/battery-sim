@@ -226,7 +226,7 @@ static void Supply(void *unused) {
 						setMaxCurrent = source;
 						setMinCurrent = sink;
 					} else {
-						dialog_MessageBox("Error", "Failed to read file", MSG_OK, NULL);
+						dialog_MessageBox("Error", Font_Big, "Failed to read file", MSG_OK, NULL);
 					}
 				}
 				loadDialog = 0;
@@ -241,7 +241,7 @@ static void Supply(void *unused) {
 					source = setMaxCurrent;
 					sink = setMinCurrent;
 					if(file_WriteParameters(filename, SupplyConfig, 3) != FILE_OK) {
-						dialog_MessageBox("Error", "Failed to write file", MSG_OK, NULL);
+						dialog_MessageBox("Error", Font_Big, "Failed to write file", MSG_OK, NULL);
 					}
 				}
 				saveDialog = 0;

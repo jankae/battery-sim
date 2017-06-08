@@ -77,17 +77,40 @@ const uint32_t minCellVoltage[BATTERY_NUM] = {
 		2500000, /* LiIo */
 };
 
+const int32_t minChargeCurrent = 20000;
+
+/* main app widgets */
 static itemChooser_t *iMode;
 static itemChooser_t *iBattery;
 static checkbox_t *cAuto;
 static entry_t *eCells;
 static button_t *bStart;
 
+/* Charge window widgets */
+static button_t *bStop;
+static window_t *chargeWindow;
+static sevensegment_t *sVol;
+static sevensegment_t *sCur;
+static entry_t *eEnergy;
+static entry_t *eTime;
+
+static uint8_t active = 0;
+static uint32_t activeSince, activeFor, lastUpdate;
+static uint8_t mode = 0, battery = 0;
+static int32_t cells = 1, minCells = 1, maxCells = 8;
+static uint32_t voltageLimit = 2300000;
+static int32_t current = 500000;
+static uint8_t autoEndVol = 1;
+static int32_t transferredEnergy;
+static int64_t residualEnergy;
+static int32_t batVoltage, batCurrent;
+
 #define MODE_CHANGED		0x01
 #define TYPE_CHANGED		0x02
 #define AUTO_CHANGED		0x04
 #define CELLS_CHANGED		0x08
-#define CHARGING_ACTIVE		0x10
+#define START_CHARGING		0x10
+#define STOP_CHARGING		0x20
 static uint8_t userInputFlags = 0;
 
 static TaskHandle_t handle;
@@ -102,9 +125,173 @@ static void UserInput(widget_t* w) {
 	} else if (w == (widget_t*) cAuto) {
 		userInputFlags |= AUTO_CHANGED;
 	} else if (w == (widget_t*) bStart) {
-		userInputFlags |= CHARGING_ACTIVE;
+		userInputFlags |= START_CHARGING;
+	} else if (w == (widget_t*) bStop) {
+		userInputFlags |= STOP_CHARGING;
 	}
 	xTaskNotify(handle, SIGNAL_WAKEUP, eSetBits);
+}
+
+static void StartCharging(void) {
+	/* Check battery voltage */
+	if (mode == MODE_CHARGING) {
+		/* charging */
+		if (pushpull_GetBatteryVoltage() > voltageLimit) {
+			dialog_MessageBox("ERROR", Font_Big,
+					"Battery already\nabove maximum\nvoltage", MSG_OK, NULL);
+			return;
+		}
+		if (pushpull_GetBatteryVoltage()
+				< cells * minCellVoltage[battery] / 2) {
+			dialog_MessageBox("ERROR", Font_Big,
+					"No battery or\ndeeply discharged", MSG_OK, NULL);
+			return;
+		}
+	} else {
+		/* discharging */
+		if (pushpull_GetBatteryVoltage() < voltageLimit) {
+			dialog_MessageBox("ERROR", Font_Big,
+					"No battery or\nalready discharged", MSG_OK, NULL);
+			return;
+		}
+		/* charging */
+		if (pushpull_GetBatteryVoltage()
+				> cells * (maxCellVoltage[battery] + 200000)) {
+			dialog_MessageBox("ERROR", Font_Big,
+					"Battery voltage too\nhigh. Check settings", MSG_OK, NULL);
+			return;
+		}
+	}
+	/* Battery seems to be okay, start charging/discharging */
+
+	/* Create GUI elements */
+	sVol = sevensegment_new(&batVoltage, 20, 7, 5, 2, COLOR_DARKGREEN);
+	sCur = sevensegment_new(&batCurrent, 20, 7, 5, 3, COLOR_RED);
+	batVoltage = 0;
+	batCurrent = 0;
+
+	label_t *lV = label_newWithText("V", Font_Big);
+	lV->color = COLOR_DARKGREEN;
+	label_t *lA = label_newWithText("A", Font_Big);
+	lA->color = COLOR_RED;
+
+	/* Keep track of transferred energy */
+	label_t *lEnergy = label_newWithText("Energy:", Font_Big);
+	eEnergy = entry_new(&transferredEnergy, NULL, NULL, Font_Big, 8, &Unit_Energy);
+	widget_SetSelectable((widget_t*) eEnergy, 0);
+	transferredEnergy = 0;
+	residualEnergy = 0;
+
+	/* Keep track of time */
+	label_t *lTime = label_newWithText("Time:", Font_Big);
+	eTime = entry_new(&activeFor, NULL, NULL, Font_Big, 8, &Unit_Time);
+	widget_SetSelectable((widget_t*) eTime, 0);
+	activeFor = 0;
+
+	bStop = button_new("Abort", Font_Big, 0, UserInput);
+
+	char title[15];
+	if(mode == MODE_CHARGING) {
+		strncpy(title, "CHARGING...", sizeof(title));
+	} else {
+		strncpy(title, "DISCHARGING...", sizeof(title));
+	}
+	chargeWindow = window_new(title, Font_Big, COORDS(195, 200));
+	container_t *c = container_new(window_GetAvailableArea(chargeWindow));
+
+	/* Attach elements to container */
+	container_attach(c, (widget_t*) sVol, COORDS(3, 3));
+	container_attach(c, (widget_t*) lV, COORDS(170, 6));
+
+	container_attach(c, (widget_t*) sCur, COORDS(3, 53));
+	container_attach(c, (widget_t*) lA, COORDS(170, 56));
+
+	container_attach(c, (widget_t*) lEnergy, COORDS(0, 106));
+	container_attach(c, (widget_t*) eEnergy, COORDS(85, 106));
+
+	container_attach(c, (widget_t*) lTime, COORDS(0, 128));
+	container_attach(c, (widget_t*) eTime, COORDS(85, 128));
+
+	container_attach(c, (widget_t*) bStop,
+			COORDS((c->base.size.x - bStop->base.size.x) / 2, 150));
+
+	window_SetMainWidget(chargeWindow, (widget_t*) c);
+
+	/* Indicate beginning of charging process */
+	active = 1;
+	activeSince = lastUpdate = xTaskGetTickCount();
+
+	/* Set output */
+	pushpull_SetDriveCurrent(200);
+	if(mode==MODE_CHARGING) {
+		pushpull_SetVoltage(voltageLimit);
+		pushpull_SetSourceCurrent(current);
+		/* allow some sink current in case of offset */
+		pushpull_SetSinkCurrent(5000);
+	} else {
+		/* Set voltage all the way to zero, current is limited */
+		pushpull_SetVoltage(0);
+		/* allow some source current in case of offset */
+		pushpull_SetSourceCurrent(5000);
+		pushpull_SetSinkCurrent(current);
+	}
+	pushpull_SetEnabled(1);
+}
+
+static void StopCharging(void) {
+	/* Disable output */
+	pushpull_SetDefault();
+
+	if(chargeWindow) {
+		window_destroy(chargeWindow);
+	}
+
+	active = 0;
+}
+
+static void Charge(void) {
+	/* Update status */
+	batVoltage = pushpull_GetBatteryVoltage()/10000;
+	batCurrent = pushpull_GetCurrent()/1000;
+	activeFor = xTaskGetTickCount() - activeSince;
+	/* Calculate transferred energy */
+	int64_t power = (int64_t) pushpull_GetBatteryVoltage()
+			* pushpull_GetCurrent() / 1000000UL;
+	uint32_t timediff = xTaskGetTickCount() - lastUpdate;
+	lastUpdate += timediff;
+	residualEnergy += power * timediff;
+	int32_t uWh = residualEnergy / 3600000UL;
+	if (uWh) {
+		transferredEnergy += uWh;
+		residualEnergy -= (int64_t) uWh * 3600000UL;
+	}
+	/* Update widgets */
+	widget_RequestRedraw((widget_t*) sVol);
+	widget_RequestRedraw((widget_t*) sCur);
+	widget_RequestRedraw((widget_t*) eTime);
+	widget_RequestRedraw((widget_t*) eEnergy);
+
+	/* Monitor end of charge */
+	if(activeFor > 1000) {
+		/* Charging started a second ago */
+		/* if current or voltage falls below threshold, stop charging */
+		if ((pushpull_GetCurrent() < current / 20 && mode == MODE_CHARGING)
+				|| (pushpull_GetBatteryVoltage() < voltageLimit
+						&& mode == MODE_DISCHARGING)) {
+			/* Charging: current has become quite small, stop charging */
+			/* Discharging: voltage has passed the voltage limit, stop charging */
+			StopCharging();
+			/* Display charging result */
+			char energy[9];
+			common_StringFromValue(energy, 8, transferredEnergy, &Unit_Energy);
+			char time[8];
+			common_StringFromValue(time, 7, activeFor, &Unit_Time);
+			char msg[50];
+			snprintf(msg, sizeof(msg), "Transferred %s\nin %s", energy, time);
+			dialog_MessageBox("DONE", Font_Big, msg, MSG_OK, NULL);
+
+		}
+	}
 }
 
 static void Charger(void *unused) {
@@ -120,12 +307,6 @@ static void Charger(void *unused) {
 	label_t *lAuto = label_newWithText("Auto:", Font_Big);
 	label_t *lEndVol = label_newWithText("Limit:", Font_Big);
 
-	uint8_t mode = 0, battery = 0;
-	int32_t cells = 1, minCells = 1, maxCells = MAX_VOLTAGE
-			/ maxCellVoltage[battery];
-	int32_t voltageLimit = maxCellVoltage[battery]*cells;
-	int32_t current = 0;
-
 	/* User input fields */
 	iMode = itemChooser_new(modes, &mode, Font_Big, 2, 0);
 	iBattery = itemChooser_new(batteries, &battery, Font_Big, 3, 0);
@@ -134,13 +315,13 @@ static void Charger(void *unused) {
 
 	eCells = entry_new(&cells, &maxCells, &minCells, Font_Big, 2, &Unit_None);
 	eCells->changeCallback = UserInput;
-	entry_t *eCurrent = entry_new(&current, &Limits.maxCurrent, &null, Font_Big, 6, &Unit_Current);
+	entry_t *eCurrent = entry_new(&current, &Limits.maxCurrent,
+			&minChargeCurrent, Font_Big, 6, &Unit_Current);
 
-	uint8_t autoEndVol = 1;
 	cAuto = checkbox_new(&autoEndVol, UserInput);
 
-	entry_t *eEndVol = entry_new(&voltageLimit, &Limits.maxVoltage, &null,
-			Font_Big, 6, &Unit_Voltage);
+	entry_t *eEndVol = entry_new((int32_t*) &voltageLimit, &Limits.maxVoltage,
+			&null, Font_Big, 6, &Unit_Voltage);
 	widget_SetSelectable((widget_t*) eEndVol, !autoEndVol);
 
 	bStart = button_new("START", Font_Big, 100, UserInput);
@@ -169,6 +350,7 @@ static void Charger(void *unused) {
 	/* Notify desktop of started app */
 	desktop_AppStarted(Charger_Start, (widget_t*) c);
 
+	active = 0;
 	/* Initialize pushpull stage */
 	pushpull_AcquireControl();
 	pushpull_SetAveraging(300);
@@ -211,7 +393,23 @@ static void Charger(void *unused) {
 					}
 					widget_RequestRedraw((widget_t*) eEndVol);
 				}
+
+				if(userInputFlags & START_CHARGING) {
+					StartCharging();
+					/* clear flag */
+					userInputFlags &= ~START_CHARGING;
+				}
+
+				if(userInputFlags & STOP_CHARGING) {
+					StopCharging();
+					/* clear flag */
+					userInputFlags &= ~STOP_CHARGING;
+				}
 			}
+		}
+
+		if(active) {
+			Charge();
 		}
 	}
 }

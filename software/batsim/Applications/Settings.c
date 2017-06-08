@@ -87,12 +87,14 @@ void settings(void *unused) {
 			calibrate = 0;
 		}
 
-		if(fileDialog) {
+		if (fileDialog) {
 			char result[15];
-			if(dialog_FileChooser("Filename", result, "0:/", NULL)==DIALOG_RESULT_OK) {
-				dialog_MessageBox("Chosen:",result, MSG_OK, NULL);
+			if (dialog_FileChooser("Filename", result, "0:/", NULL)
+					== DIALOG_RESULT_OK) {
+				dialog_MessageBox("Chosen:", Font_Big, result, MSG_OK, NULL);
 			} else {
-				dialog_MessageBox("Aborted","No file chosen", MSG_OK, NULL);
+				dialog_MessageBox("Aborted", Font_Big, "No file chosen", MSG_OK,
+						NULL);
 			}
 			fileDialog = 0;
 		}

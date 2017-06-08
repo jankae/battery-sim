@@ -50,14 +50,14 @@ static void MessageBoxButton(widget_t *source) {
 //	gui_SendEvent(&ev);
 }
 
-void dialog_MessageBox(const char * const title, const char * const msg,
+void dialog_MessageBox(const char * const title, font_t font, const char * const msg,
 		MsgBox_t type, void (*cb)(DialogResult_t)){
 	/* check pointers */
 	if (!title || !msg) {
 		return;
 	}
 	/* create dialog window and elements */
-	textfield_t *text = textfield_new(msg, Font_Medium, COORDS(300, 180));
+	textfield_t *text = textfield_new(msg, font, COORDS(300, 180));
 	if (!text) {
 		return;
 	}

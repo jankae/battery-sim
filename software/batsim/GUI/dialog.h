@@ -21,7 +21,7 @@ typedef enum {
 void dialog_InputValue(int32_t * const result,
 		const int32_t min, const int32_t max, const unit_t * const unit);
 
-void dialog_MessageBox(const char * const title, const char * const msg,
+void dialog_MessageBox(const char * const title, font_t font, const char * const msg,
 		MsgBox_t type, void (*cb)(DialogResult_t));
 
 DialogResult_t dialog_FileChooser(const char * const title, char *result,

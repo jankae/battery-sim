@@ -27,7 +27,7 @@ void App_Register(char *name, void (*start)(void), Image_t icon) {
  * @return 1 if signal received, 0 otherwise
  */
 uint8_t App_Handler(uint32_t *signal, uint32_t wait) {
-	if (xTaskNotifyWait(ULONG_MAX, ULONG_MAX, signal, pdMS_TO_TICKS(wait))) {
+	if (xTaskNotifyWait(0, ULONG_MAX, signal, pdMS_TO_TICKS(wait))) {
 		/* received a notification */
 		if(*signal & SIGNAL_TERMINATE) {
 			/* Stop control of pushpull stage (will only have an effect if control had been acquired */
