@@ -63,12 +63,16 @@ DialogResult_t dialog_MessageBox(const char * const title, font_t font, const ch
 		return DIALOG_RESULT_ERR;
 	}
 
+	memset(&dialog, 0, sizeof(dialog));
+
 	if(block && xTaskGetCurrentTaskHandle() == GUIHandle) {
 		/* This dialog must never be called by the GUI thread (Deadlock) */
 		CRIT_ERROR("Dialog started from GUI thread.");
 	}
 
-	dialog.msgbox.dialogDone = xSemaphoreCreateBinary();
+	if (block) {
+		dialog.msgbox.dialogDone = xSemaphoreCreateBinary();
+	}
 
 	/* create dialog window and elements */
 	textfield_t *text = textfield_new(msg, font, COORDS(300, 180));
@@ -148,6 +152,8 @@ DialogResult_t dialog_FileChooser(const char * const title, char *result,
 		return DIALOG_RESULT_ERR;
 	}
 
+	memset(&dialog, 0, sizeof(dialog));
+
 	dialog.fileChooser.dialogDone = xSemaphoreCreateBinary();
 	if(!dialog.fileChooser.dialogDone) {
 		/* failed to create semaphore */
@@ -164,7 +170,7 @@ DialogResult_t dialog_FileChooser(const char * const title, char *result,
 	char *filenames[MAX_NUMBER_OF_FILES + 1];
 	uint8_t foundFiles = 0;
 	FRESULT fr; /* Return value */
-	DIR dj; /* Directory search object */
+	DIR *dj = pvPortMalloc(sizeof(DIR)); /* Directory search object */
 	FILINFO fno; /* File information */
 
 #if _USE_LFN
@@ -173,10 +179,10 @@ DialogResult_t dialog_FileChooser(const char * const title, char *result,
 	fno.lfsize = sizeof lfn;
 #endif
 
-	fr = f_opendir(&dj, dir);
+	fr = f_opendir(dj, dir);
 
 	if (fr == FR_OK) {
-		while (f_readdir(&dj, &fno) == FR_OK) {
+		while (f_readdir(dj, &fno) == FR_OK) {
 			char *fn;
 #if _USE_LFN
 			fn = *fno.lfname ? fno.lfname : fno.fname;
@@ -200,7 +206,7 @@ DialogResult_t dialog_FileChooser(const char * const title, char *result,
 				}
 			}
 			/* allocate memory for filename */
-			filenames[foundFiles] = pvPortMalloc(strlen(fn));
+			filenames[foundFiles] = pvPortMalloc(strlen(fn) + 1);
 			if (!filenames[foundFiles]) {
 				/* malloc failed */
 				/* free already allocated names and return with error */
@@ -208,6 +214,7 @@ DialogResult_t dialog_FileChooser(const char * const title, char *result,
 					foundFiles--;
 					vPortFree(filenames[foundFiles]);
 				}
+				vPortFree(dj);
 				return DIALOG_RESULT_ERR;
 			}
 			/* copy filename */
@@ -215,8 +222,9 @@ DialogResult_t dialog_FileChooser(const char * const title, char *result,
 			/* switch to next filename */
 			foundFiles++;
 		}
-		f_closedir(&dj);
+		f_closedir(dj);
 	}
+	vPortFree(dj);
 	xSemaphoreGive(fileAccess);
 	/* Got all matching filenames */
 	/* mark end of filename strings */
@@ -315,6 +323,8 @@ DialogResult_t dialog_StringInput(const char * const title, char *result, uint8_
 	if (!title || !result) {
 		return DIALOG_RESULT_ERR;
 	}
+
+	memset(&dialog, 0, sizeof(dialog));
 
 	dialog.StringInput.dialogDone = xSemaphoreCreateBinary();
 	if(!dialog.StringInput.dialogDone) {

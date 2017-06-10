@@ -46,7 +46,7 @@ textfield_t* textfield_new(const char *text, const font_t font,
 
 	t->base.flags.selectable = 0;
 	/* copy text */
-	t->text = pvPortMalloc(strlen(s));
+	t->text = pvPortMalloc(strlen(s) + 1);
 	if(!t->text) {
 		/* malloc failed */
 		/* abort widget creation */

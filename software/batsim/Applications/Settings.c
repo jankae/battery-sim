@@ -40,6 +40,7 @@ static const uint16_t imagedata[1024] = {
 
 static uint8_t calTouch = 0;
 static uint8_t calOutput = 0;
+static uint8_t taskInfo = 0;
 static Image_t icon = { .width = 32, .height = 32, .data = imagedata };
 
 static xTaskHandle hTask;
@@ -47,7 +48,7 @@ static xTaskHandle hTask;
 extern widget_t *topWidget;
 
 static void settings_Start(){
-	xTaskCreate(settings, "Settings", 2000, NULL, 3, NULL);
+	xTaskCreate(settings, "Settings", 300, NULL, 3, NULL);
 }
 
 void settings_Init() {
@@ -62,6 +63,10 @@ static void calibrateOutput() {
 	calOutput = 1;
 }
 
+static void printTaskInfo() {
+	taskInfo = 1;
+}
+
 void settings(void *unused) {
 	hTask = xTaskGetCurrentTaskHandle();
 
@@ -69,10 +74,11 @@ void settings(void *unused) {
 	container_t *c = container_new(COORDS(280, 240));
 	button_t *bCalTouch = button_new("Calibrate Touch", Font_Big, 0, calibrateTouch);
 	button_t *bCalOutput = button_new("Calibrate Output", Font_Big, 0, calibrateOutput);
-
+	button_t *bTaskInfo = button_new("Task Info", Font_Big, 0, printTaskInfo);
 
 	container_attach(c, (widget_t*) bCalTouch, COORDS(40, 20));
 	container_attach(c, (widget_t*) bCalOutput, COORDS(40, 60));
+	container_attach(c, (widget_t*) bTaskInfo, COORDS(40, 100));
 	c->base.position.x = 40;
 
 	desktop_AppStarted(settings_Start, (widget_t*) c);
@@ -104,11 +110,38 @@ void settings(void *unused) {
 							NULL, 1);
 				} else {
 					dialog_MessageBox("SAVED", Font_Big,
-							"Calibration data be saved", MSG_OK,
+							"Calibration data saved", MSG_OK,
 							NULL, 1);
 				}
 			}
 			calOutput = 0;
+		}
+
+		if (taskInfo) {
+			TaskStatus_t *status;
+			uint8_t numOfTasks;
+			/* print remaining heap in first iteration */
+			printf("Remaining HEAP: %u (min. %u)\r\nTask STACKS:\r\n",
+					xPortGetFreeHeapSize(), xPortGetMinimumEverFreeHeapSize());
+			/* get Task status */
+			numOfTasks = uxTaskGetNumberOfTasks();
+			status = pvPortMalloc(sizeof(TaskStatus_t) * numOfTasks);
+			if (!status) {
+				/* malloc failed */
+				return;
+			}
+			/* read system status */
+			uxTaskGetSystemState(status, numOfTasks, NULL);
+			/* print remaining stack of a thread */
+			uint8_t i;
+			for (i = 0; i < numOfTasks; i++) {
+				printf("%u, %s\r\n", status[i].usStackHighWaterMark,
+						status[i].pcTaskName);
+			}
+			vPortFree(status);
+			dialog_MessageBox("INFO", Font_Big,
+					"Task Info has been\nsent via UART", MSG_OK, NULL, 1);
+			taskInfo = 0;
 		}
 	}
 }

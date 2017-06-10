@@ -251,6 +251,16 @@ void keyboard_input(widget_t *w, GUIEvent_t *ev) {
 			if (k->keyPressedCallback) {
 				k->keyPressedCallback(0x08);
 			}
+		} else if(ev->button == BUTTON_DOT) {
+			/* send dot directly */
+			if (k->keyPressedCallback) {
+				k->keyPressedCallback('.');
+			}
+		} else if(ev->button == BUTTON_SIGN) {
+			/* send sign directly */
+			if (k->keyPressedCallback) {
+				k->keyPressedCallback('-');
+			}
 		}
 		break;
 	case EVENT_TOUCH_PRESSED:
