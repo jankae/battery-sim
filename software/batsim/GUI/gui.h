@@ -14,6 +14,7 @@
 #include "sevensegment.h"
 #include "itemChooser.h"
 #include "keyboard.h"
+#include "progressbar.h"
 
 #include "desktop.h"
 

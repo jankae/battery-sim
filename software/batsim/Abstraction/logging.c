@@ -3,6 +3,8 @@
 
 #include <stdarg.h>
 
+static const char* fault_name = NULL;
+
 void Log_CritError(const char *filename, uint16_t line, const char *fmt, ...) {
 	/* Something bad happened */
 	display_SetForeground(COLOR_RED);
@@ -26,3 +28,38 @@ void Log_CritError(const char *filename, uint16_t line, const char *fmt, ...) {
 
 	while(1);
 }
+
+
+/**
+ * @see http://www.freertos.org/Debugging-Hard-Faults-On-Cortex-M-Microcontrollers.html
+ */
+void prvGetRegistersFromStack(uint32_t *pulFaultStackAddress)  __attribute__((no_instrument_function));
+void prvGetRegistersFromStack(uint32_t *pulFaultStackAddress)
+{
+/* These are volatile to try and prevent the compiler/linker optimising them
+away as the variables never actually get used. If the debugger won't show the
+values of the variables, make them global my moving their declaration outside
+of this function. */
+//  volatile uint32_t r0;
+//  volatile uint32_t r1;
+//  volatile uint32_t r2;
+//  volatile uint32_t r3;
+//  volatile uint32_t r12;
+//  volatile uint32_t lr; /* Link register. */
+  volatile uint32_t pc; /* Program counter. */
+//  volatile uint32_t psr;/* Program status register. */
+
+//  r0 = pulFaultStackAddress[0];
+//  r1 = pulFaultStackAddress[1];
+//  r2 = pulFaultStackAddress[2];
+//  r3 = pulFaultStackAddress[3];
+//
+//  r12 = pulFaultStackAddress[4];
+//  lr = pulFaultStackAddress[5];
+  pc = pulFaultStackAddress[6];
+//  psr = pulFaultStackAddress[7];
+
+  /* When the following line is hit, the variables contain the register values. */
+  CRIT_ERROR("Hardfault at: PC 0x%lx\n", pc);
+}
+

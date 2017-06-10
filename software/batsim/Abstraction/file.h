@@ -5,7 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define FILE_ENTRY_MAX_NAMELENGTH		15
+#define FILE_ENTRY_MAX_NAMELENGTH		30
 
 typedef enum {PTR_INT8, PTR_INT16, PTR_INT32, PTR_FLOAT, PTR_STRING} filePointerType_t;
 

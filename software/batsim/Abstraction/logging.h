@@ -7,5 +7,4 @@
 
 void Log_CritError(const char *filename, uint16_t line, const char *fmt, ...);
 
-
 #endif

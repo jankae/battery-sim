@@ -1,5 +1,8 @@
 #include "Settings.h"
 
+#include "calibration.h"
+#include "pushpull.h"
+
 static const uint16_t imagedata[1024] = {
 0x0000,0x0000,0x0000,0x0000,0x4228,0x8cd2,0x94f3,0x7c30,0x39e7,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x18c3,0x7c10,0x73ef,0x0020,0x0000,
 0x0000,0x0000,0x0000,0x0000,0x0841,0x8cb2,0xdf5c,0xe7be,0xceba,0x9513,0x4a8a,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x52cb,0x9d34,0xdf5c,0xd71c,0x73ef,0x0041,
@@ -35,8 +38,8 @@ static const uint16_t imagedata[1024] = {
 0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,
 };
 
-static uint8_t calibrate = 0;
-static uint8_t fileDialog = 0;
+static uint8_t calTouch = 0;
+static uint8_t calOutput = 0;
 static Image_t icon = { .width = 32, .height = 32, .data = imagedata };
 
 static xTaskHandle hTask;
@@ -52,11 +55,11 @@ void settings_Init() {
 }
 
 static void calibrateTouch() {
-	calibrate = 1;
+	calTouch = 1;
 }
 
-static void fileChooser() {
-	fileDialog = 1;
+static void calibrateOutput() {
+	calOutput = 1;
 }
 
 void settings(void *unused) {
@@ -64,12 +67,12 @@ void settings(void *unused) {
 
 	/* create GUI */
 	container_t *c = container_new(COORDS(280, 240));
-	button_t *b = button_new("Calibrate", Font_Big, 0, calibrateTouch);
-	button_t *file = button_new("File", Font_Big, 0, fileChooser);
+	button_t *bCalTouch = button_new("Calibrate Touch", Font_Big, 0, calibrateTouch);
+	button_t *bCalOutput = button_new("Calibrate Output", Font_Big, 0, calibrateOutput);
 
 
-	container_attach(c, (widget_t*) b, COORDS(40, 20));
-	container_attach(c, (widget_t*) file, COORDS(40, 60));
+	container_attach(c, (widget_t*) bCalTouch, COORDS(40, 20));
+	container_attach(c, (widget_t*) bCalOutput, COORDS(40, 60));
 	c->base.position.x = 40;
 
 	desktop_AppStarted(settings_Start, (widget_t*) c);
@@ -80,23 +83,32 @@ void settings(void *unused) {
 			/* no special signals handled in this app */
 		}
 
-		if(calibrate) {
+		if(calTouch) {
 			touch_Calibrate();
 			widget_RequestRedrawFull(topWidget);
 			desktop_Draw();
-			calibrate = 0;
+			calTouch = 0;
 		}
 
-		if (fileDialog) {
-			char result[15];
-			if (dialog_FileChooser("Filename", result, "0:/", NULL)
-					== DIALOG_RESULT_OK) {
-				dialog_MessageBox("Chosen:", Font_Big, result, MSG_OK, NULL);
+		if (calOutput) {
+			if (!pushpull_Calibrate()) {
+				/* Calibration failed or has been aborted */
+				dialog_MessageBox("FAILED", Font_Big,
+						"Calibration failed\nor has been aborted", MSG_OK, NULL,
+						1);
 			} else {
-				dialog_MessageBox("Aborted", Font_Big, "No file chosen", MSG_OK,
-						NULL);
+				/* writing calibration data into file */
+				if (!cal_Save()) {
+					dialog_MessageBox("ERROR", Font_Big,
+							"Calibration data\ncould not be saved", MSG_OK,
+							NULL, 1);
+				} else {
+					dialog_MessageBox("SAVED", Font_Big,
+							"Calibration data be saved", MSG_OK,
+							NULL, 1);
+				}
 			}
-			fileDialog = 0;
+			calOutput = 0;
 		}
 	}
 }

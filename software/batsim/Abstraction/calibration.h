@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <string.h>
+#include "file.h"
 
 /* Defines for automatic calculation of default calibration values */
 #define MAX_VOLTAGE					19314705
@@ -36,9 +37,11 @@ typedef enum {
  */
 void cal_Init(void);
 
-void cal_Save(void);
+uint8_t cal_Save(void);
 
-void cal_Load(void);
+uint8_t cal_Load(void);
+
+uint8_t cal_Valid(void);
 
 int32_t cal_GetCalibratedValue(calEntryNum_t entry, int32_t rawValue);
 

@@ -1,5 +1,7 @@
 #include "../Abstraction/calibration.h"
 
+#include <math.h>
+
 typedef struct {
 	int32_t offset;
 	float scale;
@@ -24,17 +26,83 @@ const calEntryData_t defaultEntries[CAL_NUMBER_OF_ENTRIES] = {
 
 calEntryData_t entries[CAL_NUMBER_OF_ENTRIES];
 
+const fileEntry_t CalFileEntries[CAL_NUMBER_OF_ENTRIES * 2] = {
+		{"DACvoltageOffset", &entries[CAL_VOLTAGE_DAC].offset, PTR_INT32},
+		{"DACvoltageScale", &entries[CAL_VOLTAGE_DAC].scale, PTR_FLOAT},
+
+		{"DACSourceOffset", &entries[CAL_MAX_CURRENT_DAC].offset, PTR_INT32},
+		{"DACSourceScale", &entries[CAL_MAX_CURRENT_DAC].scale, PTR_FLOAT},
+
+		{"DACSinkOffset", &entries[CAL_MIN_CURRENT_DAC].offset, PTR_INT32},
+		{"DACSinkScale", &entries[CAL_MIN_CURRENT_DAC].scale, PTR_FLOAT},
+
+		{"ADCcurrentlOffset", &entries[CAL_ADC_CURRENT_LOW].offset, PTR_INT32},
+		{"ADCcurrentlScale", &entries[CAL_ADC_CURRENT_LOW].scale, PTR_FLOAT},
+
+		{"ADCcurrenthOffset", &entries[CAL_ADC_CURRENT_HIGH].offset, PTR_INT32},
+		{"ADCcurrenthScale", &entries[CAL_ADC_CURRENT_HIGH].scale, PTR_FLOAT},
+
+		{"ADCPushpullOffset", &entries[CAL_ADC_PUSHPULL_OUT].offset, PTR_INT32},
+		{"ADCPushpullScale", &entries[CAL_ADC_PUSHPULL_OUT].scale, PTR_FLOAT},
+
+		{"ADCoutputOffset", &entries[CAL_ADC_BATTERY].offset, PTR_INT32},
+		{"ADCoutputScale", &entries[CAL_ADC_BATTERY].scale, PTR_FLOAT},
+};
+
 void cal_Init(void){
 	/* start with default entries */
 	memcpy(entries, defaultEntries, sizeof(entries));
 }
 
-void cal_Save(void){
-	// TODO save calibration data to SD card
+uint8_t cal_Save(void){
+	if (file_WriteParameters("OUTPUT.CAL", CalFileEntries,
+	CAL_NUMBER_OF_ENTRIES * 2) == FILE_OK) {
+		return 1;
+	} else {
+		return 0;
+	}
 }
 
-void cal_Load(void){
-	// TODO load calibration data from SD card
+uint8_t cal_Load(void) {
+	if (file_ReadParameters("OUTPUT.CAL", CalFileEntries,
+	CAL_NUMBER_OF_ENTRIES * 2) == FILE_OK) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
+#define CAL_MAX_DEV			10
+#define CAL_PERCENTDEV(exp, meas)	abs(((exp) - (meas))*100/(exp)) <= CAL_MAX_DEV ? 0 : 1
+#define CAL_MAX_LSB_DEV_ADC	(ADC_MAX_SINGLE/40)
+#define CAL_MAX_LSB_DEV_DAC	(DAC_MAX/40)
+#define CAL_ABSLIMITS(min, max, meas) ((meas)>=(min) && (meas)<=(max)) ? 0 : 1
+
+uint8_t cal_Valid(void) {
+	uint8_t i;
+	for (i = 0; i < CAL_NUMBER_OF_ENTRIES; i++) {
+		/* Check calibration against default entry */
+		if (CAL_PERCENTDEV(defaultEntries[i].scale, entries[i].scale)) {
+			/* scale factor deviates too much */
+			return 0;
+		}
+		int32_t maxDev;
+		/* calculate limits for offset deviation */
+		if (fabs(defaultEntries[i].scale) > 1) {
+			/* probably an ADC conversion */
+			maxDev = CAL_MAX_LSB_DEV_ADC;
+		} else {
+			/* probably a DAC conversion, take scale into account */
+			maxDev = (float) CAL_MAX_LSB_DEV_DAC / fabs(defaultEntries[i].scale);
+		}
+
+		if (CAL_ABSLIMITS(defaultEntries[i].offset - maxDev,
+				defaultEntries[i].offset + maxDev, entries[i].offset)){
+			/* offset deviates too much */
+			return 0;
+		}
+	}
+	return 1;
 }
 
 int32_t cal_GetCalibratedValue(calEntryNum_t entry, int32_t rawValue) {
@@ -47,5 +115,5 @@ void cal_UpdateEntry(calEntryNum_t entry, int32_t raw1, int32_t cal1,
 	/* calculate scale */
 	entries[entry].scale = (float) (cal2 - cal1) / (raw2 - raw1);
 	/* calculate offset */
-	entries[entry].offset = cal1 - raw1 * entries[entry].scale;
+	entries[entry].offset = raw1 - cal1 / entries[entry].scale;
 }

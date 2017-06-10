@@ -138,27 +138,27 @@ static void StartCharging(void) {
 		/* charging */
 		if (pushpull_GetBatteryVoltage() > voltageLimit) {
 			dialog_MessageBox("ERROR", Font_Big,
-					"Battery already\nabove maximum\nvoltage", MSG_OK, NULL);
+					"Battery already\nabove maximum\nvoltage", MSG_OK, NULL, 1);
 			return;
 		}
 		if (pushpull_GetBatteryVoltage()
 				< cells * minCellVoltage[battery] / 2) {
 			dialog_MessageBox("ERROR", Font_Big,
-					"No battery or\ndeeply discharged", MSG_OK, NULL);
+					"No battery or\ndeeply discharged", MSG_OK, NULL, 1);
 			return;
 		}
 	} else {
 		/* discharging */
 		if (pushpull_GetBatteryVoltage() < voltageLimit) {
 			dialog_MessageBox("ERROR", Font_Big,
-					"No battery or\nalready discharged", MSG_OK, NULL);
+					"No battery or\nalready discharged", MSG_OK, NULL, 1);
 			return;
 		}
 		/* charging */
 		if (pushpull_GetBatteryVoltage()
 				> cells * (maxCellVoltage[battery] + 200000)) {
 			dialog_MessageBox("ERROR", Font_Big,
-					"Battery voltage too\nhigh. Check settings", MSG_OK, NULL);
+					"Battery voltage too\nhigh. Check settings", MSG_OK, NULL, 1);
 			return;
 		}
 	}
@@ -288,7 +288,7 @@ static void Charge(void) {
 			common_StringFromValue(time, 7, activeFor, &Unit_Time);
 			char msg[50];
 			snprintf(msg, sizeof(msg), "Transferred %s\nin %s", energy, time);
-			dialog_MessageBox("DONE", Font_Big, msg, MSG_OK, NULL);
+			dialog_MessageBox("DONE", Font_Big, msg, MSG_OK, NULL, 1);
 
 		}
 	}

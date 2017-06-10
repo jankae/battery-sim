@@ -39,6 +39,9 @@ int32_t common_Map(int32_t value, int32_t scaleFromLow, int32_t scaleFromHigh,
 uint32_t common_LeastDigitValueFromString(const char *s,
 		const unit_t * const unit);
 
-void common_StringFromValue(char *to, uint8_t len, int32_t val, const unit_t * const unit);
+void common_StringFromValue(char *to, uint8_t len, int32_t val,
+		const unit_t * const unit);
+
+uint8_t common_ValueFromString(int32_t *value, char *s, const unit_t * const unit);
 
 #endif

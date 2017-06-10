@@ -3,7 +3,7 @@
 #include "buttons.h"
 #include "pushpull.h"
 
-QueueHandle_t eventQueue = NULL;
+QueueHandle_t GUIeventQueue = NULL;
 widget_t *topWidget;
 uint8_t isPopup;
 
@@ -23,7 +23,7 @@ static void guiThread(void) {
 	desktop_Draw();
 
 	while (1) {
-		if (xQueueReceive(eventQueue, &event, 100)) {
+		if (xQueueReceive(GUIeventQueue, &event, 100)) {
 			if (topWidget) {
 				switch (event.type) {
 				case EVENT_TOUCH_PRESSED:
@@ -84,9 +84,9 @@ static void guiThread(void) {
 
 uint8_t gui_Init(void) {
 	/* initialize event queue */
-	eventQueue = xQueueCreate(10, sizeof(GUIEvent_t));
+	GUIeventQueue = xQueueCreate(10, sizeof(GUIEvent_t));
 
-	if(!eventQueue) {
+	if(!GUIeventQueue) {
 		return 0;
 	}
 
@@ -98,12 +98,12 @@ uint8_t gui_Init(void) {
 }
 
 void gui_SendEvent(GUIEvent_t *ev) {
-	if(!eventQueue || !ev) {
+	if(!GUIeventQueue || !ev) {
 		/* some pointer error */
 		return;
 	}
 	BaseType_t yield;
-	xQueueSendFromISR(eventQueue, ev, &yield);
+	xQueueSendFromISR(GUIeventQueue, ev, &yield);
 	if (yield) {
 		taskYIELD();
 	}

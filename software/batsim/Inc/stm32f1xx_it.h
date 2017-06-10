@@ -46,7 +46,9 @@
 /* Exported functions ------------------------------------------------------- */
 
 void NMI_Handler(void);
-void HardFault_Handler(void);
+/* The prototype shows it is a naked function - in effect this is just an
+assembly function. */
+void HardFault_Error( void ) __attribute__((naked,no_instrument_function));
 void MemManage_Handler(void);
 void BusFault_Handler(void);
 void UsageFault_Handler(void);

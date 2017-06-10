@@ -3,7 +3,7 @@
 extern widget_t *topWidget;
 extern uint8_t isPopup;
 
-window_t* window_new(const char *titel, font_t font, coords_t size) {
+window_t* window_new(const char *title, font_t font, coords_t size) {
 	window_t *w = pvPortMalloc(sizeof(window_t));
 	if (!w) {
 		/* malloc failed */
@@ -22,8 +22,8 @@ window_t* window_new(const char *titel, font_t font, coords_t size) {
 	w->font = font;
 	/* set title */
 	uint8_t i = 0;
-	while (*titel && i < WINDOW_MAX_NAME) {
-		w->title[i++] = *titel++;
+	while (*title && i < WINDOW_MAX_NAME) {
+		w->title[i++] = *title++;
 	}
 	w->title[i] = 0;
 	/* store last top widget (will be restored when this window closes) */

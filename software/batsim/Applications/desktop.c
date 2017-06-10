@@ -202,7 +202,7 @@ static void desktop_ConfirmClose(uint8_t app) {
 	switch(AppList[app].state) {
 	case APP_RUNNING:
 		iAppToClose = app;
-		dialog_MessageBox("Close?", Font_Big, "Close this app?", MSG_ABORT_OK, msgBoxResult);
+		dialog_MessageBox("Close?", Font_Big, "Close this app?", MSG_ABORT_OK, msgBoxResult, 0);
 		break;
 	case APP_STARTSEND:
 	case APP_KILLSEND:

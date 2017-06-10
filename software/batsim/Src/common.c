@@ -4,25 +4,25 @@
 
 static const unitElement_t uA = { "uA", 1 };
 static const unitElement_t mA = { "mA", 1000 };
-static const unitElement_t A = { "A ", 1000000 };
+static const unitElement_t A = { "A", 1000000 };
 
 static const unitElement_t uV = { "uV", 1 };
 static const unitElement_t mV = { "mV", 1000 };
-static const unitElement_t V = { "V ", 1000000 };
+static const unitElement_t V = { "V", 1000000 };
 
 static const unitElement_t uW = { "uW", 1 };
 static const unitElement_t mW = { "mW", 1000 };
-static const unitElement_t W = { "W ", 1000000 };
+static const unitElement_t W = { "W", 1000000 };
 
 static const unitElement_t C = {"\xF8""C", 1};
 
 static const unitElement_t uR = {"uR", 1};
 static const unitElement_t mR = {"mR", 1000};
-static const unitElement_t R = {"R ", 1000000};
+static const unitElement_t R = {"R", 1000000};
 
 static const unitElement_t uWh = {"uWh", 1};
 static const unitElement_t mWh = {"mWh", 1000};
-static const unitElement_t Wh = {"Wh ", 1000000};
+static const unitElement_t Wh = {"Wh", 1000000};
 
 static const unitElement_t ms = {"ms", 1};
 static const unitElement_t s = {"s", 1000};
@@ -158,4 +158,71 @@ void common_StringFromValue(char *to, uint8_t len, int32_t val,
 	while (pos > 0) {
 		to[--pos] = ' ';
 	}
+}
+
+// TODO merge with common_LeastDigitValueFromString?
+uint8_t common_ValueFromString(int32_t *value, char *s,
+		const unit_t * const unit) {
+	*value = 0;
+	int8_t sign = 1;
+	uint32_t dotDivider = 0;
+	/* skip any leading spaces */
+	while (*s && *s == ' ') {
+		s++;
+	}
+	if(!*s) {
+		/* string contains only spaces */
+		return 0;
+	}
+	/* evaluate value part */
+	while (*s && (*s == '-' || isdigit((uint8_t )*s) || *s == '.')) {
+		if (*s == '-') {
+			if (sign == -1) {
+				/* this is the second negative */
+				return 0;
+			}
+			sign = -1;
+		} else if (*s == '.') {
+			if (dotDivider) {
+				/* already seen a dot */
+				return 0;
+			} else {
+				dotDivider = 1;
+			}
+		} else {
+			/* must be a digit */
+			*value *= 10;
+			*value += *s - '0';
+			dotDivider *= 10;
+		}
+		s++;
+	}
+	if(!dotDivider)
+		dotDivider = 1;
+	/* finished the value part, now look for matching unit */
+	/* skip any trailing spaces */
+	while (*s && *s == ' ') {
+		s++;
+	}
+	if(!*s) {
+		/* string contains no unit */
+		if (unit == &Unit_None) {
+			*value *= sign;
+			return 1;
+		}
+		return 0;
+	}
+	/* try to find matching unit */
+	uint8_t i = 0;
+	while ((*unit)[i]) {
+		if (!strncmp((*unit)[i]->name, s, strlen((*unit)[i]->name))) {
+			/* this unit matches the value string */
+			*value = (int64_t) (*value) * (*unit)[i]->factor / dotDivider;
+			*value *= sign;
+			return 1;
+		}
+		i++;
+	}
+	/* no matching unit found */
+	return 0;
 }

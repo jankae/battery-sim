@@ -11,6 +11,8 @@ struct {
 	window_t *window;
 	union {
 		struct {
+			SemaphoreHandle_t dialogDone;
+			DialogResult_t res;
 			void (*cb)(DialogResult_t);
 		} msgbox;
 		struct {
@@ -30,36 +32,48 @@ struct {
 
 static void MessageBoxButton(widget_t *source) {
 	button_t *b = (button_t*) source;
-	DialogResult_t res = DIALOG_RESULT_ERR;
+	dialog.msgbox.res = DIALOG_RESULT_ERR;
 	/* find which button has been pressed */
 	if(!strcmp(b->name, "OK")) {
-		res = DIALOG_RESULT_OK;
+		dialog.msgbox.res = DIALOG_RESULT_OK;
 	} else if(!strcmp(b->name, "ABORT")) {
-		res = DIALOG_RESULT_ABORT;
+		dialog.msgbox.res = DIALOG_RESULT_ABORT;
 	}
 
 	if (dialog.msgbox.cb)
-		dialog.msgbox.cb(res);
+		dialog.msgbox.cb(dialog.msgbox.res);
 
 	// TODO does this always work? (might result in null pointer exception due to deleting
 	// widgets while working on them)
 	window_destroy((window_t*) dialog.window);
+
+	if (dialog.msgbox.dialogDone) {
+		xSemaphoreGive(dialog.msgbox.dialogDone);
+	}
 
 //	/* destroy dialog */
 //	GUIEvent_t ev = { .type = EVENT_WINDOW_CLOSE, .w = dialog.window };
 //	gui_SendEvent(&ev);
 }
 
-void dialog_MessageBox(const char * const title, font_t font, const char * const msg,
-		MsgBox_t type, void (*cb)(DialogResult_t)){
+DialogResult_t dialog_MessageBox(const char * const title, font_t font, const char * const msg,
+		MsgBox_t type, void (*cb)(DialogResult_t), uint8_t block){
 	/* check pointers */
 	if (!title || !msg) {
-		return;
+		return DIALOG_RESULT_ERR;
 	}
+
+	if(block && xTaskGetCurrentTaskHandle() == GUIHandle) {
+		/* This dialog must never be called by the GUI thread (Deadlock) */
+		CRIT_ERROR("Dialog started from GUI thread.");
+	}
+
+	dialog.msgbox.dialogDone = xSemaphoreCreateBinary();
+
 	/* create dialog window and elements */
 	textfield_t *text = textfield_new(msg, font, COORDS(300, 180));
 	if (!text) {
-		return;
+		return DIALOG_RESULT_ERR;
 	}
 	/* calculate window size */
 	coords_t windowSize = text->base.size;
@@ -99,6 +113,16 @@ void dialog_MessageBox(const char * const title, font_t font, const char * const
 
 	widget_Select((widget_t*) w);
 	window_SetMainWidget(w, (widget_t*) c);
+
+	if(block) {
+		/* wait for dialog to finish and return result */
+		xSemaphoreTake(dialog.msgbox.dialogDone, portMAX_DELAY);
+		vPortFree(dialog.msgbox.dialogDone);
+		return dialog.msgbox.res;
+	} else {
+		/* non blocking mode, return immediately */
+		return DIALOG_RESULT_OK;
+	}
 }
 
 static void FileChooserButton(widget_t *source) {
@@ -230,6 +254,7 @@ DialogResult_t dialog_FileChooser(const char * const title, char *result,
 
 	/* Wait for button to be clicked */
 	xSemaphoreTake(dialog.fileChooser.dialogDone, portMAX_DELAY);
+	vPortFree(dialog.fileChooser.dialogDone);
 
 	if(dialog.fileChooser.OKclicked) {
 		strcpy(result, filenames[selectedFile]);
@@ -329,6 +354,7 @@ DialogResult_t dialog_StringInput(const char * const title, char *result, uint8_
 
 	/* Wait for button to be clicked */
 	xSemaphoreTake(dialog.StringInput.dialogDone, portMAX_DELAY);
+	vPortFree(dialog.StringInput.dialogDone);
 
 	/* delete window */
 	window_destroy((window_t*) w);

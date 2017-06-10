@@ -25,13 +25,12 @@ typedef struct {
 	int8_t temperature;
 	/* Bias current through the high- and low-side (only accurate while output is off) */
 	uint32_t biasCurrent;
-	int32_t transferredCharge;
 	/* raw ADC values */
-	int32_t rawCurrentLow;
-	int32_t rawCurrentHigh;
-	uint32_t rawBatteryVoltage;
-	uint32_t rawOutputVoltage;
-	uint32_t rawBiasCurrent;
+	uint16_t rawCurrentLow;
+	uint16_t rawCurrentHigh;
+	uint16_t rawBatteryVoltage;
+	uint16_t rawOutputVoltage;
+	uint16_t rawBiasCurrent;
 
 	/* output state */
 	uint8_t enabled;
@@ -70,6 +69,8 @@ void pushpull_AcquireControl(void);
 void pushpull_ReleaseControl(void);
 TaskHandle_t pushpull_GetControlHandle(void);
 
+uint8_t pushpull_Calibrate(void);
+
 void pushpull_SetDefault(void);
 
 void pushpull_SetAveraging(uint16_t samples);
@@ -88,6 +89,11 @@ uint32_t pushpull_GetBatteryVoltage(void);
 uint32_t pushpull_GetBiasCurrent(void);
 uint32_t pushpull_GetSupplyVoltage(void);
 int8_t pushpull_GetTemperature(void);
+uint16_t pushpull_GetRawCurrentLow(void);
+uint16_t pushpull_GetRawCurrentHigh(void);
+uint16_t pushpull_GetRawBatteryVoltage(void);
+uint16_t pushpull_GetRawOutputVoltage(void);
+uint16_t pushpull_GetRawBiasCurrent(void);
 
 void pushpull_SPITransfer(void);
 void pushpull_SPIComplete(void);

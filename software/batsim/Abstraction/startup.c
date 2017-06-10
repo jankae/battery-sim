@@ -9,6 +9,8 @@
 extern uint8_t pushpull_SPI_OK;
 extern uint16_t RawADC[SPI_BLOCK_SIZE];
 
+extern QueueHandle_t GUIeventQueue;
+
 static uint8_t line;
 
 typedef enum {TEST_PASSED = 0, TEST_FAILED = 1, TEST_WARNING = 2} TestResult_t;
@@ -227,6 +229,7 @@ void startup_Software(void) {
 	line = 1;
 
 	uint8_t error = 0;
+	uint8_t warning = 0;
 
 	/* Start sampling of frontpanel controls */
 	buttons_Init();
@@ -238,6 +241,7 @@ void startup_Software(void) {
 		break;
 	case 0:
 		display_TestResult("SD card:", "MISSING", TEST_WARNING);
+		warning = 1;
 		break;
 	case 1:
 		display_TestResult("SD card:", "OK", TEST_PASSED);
@@ -257,6 +261,22 @@ void startup_Software(void) {
 		display_TestResult("Touch calib:", "LOADED", TEST_PASSED);
 	} else {
 		display_TestResult("Touch calib:", "MISSING", TEST_WARNING);
+		warning = 1;
+	}
+
+	/* Load output calibration */
+	if(cal_Load()) {
+		display_TestResult("Output calib:", "LOADED", TEST_PASSED);
+	} else {
+		display_TestResult("Output calib:", "MISSING", TEST_WARNING);
+		warning = 1;
+	}
+
+	if(cal_Valid()) {
+		display_TestResult("Calibration:", "OK", TEST_PASSED);
+	} else {
+		display_TestResult("Calibration:", "DUBIOUS", TEST_WARNING);
+		warning = 1;
 	}
 
 	/* Setup Apps */
@@ -286,6 +306,13 @@ void startup_Software(void) {
 		display_String(0, 224, buffer);
 
 		HAL_Delay(1000);
+	}
+
+	if(warning) {
+		/* keep showing screen until there is some user input */
+		GUIEvent_t event;
+		while (xQueuePeek(GUIeventQueue, &event, 0) == pdFALSE) {
+		}
 	}
 }
 

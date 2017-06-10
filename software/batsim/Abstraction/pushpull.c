@@ -4,6 +4,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "app.h"
+#include "gui.h"
 
 #define PUSHPULL_DEFAULT_DRIVE		200
 
@@ -19,6 +20,10 @@ uint8_t pushpull_SPI_OK;
 #define SPI_DAC2_CH_B         	4
 #define SPI_DAC3              	5
 #define SPI_POT               	6
+
+#define SPI_DAC_VOLTAGE			SPI_DAC1_CH_B
+#define SPI_DAC_SOURCE			SPI_DAC2_CH_B
+#define SPI_DAC_SINK			SPI_DAC2_CH_A
 
 /* SPI command word flags */
 #define SPI_COMMAND_OUTPUT    	0x01
@@ -47,10 +52,7 @@ extern SPI_HandleTypeDef hspi1;
 
 void pushpull_Init(void) {
 	output.control = NULL;
-	output.outputCurrent = 0;
-	output.transferredCharge = 0;
 	output.currentChangeCB = NULL;
-	output.enabled = 0;
 	pushpull_SPI_OK = 0;
 	pushpull_AcquireControl();
 	pushpull_SetDefault();
@@ -58,7 +60,7 @@ void pushpull_Init(void) {
 }
 
 void pushpull_AcquireControl(void) {
-	if (output.control) {
+	if (output.control && output.control != xTaskGetCurrentTaskHandle()) {
 		/* Currently controlled by another task -> send termination signal */
 		xTaskNotify(output.control, SIGNAL_TERMINATE, eSetBits);
 	}
@@ -76,6 +78,161 @@ void pushpull_ReleaseControl(void) {
 
 inline TaskHandle_t pushpull_GetControlHandle(void) {
 	return output.control;
+}
+
+static uint16_t sampleRaw(const char * const title, uint16_t samples, uint16_t *source) {
+	/* number of already sampled data */
+	uint16_t n = 0;
+	uint32_t sum = 0;
+
+	/* Create a sampling window with nothing but a progressbar in it */
+	window_t *w = window_new(title, Font_Big, COORDS(200, 40));
+	progressbar_t *p = progressbar_new(window_GetAvailableArea(w));
+
+	window_SetMainWidget(w, (widget_t*) p);
+
+	pushpull_SetAveraging(0);
+
+	do {
+		uint32_t signal;
+		if (App_Handler(&signal, portMAX_DELAY)) {
+			if(signal & SIGNAL_PUSHPULL_UPDATE) {
+				/* got a new sample */
+				n++;
+				sum += *source;
+			}
+			progressbar_SetState(p, (uint32_t) n * 100 / samples);
+		}
+	} while (n < samples);
+
+	/* sampling competed */
+	window_destroy(w);
+
+	return sum / samples;
+}
+
+static int32_t getUserInputValue(const char * const title, const unit_t * const unit) {
+	uint8_t ok = 0;
+	int32_t val;
+	do {
+		char input[12];
+		dialog_StringInput(title, input, sizeof(input));
+		if(common_ValueFromString(&val, input, unit)) {
+			/* got a valid user input */
+			ok = 1;
+		} else {
+			dialog_MessageBox("ERROR", Font_Big, "Invalid input", MSG_OK, NULL,
+					1);
+		}
+	} while(!ok);
+
+	return val;
+}
+
+uint8_t pushpull_Calibrate(void) {
+	pushpull_AcquireControl();
+
+	if (dialog_MessageBox("Step 1", Font_Big, "Connect a voltmeter\nto the output",
+			MSG_ABORT_OK, NULL, 1) != DIALOG_RESULT_OK) {
+		/* abort calibration */
+		pushpull_ReleaseControl();
+		return 0;
+	}
+
+	/* Output is disabled, no current can flow */
+	uint16_t zeroLow = sampleRaw("Offset I low", 2000, &output.rawCurrentLow);
+	uint16_t zeroHigh = sampleRaw("Offset I high", 2000, &output.rawCurrentHigh);
+
+	/* Set output to low value and enable */
+	/* allow some current to flow */
+	pushpull_SetSourceCurrent(5000);
+	pushpull_SetSinkCurrent(5000);
+	/* Set manually here, because it is important to know the exact DAC value */
+	uint16_t dacVlow = CtrlWords[SPI_DAC_VOLTAGE] = DAC_MAX / 20;
+	/* allow output to settle */
+	vTaskDelay(100);
+	uint16_t lowPushpull = sampleRaw("Low V internal", 2000, &output.rawOutputVoltage);
+	/* Switch on the output to sample battery voltage */
+	pushpull_SetEnabled(1);
+	/* allow output to settle */
+	vTaskDelay(100);
+	uint16_t lowBattery = sampleRaw("Low V external", 2000, &output.rawBatteryVoltage);
+	uint32_t lowActual = getUserInputValue("Voltage at output?", &Unit_Voltage);
+	pushpull_SetEnabled(0);
+
+	/* Set output to high value and enable */
+	/* Set manually here, because it is important to know the exact DAC value */
+	uint16_t dacVhigh = CtrlWords[SPI_DAC_VOLTAGE] = DAC_MAX - 1;
+	/* allow output to settle */
+	vTaskDelay(100);
+	uint16_t highPushpull = sampleRaw("High V internal", 2000, &output.rawOutputVoltage);
+	/* Switch on the output to sample battery voltage */
+	pushpull_SetEnabled(1);
+	/* allow output to settle */
+	vTaskDelay(100);
+	uint16_t highBattery = sampleRaw("High V external", 2000, &output.rawBatteryVoltage);
+	uint32_t highActual = getUserInputValue("Voltage at output?", &Unit_Voltage);
+	pushpull_SetEnabled(0);
+
+
+	// TODO current calibration
+	if (dialog_MessageBox("Step 2", Font_Big, "Short the output\nwith an ammeter",
+			MSG_ABORT_OK, NULL, 1) != DIALOG_RESULT_OK) {
+		/* abort calibration */
+		pushpull_ReleaseControl();
+		return 0;
+	}
+
+	/* Set a low voltage and limit the current allowed to flow */
+	pushpull_SetVoltage(2000000);
+	/* limit the current to approx. 250mA */
+	uint16_t dacSource250 = CtrlWords[SPI_DAC_SOURCE] = DAC_MAX /12;
+	vTaskDelay(10);
+	pushpull_SetEnabled(1);
+	vTaskDelay(100);
+	while (pushpull_GetBatteryVoltage() > 1000000) {
+		dialog_MessageBox("ERROR", Font_Big,
+				"Output doesn't appear\nto be shorted.\n", MSG_OK, NULL, 1);
+	}
+
+	uint16_t lowCurrent250 = sampleRaw("Low current ADC", 2000, &output.rawCurrentLow);
+	uint16_t highCurrent250 = sampleRaw("High current ADC", 2000, &output.rawCurrentHigh);
+	uint32_t actualCurrent250 = getUserInputValue("Current across output?", &Unit_Current);
+	pushpull_SetEnabled(0);
+
+	if (dialog_MessageBox("Step 3", Font_Big, "Keep output shorted",
+			MSG_ABORT_OK, NULL, 1) != DIALOG_RESULT_OK) {
+		/* abort calibration */
+		pushpull_ReleaseControl();
+		return 0;
+	}
+	/* limit current to approx. 5mA */
+	uint16_t dacSource10 = CtrlWords[SPI_DAC_SOURCE] = DAC_MAX / 300;
+	vTaskDelay(10);
+	pushpull_SetEnabled(1);
+	vTaskDelay(100);
+	uint16_t raw10mAlow = sampleRaw("Source I DAC", 2000, &output.rawCurrentLow);
+
+	// TODO calibrate sink current DAC
+
+	pushpull_ReleaseControl();
+	/* Give GUI task some time to redraw active app */
+	vTaskDelay(100);
+
+	/* Calculate new calibration entries */
+	cal_UpdateEntry(CAL_VOLTAGE_DAC, lowActual, dacVlow, highActual, dacVhigh);
+	cal_UpdateEntry(CAL_ADC_PUSHPULL_OUT, lowPushpull, lowActual, highPushpull, highActual);
+	cal_UpdateEntry(CAL_ADC_BATTERY, lowBattery, lowActual, highBattery, highActual);
+
+	cal_UpdateEntry(CAL_ADC_CURRENT_LOW, zeroLow, 0, lowCurrent250, actualCurrent250);
+	cal_UpdateEntry(CAL_ADC_CURRENT_HIGH, zeroHigh, 0, highCurrent250, actualCurrent250);
+
+	/* calculate actual low current during source DAC calibration */
+	int32_t actual10mA = cal_GetCalibratedValue(CAL_ADC_CURRENT_LOW, raw10mAlow);
+	cal_UpdateEntry(CAL_MAX_CURRENT_DAC, actual10mA, dacSource10, actualCurrent250, dacSource250);
+
+	/* TODO: Check calibration against default entries */
+	return 1;
 }
 
 void pushpull_SetDefault(void) {
@@ -110,7 +267,7 @@ void pushpull_SetVoltage(uint32_t uv) {
 		val = 0;
 	if (val >= 65535)
 		val = 65535;
-	CtrlWords[SPI_DAC1_CH_B] = val;
+	CtrlWords[SPI_DAC_VOLTAGE] = val;
 }
 
 void pushpull_SetSourceCurrent(uint32_t ua) {
@@ -128,7 +285,7 @@ void pushpull_SetSourceCurrent(uint32_t ua) {
 		val = 0;
 	if (val >= 65535)
 		val = 65535;
-	CtrlWords[SPI_DAC2_CH_B] = val;
+	CtrlWords[SPI_DAC_SOURCE] = val;
 }
 
 void pushpull_SetSinkCurrent(uint32_t ua) {
@@ -146,7 +303,7 @@ void pushpull_SetSinkCurrent(uint32_t ua) {
 		val = 0;
 	if (val >= 65535)
 		val = 65535;
-	CtrlWords[SPI_DAC2_CH_A] = val;
+	CtrlWords[SPI_DAC_SINK] = val;
 }
 
 void pushpull_SetEnabled(uint8_t enabled) {
@@ -222,21 +379,32 @@ void pushpull_SetInternalResistance(uint32_t ur) {
 inline int32_t pushpull_GetCurrent(void) {
 	return output.outputCurrent;
 }
-
 inline uint32_t pushpull_GetOutputVoltage(void) {
 	return output.outputVoltage;
 }
-
 inline uint32_t pushpull_GetBatteryVoltage(void) {
 	return output.batteryVoltage;
 }
-
 inline uint32_t pushpull_GetBiasCurrent(void) {
 	return output.biasCurrent;
 }
-
 inline int8_t pushpull_GetTemperature(void) {
 	return output.temperature;
+}
+inline uint16_t pushpull_GetRawCurrentLow(void) {
+	return output.rawCurrentLow;
+}
+inline uint16_t pushpull_GetRawCurrentHigh(void) {
+	return output.rawCurrentHigh;
+}
+inline uint16_t pushpull_GetRawBatteryVoltage(void) {
+	return output.rawBatteryVoltage;
+}
+inline uint16_t pushpull_GetRawOutputVoltage(void) {
+	return output.rawOutputVoltage;
+}
+inline uint16_t pushpull_GetRawBiasCurrent(void) {
+	return output.rawBiasCurrent;
 }
 
 inline void pushpull_SPITransfer(void) {
@@ -256,9 +424,21 @@ void pushpull_SPIComplete(void) {
 	if (i == SPI_BLOCK_SIZE) {
 		pushpull_SPI_OK = 1;
 
+		output.rawCurrentLow = RawADC[ADC_LOW_CURRENT];
+		output.rawCurrentHigh = RawADC[ADC_HIGH_CURRENT];
+		output.rawBatteryVoltage = RawADC[ADC_BATTERY];
+		output.rawOutputVoltage = RawADC[ADC_PUSHPULL_OUT];
+		output.rawBiasCurrent = RawADC[ADC_BIAS_CURRENT];
 		/* Convert raw ADC values */
-		uint32_t battery = cal_GetCalibratedValue(CAL_ADC_BATTERY, RawADC[ADC_BATTERY]);
-		uint32_t voltage = cal_GetCalibratedValue(CAL_ADC_PUSHPULL_OUT, RawADC[ADC_PUSHPULL_OUT]);
+		int32_t battery = cal_GetCalibratedValue(CAL_ADC_BATTERY, RawADC[ADC_BATTERY]);
+		int32_t voltage = cal_GetCalibratedValue(CAL_ADC_PUSHPULL_OUT,
+				RawADC[ADC_PUSHPULL_OUT]);
+		if (battery < 0) {
+			battery = 0;
+		}
+		if (voltage < 0) {
+			voltage = 0;
+		}
 		int32_t current;
 		if((RawADC[ADC_LOW_CURRENT] > 200) && (RawADC[ADC_LOW_CURRENT] < ADC_MAX_SINGLE - 200)) {
 			/* Low current sense is not saturated */
@@ -312,136 +492,3 @@ void pushpull_SPIComplete(void) {
 	}
 }
 
-//static void pushpull_UpdateCurrent(uint32_t *adcStart) {
-//	/* PUSHPULL_SAMPLES / 2 new current samples */
-//	/* two ADC channels (low current/high current) simultaneously sampled */
-//	/* calculate average value for both channels and choose the appropriate
-//	 * channel per sample
-//	 */
-//	int32_t highSum = 0, lowSum = 0, highUsedSum = 0, lowUsedSum = 0;
-//	uint32_t nUsedLow = 0, nUsedHigh = 0;
-//	uint32_t i;
-//	for (i = 0; i < PUSHPULL_CURRENT_SAMPLES / 2; i++) {
-//		int32_t high = -(int32_t) (adcStart[i] & 0xffff) + 2048;
-//		int32_t low = -(int32_t) (adcStart[i] >> 16) + 2048;
-//		highSum += high;
-//		lowSum += low;
-//		if (low > -2000 || low < 2000) {
-//			/* low channel is not at limit -> use this as it has higher resolution */
-//			lowUsedSum += low;
-//			nUsedLow++;
-//		} else {
-//			/* low channel saturated -> use high channel */
-//			highUsedSum += high;
-//			nUsedHigh++;
-//		}
-//	}
-//	/* save average channel values */
-//	pushpull.rawCurrentHigh = highSum
-//			/ (int32_t) (PUSHPULL_CURRENT_SAMPLES / 2);
-//	pushpull.rawCurrentLow = lowSum / (int32_t) (PUSHPULL_CURRENT_SAMPLES / 2);
-//	/* convert to outputCurrent */
-//	/* get average of used values */
-//	if (nUsedHigh) {
-//		highUsedSum /= nUsedHigh;
-//	}
-//	if (nUsedLow) {
-//		lowUsedSum /= nUsedLow;
-//	}
-//	/* subtract voltage dependent offset */
-//	highUsedSum -= cal_GetCalibratedValue(CAL_ADC_CURRENT_OFFSET_HIGH,
-//			pushpull.rawOutputVoltage);
-//	lowUsedSum -= cal_GetCalibratedValue(CAL_ADC_CURRENT_OFFSET_LOW,
-//			pushpull.rawOutputVoltage);
-//	/* convert to outputCurrent */
-//	int32_t currentLow = cal_GetCalibratedValue(CAL_ADC_CURRENT_FACTOR_LOW,
-//			lowUsedSum);
-//	int32_t currentHigh = cal_GetCalibratedValue(CAL_ADC_CURRENT_FACTOR_HIGH,
-//			highUsedSum);
-//	/* average low and high current results */
-//	pushpull.outputCurrent = (((int64_t) currentLow * nUsedLow)
-//			+ ((int64_t) currentHigh * nUsedHigh))
-//			/ (PUSHPULL_CURRENT_SAMPLES / 2);
-//	// TODO update transferred charge
-//	if (pushpull.currentChangeCB) {
-//		pushpull.currentChangeCB(pushpull.outputCurrent);
-//	}
-//	/* update average values if sampling is running */
-//	if (pushpull.avg.enabled) {
-//		pushpull.avg.values.rawCurrentHigh += pushpull.rawCurrentHigh;
-//		pushpull.avg.values.rawCurrentLow += pushpull.rawCurrentLow;
-//		pushpull.avg.samplesCurrent++;
-//		if (pushpull.avg.samplesCurrent >= pushpull.avg.minSamplesCurrent
-//				&& pushpull.avg.samplesOthers
-//						>= pushpull.avg.minSamplesOthers) {
-//			pushpull.avg.enabled = 0;
-//		}
-//	}
-//}
-//
-//static void pushpull_UpdateOthers(void) {
-//	/* get average of sampled channels */
-//	uint16_t sum[4] = { 0, 0, 0, 0 };
-//	uint8_t i;
-//	for (i = 0; i < PUSHPULL_OTHERS_SAMPLES; i += 4) {
-//		sum[0] += rawADCOthers[i];
-//		sum[1] += rawADCOthers[i + 1];
-//		sum[2] += rawADCOthers[i + 2];
-//		sum[3] += rawADCOthers[i + 3];
-//	}
-//	sum[0] /= PUSHPULL_OTHERS_SAMPLES / 4;
-//	sum[1] /= PUSHPULL_OTHERS_SAMPLES / 4;
-//	sum[2] /= PUSHPULL_OTHERS_SAMPLES / 4;
-//	sum[3] /= PUSHPULL_OTHERS_SAMPLES / 4;
-//	/* store raw average values */
-//	pushpull.rawOutputVoltage = sum[0];
-//	pushpull.rawBiasCurrent = sum[1];
-//	pushpull.rawHighSideSupply = sum[2];
-//	pushpull.rawBatteryVoltage = sum[3];
-//
-//	/* convert to voltages/currents */
-//	pushpull.batteryVoltage = cal_GetCalibratedValue(CAL_ADC_BATTERY,
-//			pushpull.rawBatteryVoltage);
-//	pushpull.outputVoltage = cal_GetCalibratedValue(CAL_ADC_PUSHPULL_OUT,
-//			pushpull.rawOutputVoltage);
-//
-//	/* high side supply is not calibrated -> convert directly */
-//	/* voltage divider 1/11, ADC ref 2.5, 4096 values ->
-//	 * 2.5V/4096*11 => 6713.867188uV/LSB */
-//	pushpull.highSideSupply = pushpull.rawHighSideSupply * 6713.867188f;
-//
-//	/* bias current is not calibrated -> convert directly */
-//	/* Sense shunt 0.1Ohm, amplified by 100 => 10V/A
-//	 * 2.5/4096/10 => 61.03515625uA/LSB */
-//	pushpull.biasCurrent = pushpull.rawBiasCurrent * 61.03515625f;
-//
-//	/* update average values if sampling is running */
-//	if (pushpull.avg.enabled) {
-//		pushpull.avg.values.rawBatteryVoltage += pushpull.rawBatteryVoltage;
-//		pushpull.avg.values.rawBiasCurrent += pushpull.rawBiasCurrent;
-//		pushpull.avg.values.rawHighSideSupply += pushpull.rawHighSideSupply;
-//		pushpull.avg.values.rawOutputVoltage += pushpull.rawOutputVoltage;
-//		pushpull.avg.samplesOthers++;
-//		if (pushpull.avg.samplesCurrent >= pushpull.avg.minSamplesCurrent
-//				&& pushpull.avg.samplesOthers
-//						>= pushpull.avg.minSamplesOthers) {
-//			pushpull.avg.enabled = 0;
-//		}
-//	}
-//}
-//
-//void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
-//	if (hadc->Instance == ADC1 || hadc->Instance == ADC2) {
-//		/* the second half of the samples has been updated */
-//		pushpull_UpdateCurrent(&rawADCCurrent[PUSHPULL_CURRENT_SAMPLES / 2]);
-//	} else if (hadc->Instance == ADC3) {
-//		pushpull_UpdateOthers();
-//	}
-//}
-//
-//void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc) {
-//	if (hadc->Instance == ADC1 || hadc->Instance == ADC2) {
-//		/* the first half of the samples has been updated */
-//		pushpull_UpdateCurrent(&rawADCCurrent[0]);
-//	}
-//}
