@@ -212,13 +212,17 @@ void entry_input(widget_t *w, GUIEvent_t *ev) {
 		} else if (ev->button == BUTTON_ESC && e->flags.editing) {
 			e->flags.editing = 0;
 			widget_RequestRedraw(w);
-		} else if ((ev->button & (BUTTON_ENTER | BUTTON_ENCODER))
+		} else if ((ev->button & (BUTTON_ENTER | BUTTON_ENCODER | BUTTON_UNITm))
 				&& e->flags.editing) {
 			e->flags.editing = 0;
 			/* TODO adjust multiplier to unit */
-			int32_t newval = entry_GetInputStringValue(e, 1000000);
+			uint32_t multiplier = 1000000;
+			if (ev->button == BUTTON_UNITm) {
+				multiplier = 1000;
+			}
+			int32_t newval = entry_GetInputStringValue(e, multiplier);
 			*e->value = entry_constrainValue(e, newval);
-			if(e->changeCallback) {
+			if (e->changeCallback) {
 				e->changeCallback(w);
 			}
 			widget_RequestRedraw(w);
