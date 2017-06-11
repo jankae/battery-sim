@@ -1,9 +1,14 @@
 /**
   ******************************************************************************
-  * File Name          : USB.h
-  * Description        : This file provides code for the configuration
-  *                      of the USB instances.
+  * @file           : USB_DEVICE
+  * @version        : v2.0_Cube
+  * @brief          : Header for usb_device file.
   ******************************************************************************
+  * This notice applies to any and all portions of this file
+  * that are not between comment pairs USER CODE BEGIN and
+  * USER CODE END. Other portions of this file, whether 
+  * inserted by the user or by software development tools
+  * are owned by their respective copyright owners.
   *
   * Copyright (c) 2017 STMicroelectronics International N.V. 
   * All rights reserved.
@@ -40,40 +45,28 @@
   * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   *
   ******************************************************************************
-  */
+*/
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __usb_H
-#define __usb_H
+#ifndef __usb_device_H
+#define __usb_device_H
 #ifdef __cplusplus
  extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
+#include "stm32f1xx.h"
 #include "stm32f1xx_hal.h"
-#include "main.h"
+#include "usbd_def.h"
 
-/* USER CODE BEGIN Includes */
+extern USBD_HandleTypeDef hUsbDeviceFS;
 
-/* USER CODE END Includes */
-
-extern PCD_HandleTypeDef hpcd_USB_FS;
-
-/* USER CODE BEGIN Private defines */
-
-/* USER CODE END Private defines */
-
-extern void Error_Handler(void);
-
-void MX_USB_PCD_Init(void);
-
-/* USER CODE BEGIN Prototypes */
-
-/* USER CODE END Prototypes */
+/* USB_Device init function */	
+void MX_USB_DEVICE_Init(void);
 
 #ifdef __cplusplus
 }
 #endif
-#endif /*__ usb_H */
+#endif /*__usb_device_H */
 
 /**
   * @}
