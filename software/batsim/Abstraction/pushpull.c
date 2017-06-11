@@ -206,14 +206,38 @@ uint8_t pushpull_Calibrate(void) {
 		pushpull_ReleaseControl();
 		return 0;
 	}
-	/* limit current to approx. 5mA */
+	/* limit current to approx. 10mA */
 	uint16_t dacSource10 = CtrlWords[SPI_DAC_SOURCE] = DAC_MAX / 300;
+	vTaskDelay(10);
+	vTaskDelay(100);
+	uint16_t raw10mAlow = sampleRaw("Source I DAC", 2000, &output.rawCurrentLow);
+	pushpull_SetEnabled(1);
+
+	// TODO calibrate sink current DAC
+	if (dialog_MessageBox("Step 4", Font_Big, "Connect a >=5V\n>=300mA voltage\nsupply",
+			MSG_ABORT_OK, NULL, 1) != DIALOG_RESULT_OK) {
+		/* abort calibration */
+		pushpull_ReleaseControl();
+		return 0;
+	}
+	/* Set a low voltage and limit the current allowed to flow */
+	pushpull_SetVoltage(2000000);
+	pushpull_SetSourceCurrent(5000);
+	/* limit the current to approx. 250mA */
+	uint16_t dacSink250 = CtrlWords[SPI_DAC_SINK] = DAC_MAX /12;
 	vTaskDelay(10);
 	pushpull_SetEnabled(1);
 	vTaskDelay(100);
-	uint16_t raw10mAlow = sampleRaw("Source I DAC", 2000, &output.rawCurrentLow);
-
-	// TODO calibrate sink current DAC
+	while (pushpull_GetBatteryVoltage() < 4500000) {
+		dialog_MessageBox("ERROR", Font_Big,
+				"No sufficient\nsupply connected.\n", MSG_OK, NULL, 1);
+	}
+	uint16_t rawNeg250Low = sampleRaw("Sink I DAC 1/2", 2000, &output.rawCurrentLow);
+	/* limit the current to approx. 10mA */
+	uint16_t dacSink10 = CtrlWords[SPI_DAC_SINK] = DAC_MAX / 300;
+	vTaskDelay(100);
+	uint16_t rawNeg10Low = sampleRaw("Sink I DAC 2/2", 2000, &output.rawCurrentLow);
+	pushpull_SetEnabled(0);
 
 	pushpull_ReleaseControl();
 	/* Give GUI task some time to redraw active app */
@@ -231,6 +255,11 @@ uint8_t pushpull_Calibrate(void) {
 	int32_t actual10mA = cal_GetCalibratedValue(CAL_ADC_CURRENT_LOW, raw10mAlow);
 	cal_UpdateEntry(CAL_MAX_CURRENT_DAC, actual10mA, dacSource10, actualCurrent250, dacSource250);
 
+	/* calculate actual currents during sink DAC calibration */
+	int32_t actualSink10mA = cal_GetCalibratedValue(CAL_ADC_CURRENT_LOW, rawNeg10Low);
+	int32_t actualSink250mA = cal_GetCalibratedValue(CAL_ADC_CURRENT_LOW, rawNeg250Low);
+	cal_UpdateEntry(CAL_MIN_CURRENT_DAC, actualSink10mA, dacSink10, actualSink250mA, dacSink250);
+
 	/* TODO: Check calibration against default entries */
 	return 1;
 }
@@ -241,6 +270,7 @@ void pushpull_SetDefault(void) {
 	pushpull_SetVoltage(0);
 	pushpull_SetSourceCurrent(0);
 	pushpull_SetSinkCurrent(0);
+	pushpull_SetInternalResistance(0);
 }
 
 void pushpull_SetAveraging(uint16_t samples) {
@@ -334,8 +364,8 @@ void pushpull_SetDriveCurrent(uint32_t ua) {
 	uint32_t DACvalue = (Uout * DAC_MAX) / 3300;
 	CtrlWords[SPI_DAC1_CH_A] = DACvalue;
 }
-
 void pushpull_SetInternalResistance(uint32_t ur) {
+
 	if (xTaskGetCurrentTaskHandle() != output.control)
 		return;
 
