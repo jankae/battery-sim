@@ -1,5 +1,7 @@
 #include "itemChooser.h"
 
+#include "buttons.h"
+
 itemChooser_t* itemChooser_new(const char * const * const items, uint8_t *value,
 		font_t font, uint8_t visibleLines, uint16_t minSizeX) {
 	itemChooser_t* i = pvPortMalloc(sizeof(itemChooser_t));
@@ -7,86 +9,86 @@ itemChooser_t* itemChooser_new(const char * const * const items, uint8_t *value,
 		/* malloc failed */
 		return NULL;
 	}
-    /* initialize common widget values */
-    widget_init((widget_t*) i);
-    /* set widget functions */
-    i->base.func.draw = itemChooser_draw;
-    i->base.func.input = itemChooser_input;
-    /* a textfield can't have any children */
-    i->base.func.drawChildren = NULL;
+	/* initialize common widget values */
+	widget_init((widget_t*) i);
+	/* set widget functions */
+	i->base.func.draw = itemChooser_draw;
+	i->base.func.input = itemChooser_input;
+	/* a textfield can't have any children */
+	i->base.func.drawChildren = NULL;
 
-    /* set member variables */
-    i->changeCallback = NULL;
-    i->font = font;
-    i->itemlist = items;
-    i->value = value;
-    i->lines = visibleLines;
-    i->topVisibleEntry = 0;
-    /* find number of items and longest item */
-    uint8_t maxLength = 0;
-    uint8_t numItems;
-    for (numItems = 0; i->itemlist[numItems]; numItems++) {
-        uint8_t length = strlen(i->itemlist[numItems]);
-        if (length > maxLength)
-            maxLength = length;
-    }
-    /* calculate size */
-    i->base.size.y = font.height * visibleLines + 3;
-    i->base.size.x = font.width * maxLength + 3 + ITEMCHOOSER_SCROLLBAR_SIZE;
-    if (i->base.size.x < minSizeX) {
-        i->base.size.x = minSizeX;
-    }
-    return i;
+	/* set member variables */
+	i->changeCallback = NULL;
+	i->font = font;
+	i->itemlist = items;
+	i->value = value;
+	i->lines = visibleLines;
+	i->topVisibleEntry = 0;
+	/* find number of items and longest item */
+	uint8_t maxLength = 0;
+	uint8_t numItems;
+	for (numItems = 0; i->itemlist[numItems]; numItems++) {
+		uint8_t length = strlen(i->itemlist[numItems]);
+		if (length > maxLength)
+			maxLength = length;
+	}
+	/* calculate size */
+	i->base.size.y = font.height * visibleLines + 3;
+	i->base.size.x = font.width * maxLength + 3 + ITEMCHOOSER_SCROLLBAR_SIZE;
+	if (i->base.size.x < minSizeX) {
+		i->base.size.x = minSizeX;
+	}
+	return i;
 }
 
 void itemChooser_draw(widget_t *w, coords_t offset) {
 	itemChooser_t *i = (itemChooser_t*) w;
 
 	/* Get number of items */
-    uint8_t numItems;
+	uint8_t numItems;
 	for (numItems = 0; i->itemlist[numItems]; numItems++)
 		;
-    /* Constrain selected item (just in case) */
-    if (*i->value >= numItems) {
-        *i->value = numItems - 1;
-    }
+	/* Constrain selected item (just in case) */
+	if (*i->value >= numItems) {
+		*i->value = numItems - 1;
+	}
 
-    /* Update visible entry offset */
-    if(*i->value < i->topVisibleEntry) {
-    	i->topVisibleEntry = *i->value;
-    } else if(*i->value >= i->topVisibleEntry + i->lines) {
-    	i->topVisibleEntry = *i->value - i->lines + 1;
-    }
+	/* Update visible entry offset */
+	if (*i->value < i->topVisibleEntry) {
+		i->topVisibleEntry = *i->value;
+	} else if (*i->value >= i->topVisibleEntry + i->lines) {
+		i->topVisibleEntry = *i->value - i->lines + 1;
+	}
 
-    /* calculate corners */
-    coords_t upperLeft = offset;
-    coords_t lowerRight = upperLeft;
-    lowerRight.x += i->base.size.x - 1;
-    lowerRight.y += i->base.size.y - 1;
+	/* calculate corners */
+	coords_t upperLeft = offset;
+	coords_t lowerRight = upperLeft;
+	lowerRight.x += i->base.size.x - 1;
+	lowerRight.y += i->base.size.y - 1;
 
-    /* Draw surrounding rectangle */
+	/* Draw surrounding rectangle */
 	if (w->flags.selected) {
 		display_SetForeground(COLOR_SELECTED);
 	} else {
 		display_SetForeground(ITEMCHOOSER_BORDER_COLOR);
 	}
-    display_Rectangle(upperLeft.x, upperLeft.y, lowerRight.x, lowerRight.y);
+	display_Rectangle(upperLeft.x, upperLeft.y, lowerRight.x, lowerRight.y);
 	display_SetForeground(ITEMCHOOSER_BORDER_COLOR);
 
-    /* Display items */
-    uint8_t line;
-    for(line = 0;line < i->lines; line++) {
-    	uint8_t index = line + i->topVisibleEntry;
-    	if(index >= numItems) {
-    		/* item chooser has more lines than entries -> abort */
-    		break;
-    	}
-    	if(index == *i->value) {
-    		/* this is the currently selected entry */
-    		display_SetBackground(ITEMCHOOSER_SELECTED_BG_COLOR);
-    	} else {
-    		display_SetBackground(COLOR_BG_DEFAULT);
-    	}
+	/* Display items */
+	uint8_t line;
+	for (line = 0; line < i->lines; line++) {
+		uint8_t index = line + i->topVisibleEntry;
+		if (index >= numItems) {
+			/* item chooser has more lines than entries -> abort */
+			break;
+		}
+		if (index == *i->value) {
+			/* this is the currently selected entry */
+			display_SetBackground(ITEMCHOOSER_SELECTED_BG_COLOR);
+		} else {
+			display_SetBackground(COLOR_BG_DEFAULT);
+		}
 		display_String(upperLeft.x + 1, upperLeft.y + 2 + line * i->font.height,
 				i->itemlist[index]);
 		/* fill rectangle between text and and scrollbar begin with background color */
@@ -98,11 +100,11 @@ void itemChooser_draw(widget_t *w, coords_t offset) {
 		display_SetForeground(display_GetBackground());
 		display_RectangleFull(xbegin, ybegin, xstop, ystop);
 		display_SetForeground(ITEMCHOOSER_BORDER_COLOR);
-    }
-    /* display scrollbar */
-    display_SetForeground(ITEMCHOOSER_BORDER_COLOR);
-	display_VerticalLine(lowerRight.x - ITEMCHOOSER_SCROLLBAR_SIZE,
-			upperLeft.y, i->base.size.y);
+	}
+	/* display scrollbar */
+	display_SetForeground(ITEMCHOOSER_BORDER_COLOR);
+	display_VerticalLine(lowerRight.x - ITEMCHOOSER_SCROLLBAR_SIZE, upperLeft.y,
+			i->base.size.y);
 	/* calculate beginning and end of scrollbar */
 	uint8_t scrollBegin = common_Map(i->topVisibleEntry, 0, numItems, 0,
 			i->base.size.y);
@@ -122,15 +124,15 @@ void itemChooser_input(widget_t *w, GUIEvent_t *ev) {
 	itemChooser_t *i = (itemChooser_t*) w;
 
 	/* Get number of items */
-    uint8_t numItems;
+	uint8_t numItems;
 	for (numItems = 0; i->itemlist[numItems]; numItems++)
 		;
-    /* Constrain selected item (just in case) */
-    if (*i->value >= numItems) {
-        *i->value = numItems - 1;
-    }
+	/* Constrain selected item (just in case) */
+	if (*i->value >= numItems) {
+		*i->value = numItems - 1;
+	}
 
-	switch(ev->type) {
+	switch (ev->type) {
 	case EVENT_ENCODER_MOVED: {
 		int16_t newVal = *i->value + ev->movement;
 		if (newVal < 0) {
@@ -141,11 +143,26 @@ void itemChooser_input(widget_t *w, GUIEvent_t *ev) {
 		if (*i->value != newVal) {
 			*i->value = newVal;
 			if (i->changeCallback) {
-				i->changeCallback(i);
+				i->changeCallback((widget_t*) i);
 			}
 			widget_RequestRedrawFull(w);
 		}
 	}
+		break;
+	case EVENT_BUTTON_CLICKED:
+		if (ev->button == BUTTON_UP && *i->value > 0) {
+			(*i->value)--;
+			if (i->changeCallback) {
+				i->changeCallback((widget_t*) i);
+			}
+			widget_RequestRedrawFull(w);
+		} else if (ev->button == BUTTON_DOWN && *i->value < numItems - 1) {
+			(*i->value)++;
+			if (i->changeCallback) {
+				i->changeCallback((widget_t*) i);
+			}
+			widget_RequestRedrawFull(w);
+		}
 		break;
 	case EVENT_TOUCH_PRESSED:
 		if (w->flags.selected) {
@@ -161,7 +178,7 @@ void itemChooser_input(widget_t *w, GUIEvent_t *ev) {
 			if (*i->value != newVal) {
 				*i->value = newVal;
 				if (i->changeCallback) {
-					i->changeCallback(i);
+					i->changeCallback((widget_t*) i);
 				}
 				widget_RequestRedrawFull(w);
 			}

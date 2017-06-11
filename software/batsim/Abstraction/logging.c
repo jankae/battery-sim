@@ -3,8 +3,6 @@
 
 #include <stdarg.h>
 
-static const char* fault_name = NULL;
-
 void Log_CritError(const char *filename, uint16_t line, const char *fmt, ...) {
 	/* Something bad happened */
 	display_SetForeground(COLOR_RED);

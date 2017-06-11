@@ -6,6 +6,10 @@
 #include "file.h"
 #include "input.h"
 
+#include "Supply.h"
+#include "Charger.h"
+#include "Settings.h"
+
 extern uint8_t pushpull_SPI_OK;
 extern uint16_t RawADC[SPI_BLOCK_SIZE];
 
@@ -302,7 +306,7 @@ void startup_Software(void) {
 		display_String(0, 208, "Boot process completed.");
 		char buffer[27];
 		snprintf(buffer, sizeof(buffer), "Remaining HEAP: %lu",
-				xPortGetFreeHeapSize());
+				(uint32_t) xPortGetFreeHeapSize());
 		display_String(0, 224, buffer);
 
 		HAL_Delay(1000);

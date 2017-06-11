@@ -184,7 +184,8 @@ static void StartCharging(void) {
 
 	/* Keep track of time */
 	label_t *lTime = label_newWithText("Time:", Font_Big);
-	eTime = entry_new(&activeFor, NULL, NULL, Font_Big, 8, &Unit_Time);
+	eTime = entry_new((int32_t*) &activeFor, NULL, NULL, Font_Big, 8,
+			&Unit_Time);
 	widget_SetSelectable((widget_t*) eTime, 0);
 	activeFor = 0;
 

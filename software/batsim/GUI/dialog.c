@@ -238,7 +238,8 @@ DialogResult_t dialog_FileChooser(const char * const title, char *result,
 
 	uint8_t selectedFile = 0;
 	if (foundFiles) {
-		itemChooser_t *i = itemChooser_new(filenames, &selectedFile, Font_Big,
+		itemChooser_t *i = itemChooser_new((const char**) filenames,
+				&selectedFile, Font_Big,
 				(c->base.size.y - 30) / Font_Big.height, c->base.size.x);
 		container_attach(c, (widget_t*) i, COORDS(0, 0));
 		button_t *bOK = button_new("OK", Font_Big, 80, FileChooserButton);
