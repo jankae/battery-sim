@@ -6,22 +6,22 @@
 <setting alwaysvectorfont="no"/>
 <setting verticaltext="up"/>
 </settings>
-<grid distance="0.0125" unitdist="inch" unit="inch" style="lines" multiple="1" display="yes" altdistance="0.00625" altunitdist="inch" altunit="inch"/>
+<grid distance="0.0125" unitdist="inch" unit="mm" style="lines" multiple="1" display="yes" altdistance="0.00625" altunitdist="inch" altunit="inch"/>
 <layers>
 <layer number="1" name="Top" color="4" fill="1" visible="yes" active="yes"/>
 <layer number="2" name="Route2" color="1" fill="3" visible="no" active="no"/>
 <layer number="3" name="Route3" color="4" fill="3" visible="no" active="no"/>
 <layer number="14" name="Route14" color="1" fill="6" visible="no" active="no"/>
 <layer number="15" name="Route15" color="4" fill="6" visible="no" active="no"/>
-<layer number="16" name="Bottom" color="1" fill="1" visible="no" active="yes"/>
+<layer number="16" name="Bottom" color="1" fill="1" visible="yes" active="yes"/>
 <layer number="17" name="Pads" color="2" fill="1" visible="yes" active="yes"/>
 <layer number="18" name="Vias" color="2" fill="1" visible="yes" active="yes"/>
 <layer number="19" name="Unrouted" color="6" fill="1" visible="yes" active="yes"/>
 <layer number="20" name="Dimension" color="15" fill="1" visible="yes" active="yes"/>
 <layer number="21" name="tPlace" color="7" fill="1" visible="yes" active="yes"/>
-<layer number="22" name="bPlace" color="7" fill="1" visible="no" active="yes"/>
+<layer number="22" name="bPlace" color="7" fill="1" visible="yes" active="yes"/>
 <layer number="23" name="tOrigins" color="15" fill="1" visible="yes" active="yes"/>
-<layer number="24" name="bOrigins" color="15" fill="1" visible="no" active="yes"/>
+<layer number="24" name="bOrigins" color="15" fill="1" visible="yes" active="yes"/>
 <layer number="25" name="tNames" color="7" fill="1" visible="no" active="yes"/>
 <layer number="26" name="bNames" color="7" fill="1" visible="no" active="yes"/>
 <layer number="27" name="tValues" color="7" fill="1" visible="no" active="yes"/>
@@ -37,9 +37,9 @@
 <layer number="37" name="tTest" color="7" fill="1" visible="no" active="yes"/>
 <layer number="38" name="bTest" color="7" fill="1" visible="no" active="yes"/>
 <layer number="39" name="tKeepout" color="4" fill="11" visible="yes" active="yes"/>
-<layer number="40" name="bKeepout" color="1" fill="11" visible="no" active="yes"/>
+<layer number="40" name="bKeepout" color="1" fill="11" visible="yes" active="yes"/>
 <layer number="41" name="tRestrict" color="4" fill="10" visible="yes" active="yes"/>
-<layer number="42" name="bRestrict" color="1" fill="10" visible="no" active="yes"/>
+<layer number="42" name="bRestrict" color="1" fill="10" visible="yes" active="yes"/>
 <layer number="43" name="vRestrict" color="2" fill="10" visible="no" active="yes"/>
 <layer number="44" name="Drills" color="7" fill="1" visible="no" active="yes"/>
 <layer number="45" name="Holes" color="7" fill="1" visible="no" active="yes"/>
@@ -49,7 +49,7 @@
 <layer number="49" name="Reference" color="7" fill="1" visible="no" active="yes"/>
 <layer number="50" name="dxf" color="7" fill="1" visible="no" active="no"/>
 <layer number="51" name="tDocu" color="7" fill="1" visible="yes" active="yes"/>
-<layer number="52" name="bDocu" color="7" fill="1" visible="no" active="yes"/>
+<layer number="52" name="bDocu" color="7" fill="1" visible="yes" active="yes"/>
 <layer number="53" name="tGND_GNDA" color="7" fill="9" visible="no" active="no"/>
 <layer number="54" name="bGND_GNDA" color="1" fill="9" visible="no" active="no"/>
 <layer number="56" name="wert" color="7" fill="1" visible="no" active="no"/>
@@ -77,7 +77,7 @@
 <layer number="116" name="Patch_BOT" color="9" fill="4" visible="no" active="yes"/>
 <layer number="118" name="Rect_Pads" color="4" fill="1" visible="no" active="yes"/>
 <layer number="121" name="_tsilk" color="7" fill="1" visible="yes" active="yes"/>
-<layer number="122" name="_bsilk" color="7" fill="1" visible="no" active="yes"/>
+<layer number="122" name="_bsilk" color="7" fill="1" visible="yes" active="yes"/>
 <layer number="123" name="tTestmark" color="7" fill="1" visible="no" active="yes"/>
 <layer number="124" name="bTestmark" color="7" fill="1" visible="no" active="yes"/>
 <layer number="125" name="_tNames" color="7" fill="1" visible="no" active="yes"/>
@@ -4738,7 +4738,7 @@ design rules under a new name.</description>
 <attribute name="NAME" x="7.9375" y="30.7975" size="0.8128" layer="25" font="vector" rot="R90"/>
 <attribute name="VALUE" x="4.7625" y="30.1625" size="1.27" layer="27"/>
 </element>
-<element name="C19" library="rcl" package="C0603" value="200p" x="2.2225" y="34.29" smashed="yes" rot="R180">
+<element name="C19" library="rcl" package="C0603" value="100p" x="2.2225" y="34.29" smashed="yes" rot="R180">
 <attribute name="NAME" x="3.175" y="33.655" size="0.8128" layer="25" font="vector" rot="R180"/>
 <attribute name="VALUE" x="2.8575" y="36.195" size="1.27" layer="27" rot="R180"/>
 </element>
@@ -4762,7 +4762,7 @@ design rules under a new name.</description>
 <attribute name="NAME" x="61.9125" y="58.42" size="0.8128" layer="25" font="vector" rot="R90"/>
 <attribute name="VALUE" x="64.4525" y="58.7375" size="1.27" layer="27" rot="R90"/>
 </element>
-<element name="C28" library="rcl" package="C1206" value="100n" x="20.32" y="45.72" smashed="yes" rot="R90">
+<element name="C28" library="rcl" package="C1206" value="10u/35V" x="20.32" y="45.72" smashed="yes" rot="R90">
 <attribute name="NAME" x="22.225" y="46.6725" size="0.8128" layer="25" font="vector" rot="R90"/>
 <attribute name="VALUE" x="22.86" y="44.45" size="1.27" layer="27" rot="R90"/>
 </element>
@@ -4834,7 +4834,7 @@ design rules under a new name.</description>
 <attribute name="NAME" x="38.1" y="78.4225" size="0.8128" layer="25" font="vector"/>
 <attribute name="VALUE" x="38.4175" y="75.8825" size="1.27" layer="27"/>
 </element>
-<element name="C5" library="rcl" package="C0603" value="100p" x="12.7" y="22.225" smashed="yes" rot="R270">
+<element name="C5" library="rcl" package="C0603" value="330p" x="12.7" y="22.225" smashed="yes" rot="R270">
 <attribute name="NAME" x="14.2875" y="21.59" size="0.8128" layer="25" font="vector" rot="R90"/>
 <attribute name="VALUE" x="10.795" y="22.86" size="1.27" layer="27" rot="R270"/>
 </element>
@@ -5088,7 +5088,7 @@ design rules under a new name.</description>
 <attribute name="NAME" x="1.27" y="34.925" size="0.8128" layer="25" font="vector"/>
 <attribute name="VALUE" x="1.5875" y="34.6075" size="1.27" layer="27"/>
 </element>
-<element name="R12" library="resistor" package="R0603" value="10k" x="19.3675" y="22.5425" smashed="yes" rot="R90">
+<element name="R12" library="resistor" package="R0603" value="n.p." x="19.3675" y="22.5425" smashed="yes" rot="R90">
 <attribute name="NAME" x="21.2725" y="21.59" size="0.8128" layer="25" font="vector" rot="R90"/>
 <attribute name="VALUE" x="21.2725" y="21.9075" size="1.27" layer="27" rot="R90"/>
 </element>
@@ -5120,7 +5120,7 @@ design rules under a new name.</description>
 <attribute name="NAME" x="37.62375" y="38.735" size="0.8128" layer="25" font="vector" rot="R90"/>
 <attribute name="VALUE" x="40.48125" y="39.0525" size="1.27" layer="27" rot="R90"/>
 </element>
-<element name="R2" library="resistor" package="R0603" value="1k5" x="61.9125" y="5.715" smashed="yes" rot="R90">
+<element name="R2" library="resistor" package="R0603" value="3k3" x="61.9125" y="5.715" smashed="yes" rot="R90">
 <attribute name="NAME" x="61.2775" y="5.08" size="0.8128" layer="25" font="vector" rot="R90"/>
 <attribute name="VALUE" x="63.8175" y="5.08" size="1.27" layer="27" rot="R90"/>
 </element>
@@ -5171,7 +5171,7 @@ design rules under a new name.</description>
 <attribute name="NAME" x="14.2875" y="28.2575" size="0.8128" layer="25" font="vector" rot="R90"/>
 <attribute name="VALUE" x="10.795" y="29.845" size="1.27" layer="27" rot="R270"/>
 </element>
-<element name="R31" library="resistor" package="R0603" value="10k" x="42.2275" y="61.2775" smashed="yes" rot="R270">
+<element name="R31" library="resistor" package="R0603" value="1k" x="42.2275" y="61.2775" smashed="yes" rot="R270">
 <attribute name="NAME" x="42.8625" y="61.9125" size="0.8128" layer="25" font="vector" rot="R270"/>
 <attribute name="VALUE" x="40.3225" y="61.9125" size="1.27" layer="27" rot="R270"/>
 </element>
@@ -5226,7 +5226,7 @@ design rules under a new name.</description>
 <attribute name="NAME" x="52.3875" y="46.6725" size="0.8128" layer="25" font="vector" rot="R90"/>
 <attribute name="VALUE" x="54.9275" y="46.6725" size="1.27" layer="27" rot="R90"/>
 </element>
-<element name="R44" library="resistor" package="R0603" value="10k" x="14.9225" y="22.5425" smashed="yes" rot="R270">
+<element name="R44" library="resistor" package="R0603" value="5k" x="14.9225" y="22.5425" smashed="yes" rot="R270">
 <attribute name="NAME" x="16.51" y="21.59" size="0.8128" layer="25" font="vector" rot="R90"/>
 <attribute name="VALUE" x="13.0175" y="23.1775" size="1.27" layer="27" rot="R270"/>
 </element>
@@ -5258,7 +5258,7 @@ design rules under a new name.</description>
 <attribute name="NAME" x="66.51625" y="47.9425" size="0.8128" layer="25" font="vector" rot="R90"/>
 <attribute name="VALUE" x="66.9925" y="48.26" size="1.27" layer="27" rot="R90"/>
 </element>
-<element name="R51" library="resistor" package="R0603" value="100k" x="55.5625" y="37.1475" smashed="yes" rot="R270">
+<element name="R51" library="resistor" package="R0603" value="47k" x="55.5625" y="37.1475" smashed="yes" rot="R270">
 <attribute name="NAME" x="53.975" y="39.0525" size="0.8128" layer="25" font="vector" rot="R270"/>
 <attribute name="VALUE" x="53.6575" y="37.7825" size="1.27" layer="27" rot="R270"/>
 </element>
@@ -5294,7 +5294,7 @@ design rules under a new name.</description>
 <attribute name="NAME" x="67.945" y="58.42" size="0.8128" layer="25" font="vector" rot="R90"/>
 <attribute name="VALUE" x="64.61125" y="60.0075" size="1.27" layer="27" rot="R270"/>
 </element>
-<element name="R6" library="resistor" package="R0603" value="1k5" x="10.16" y="5.08" smashed="yes" rot="R180">
+<element name="R6" library="resistor" package="R0603" value="3k3" x="10.16" y="5.08" smashed="yes" rot="R180">
 <attribute name="NAME" x="10.795" y="6.6675" size="0.8128" layer="25" font="vector" rot="R180"/>
 <attribute name="VALUE" x="10.795" y="6.985" size="1.27" layer="27" rot="R180"/>
 </element>

@@ -22768,11 +22768,11 @@ Source: www.tracopower.com .. tme.pdf</description>
 <part name="Q5" library="transistor-pnp" deviceset="BC807*" device="SMD" technology="-40"/>
 <part name="Q6" library="transistor-npn" deviceset="BC817*" device="SMD" technology="-40"/>
 <part name="R1" library="resistor" deviceset="R-EU_" device="R0603" value="100"/>
-<part name="R2" library="resistor" deviceset="R-EU_" device="R0603" value="1k5"/>
+<part name="R2" library="resistor" deviceset="R-EU_" device="R0603" value="3k3"/>
 <part name="R3" library="resistormod" deviceset="5WAXIAL" device="" value="0.1/5W"/>
 <part name="R4" library="resistormod" deviceset="5WAXIAL" device="" value="0.1/5W"/>
 <part name="R5" library="resistor" deviceset="R-EU_" device="R0603" value="100"/>
-<part name="R6" library="resistor" deviceset="R-EU_" device="R0603" value="1k5"/>
+<part name="R6" library="resistor" deviceset="R-EU_" device="R0603" value="3k3"/>
 <part name="Q7" library="transistor-npn" deviceset="BC817*" device="SMD" technology="-40"/>
 <part name="Q8" library="transistor-pnp" deviceset="BC807*" device="SMD" technology="-40"/>
 <part name="GND1" library="supply1" deviceset="GND" device=""/>
@@ -22817,33 +22817,33 @@ Source: www.tracopower.com .. tme.pdf</description>
 <part name="P+7" library="supply1" deviceset="+24V" device=""/>
 <part name="R28" library="resistor" deviceset="R-EU_" device="R0603" value="1k"/>
 <part name="D3" library="zetex" deviceset="D" device="SOD323" value="1N4148"/>
-<part name="C5" library="rcl" deviceset="C-EU" device="C0603" value="100p"/>
+<part name="C5" library="rcl" deviceset="C-EU" device="C0603" value="330p"/>
 <part name="R29" library="resistor" deviceset="R-EU_" device="R0603" value="10k"/>
 <part name="K1" library="relay" deviceset="G5LE" device=""/>
 <part name="P+8" library="supply1" deviceset="+24V" device=""/>
 <part name="Q13" library="transistor-npn" deviceset="BC817*" device="SMD" technology="-40"/>
 <part name="GND15" library="supply1" deviceset="GND" device=""/>
 <part name="D4" library="zetex" deviceset="D" device="SOD323" value="1N4148"/>
-<part name="R31" library="resistor" deviceset="R-EU_" device="R0603" value="10k"/>
+<part name="R31" library="resistor" deviceset="R-EU_" device="R0603" value="1k"/>
 <part name="IC7" library="linear" deviceset="TL084" device="D"/>
 <part name="R33" library="resistor" deviceset="R-EU_" device="R0603" value="33k"/>
 <part name="R34" library="resistor" deviceset="R-EU_" device="R0603" value="33k"/>
 <part name="D5" library="zetex" deviceset="D" device="SOD323" value="1N4148"/>
 <part name="C18" library="rcl" deviceset="C-EU" device="C0603" value="10n"/>
-<part name="C19" library="rcl" deviceset="C-EU" device="C0603" value="200p"/>
+<part name="C19" library="rcl" deviceset="C-EU" device="C0603" value="100p"/>
 <part name="R35" library="resistor" deviceset="R-EU_" device="R0603" value="1k"/>
 <part name="Q14" library="transistor-pnp" deviceset="BC807*" device="SMD" technology="-40"/>
 <part name="C17" library="rcl" deviceset="C-EU" device="C0603" value="10n"/>
 <part name="C20" library="rcl" deviceset="C-EU" device="C0603" value="100p"/>
 <part name="R36" library="resistor" deviceset="R-EU_" device="R0603" value="1k"/>
 <part name="FRAME1" library="frames" deviceset="A4L-LOC" device=""/>
-<part name="C28" library="rcl" deviceset="C-EU" device="C1206" value="100n"/>
+<part name="C28" library="rcl" deviceset="C-EU" device="C1206" value="10u/35V"/>
 <part name="GND25" library="supply1" deviceset="GND" device=""/>
 <part name="FRAME2" library="frames" deviceset="A4L-LOC" device=""/>
 <part name="P+6" library="supply1" deviceset="+24V" device=""/>
 <part name="FRAME3" library="frames" deviceset="A4L-LOC" device=""/>
 <part name="GND27" library="supply1" deviceset="GND" device=""/>
-<part name="R44" library="resistor" deviceset="R-EU_" device="R0603" value="10k"/>
+<part name="R44" library="resistor" deviceset="R-EU_" device="R0603" value="5k"/>
 <part name="GND29" library="supply1" deviceset="GND" device=""/>
 <part name="SUPPLY7" library="supply2" deviceset="-8V" device=""/>
 <part name="GND26" library="supply1" deviceset="GND" device=""/>
@@ -22953,7 +22953,7 @@ Source: www.tracopower.com .. tme.pdf</description>
 <part name="P+10" library="supply1" deviceset="+24V" device=""/>
 <part name="GND20" library="supply1" deviceset="GND" device=""/>
 <part name="+3V13" library="supply1" deviceset="+3V3" device=""/>
-<part name="R12" library="resistor" deviceset="R-EU_" device="R0603" value="10k"/>
+<part name="R12" library="resistor" deviceset="R-EU_" device="R0603" value="n.p."/>
 <part name="R13" library="resistor" deviceset="R-EU_" device="R0603" value="10k"/>
 <part name="R22" library="resistor" deviceset="R-EU_" device="R0603" value="10k"/>
 <part name="R23" library="resistor" deviceset="R-EU_" device="R0603" value="10k"/>
@@ -23015,7 +23015,7 @@ Source: www.tracopower.com .. tme.pdf</description>
 <part name="GND54" library="supply1" deviceset="GND" device=""/>
 <part name="+3V14" library="supply1" deviceset="+3V3" device=""/>
 <part name="GND55" library="supply1" deviceset="GND" device=""/>
-<part name="R51" library="resistor" deviceset="R-EU_" device="R0603" value="100k"/>
+<part name="R51" library="resistor" deviceset="R-EU_" device="R0603" value="47k"/>
 <part name="R63" library="resistor" deviceset="R-EU_" device="R0603" value="10k"/>
 <part name="SUPPLY12" library="supply2" deviceset="-8V" device=""/>
 <part name="R64" library="resistor" deviceset="R-EU_" device="R0603" value="10k"/>

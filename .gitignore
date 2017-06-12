@@ -24,3 +24,5 @@ software/spiTest
 *.cproject
 *.project
 *.settings
+*.xcf
+*.csv
