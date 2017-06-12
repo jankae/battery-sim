@@ -29,6 +29,9 @@ static const unitElement_t s = {"s", 1000};
 static const unitElement_t min = {"m", 60000};
 static const unitElement_t hour = {"h", 3600000};
 
+static const unitElement_t B = {"B", 1};
+static const unitElement_t kB = {"kB", 1024};
+
 static const unitElement_t none = {"", 1};
 
 const unit_t Unit_Current = { &uA, &mA, &A, NULL };
@@ -38,6 +41,7 @@ const unit_t Unit_Temperature = {&C, NULL };
 const unit_t Unit_Resistance = { &uR, &mR, &R, NULL };
 const unit_t Unit_Energy = { &uWh, &mWh, &Wh, NULL };
 const unit_t Unit_Time = {&ms, &s, &min, &hour, NULL };
+const unit_t Unit_Memory = { &B, &kB, NULL };
 const unit_t Unit_None = {&none, NULL };
 
 const int32_t null = 0;

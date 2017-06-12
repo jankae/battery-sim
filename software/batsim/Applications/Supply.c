@@ -180,7 +180,6 @@ static void Supply(void *unused) {
 	pushpull_SetEnabled(0);
 	pushpull_SetInternalResistance(0);
 
-	uint8_t lastOn = on;
 	while(1) {
 		/* Update values */
 		voltage = pushpull_GetBatteryVoltage()/10000;
@@ -193,17 +192,17 @@ static void Supply(void *unused) {
 		pushpull_SetVoltage(setVoltage);
 		pushpull_SetSourceCurrent(setMaxCurrent);
 		pushpull_SetSinkCurrent(setMinCurrent);
-		pushpull_SetEnabled(on);
 
-		if(lastOn != on) {
-			if(on) {
+		if (on != pushpull_GetEnabled()) {
+			pushpull_SetEnabled(on);
+			if (pushpull_GetEnabled()) {
 				label_SetText(lOn, "ON");
 				lOn->color = COLOR_RED;
 			} else {
 				label_SetText(lOn, "OFF");
 				lOn->color = COLOR_GRAY;
 			}
-			lastOn = on;
+			on = pushpull_GetEnabled();
 		}
 
 		if (App_Handler(&signal, 300)) {

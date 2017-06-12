@@ -8,6 +8,8 @@
 
 #define PUSHPULL_DEFAULT_DRIVE		200
 
+#define PUSHPULL_MAX_TEMP			45
+
 static PushPull_t output;
 
 uint8_t pushpull_SPI_OK;
@@ -43,6 +45,7 @@ const PushPull_Limits_t Limits = {
 		.maxCurrent = MAX_SOURCE_CURRENT,
 		.maxResistance = MAX_RESISTANCE,
 		.minResistance = MIN_RESISTANCE,
+		.maxTemp = PUSHPULL_MAX_TEMP,
 };
 
 uint16_t CtrlWords[SPI_BLOCK_SIZE];
@@ -174,8 +177,6 @@ uint8_t pushpull_Calibrate(void) {
 	uint32_t highActual = getUserInputValue("Voltage at output?", &Unit_Voltage);
 	pushpull_SetEnabled(0);
 
-
-	// TODO current calibration
 	if (dialog_MessageBox("Step 2", Font_Big, "Short the output\nwith an ammeter",
 			MSG_ABORT_OK, NULL, 1) != DIALOG_RESULT_OK) {
 		/* abort calibration */
@@ -213,7 +214,6 @@ uint8_t pushpull_Calibrate(void) {
 	uint16_t raw10mAlow = sampleRaw("Source I DAC", 2000, &output.rawCurrentLow);
 	pushpull_SetEnabled(1);
 
-	// TODO calibrate sink current DAC
 	if (dialog_MessageBox("Step 4", Font_Big, "Connect a >=5V\n>=300mA voltage\nsupply",
 			MSG_ABORT_OK, NULL, 1) != DIALOG_RESULT_OK) {
 		/* abort calibration */
@@ -340,8 +340,16 @@ void pushpull_SetEnabled(uint8_t enabled) {
 	if (xTaskGetCurrentTaskHandle() != output.control)
 		return;
 	if (enabled) {
-		output.enabled = 1;
-		CtrlWords[SPI_COMMAND_WORD] |= SPI_COMMAND_OUTPUT;
+		if(output.temperature < PUSHPULL_MAX_TEMP) {
+			output.enabled = 1;
+			CtrlWords[SPI_COMMAND_WORD] |= SPI_COMMAND_OUTPUT;
+		} else {
+			/* Temperature too high, output disabled */
+			dialog_MessageBox("ERROR", Font_Big, "Temperature too high", MSG_OK,
+					NULL, 1);
+			output.enabled = 0;
+			CtrlWords[SPI_COMMAND_WORD] &= ~SPI_COMMAND_OUTPUT;
+		}
 	} else {
 		output.enabled = 0;
 		CtrlWords[SPI_COMMAND_WORD] &= ~SPI_COMMAND_OUTPUT;
@@ -519,6 +527,12 @@ void pushpull_SPIComplete(void) {
 
 		/* convert to °C, full scale ADC is about 393K */
 		output.temperature = (uint32_t) RawADC[0] * 393 / 4096 - 273; // and subtract °C to K difference
+
+		if (output.temperature > Limits.maxTemp) {
+			/* switch output off due to high temperature */
+			output.enabled = 0;
+			CtrlWords[SPI_COMMAND_WORD] &= ~SPI_COMMAND_OUTPUT;
+		}
 	}
 }
 

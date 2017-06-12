@@ -287,6 +287,7 @@ void startup_Software(void) {
 	Supply_Init();
 	Charger_Init();
 	settings_Init();
+	Info_Init();
 
 	/* Start GUI thread */
 	if(gui_Init()) {
