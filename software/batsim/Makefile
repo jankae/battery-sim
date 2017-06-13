@@ -24,6 +24,10 @@ MODULES+= Src \
 	Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang \
 	Abstraction \
 	Applications \
+	Applications/Charger \
+	Applications/Info \
+	Applications/Settings \
+	Applications/Supply \
 	GUI 
 
 INC_DIRS+= Inc \
@@ -38,6 +42,10 @@ INC_DIRS+= Inc \
 	Middlewares/Third_Party/FatFs/src \
 	Abstraction \
 	Applications \
+	Applications/Charger \
+	Applications/Info \
+	Applications/Settings \
+	Applications/Supply \
 	GUI 
 
 
