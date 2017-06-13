@@ -5,7 +5,6 @@
 #include "gpio.h"
 
 /* Button definitions */
-// TODO extend list
 #define BUTTON_0			0x80000000
 #define BUTTON_1			0x40000000
 #define BUTTON_2			0x20000000

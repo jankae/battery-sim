@@ -43,17 +43,11 @@ static void MessageBoxButton(widget_t *source) {
 	if (dialog.msgbox.cb)
 		dialog.msgbox.cb(dialog.msgbox.res);
 
-	// TODO does this always work? (might result in null pointer exception due to deleting
-	// widgets while working on them)
 	window_destroy((window_t*) dialog.window);
 
 	if (dialog.msgbox.dialogDone) {
 		xSemaphoreGive(dialog.msgbox.dialogDone);
 	}
-
-//	/* destroy dialog */
-//	GUIEvent_t ev = { .type = EVENT_WINDOW_CLOSE, .w = dialog.window };
-//	gui_SendEvent(&ev);
 }
 
 DialogResult_t dialog_MessageBox(const char * const title, font_t font, const char * const msg,

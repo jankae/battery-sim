@@ -187,7 +187,6 @@ static void desktop_SwitchToApp(uint8_t app) {
 			topWidget = AppList[app].topWidget;
 			focussed = app;
 			widget_RequestRedrawFull(topWidget);
-			// TODO only draw "active app lines"
 			desktop_Draw();
 		}
 		break;

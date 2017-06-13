@@ -38,6 +38,11 @@ static void widget_deleteInt(widget_t *w) {
 		/* delete and free this child */
 		widget_deleteInt(this);
 	}
+
+	/* Send an event to the widget, so it can free any memory it allocated */
+	GUIEvent_t ev;
+	ev.type = EVENT_WIDGET_DELETE;
+	w->func.input(w, &ev);
 	/* free memory of this widget */
 	/* Although the exact size of the widget data is not known (widget_t is only the base data,
 	 * the actual widget has a larger size (e.g. sizeof(button_t)), free still works because the

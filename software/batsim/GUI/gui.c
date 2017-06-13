@@ -42,7 +42,7 @@ static void guiThread(void) {
 						/* send event to top widget */
 						widget_input(topWidget, &event);
 					} else if (!isPopup) {
-						// TODO block desktop input if topwidget is a popup window
+						/* only pass on events to desktop if no popup is present */
 						desktop_Input(&event);
 					}
 					break;

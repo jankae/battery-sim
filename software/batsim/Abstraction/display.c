@@ -165,10 +165,8 @@ void SSD1289_Init(void) {
 	writeRegister(0x05, 0x0000);
 	writeRegister(0x06, 0x0000);
 	/* pixels per line = 240, front porch = 30 */
-	/* TODO this is the POR value and the interface isn't used anyway -> delete? */
 	writeRegister(0x16, 0xEF1C);
 	/* VFP = 0, VBP = 3 */
-	/* TODO interface isn't used, delete? */
 	writeRegister(0x17, 0x0003);
 
 	writeRegister(0x07, 0x0233);

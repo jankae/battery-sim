@@ -12,8 +12,6 @@ FATFS fatfs;
 int8_t file_Init(void) {
 	fileAccess = xSemaphoreCreateMutex();
 	if (!fileAccess) {
-		// TODO proper error handling
-		printf("Malloc failed\n");
 		return -1;
 	}
 

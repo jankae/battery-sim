@@ -46,6 +46,7 @@ textfield_t* textfield_new(const char *text, const font_t font,
 
 	t->base.flags.selectable = 0;
 	/* copy text */
+	// TODO this buffer doesn't get freed when textfield is deleted!
 	t->text = pvPortMalloc(strlen(s) + 1);
 	if(!t->text) {
 		/* malloc failed */
@@ -76,6 +77,12 @@ void textfield_draw(widget_t *w, coords_t offset) {
 	}
 }
 void textfield_input(widget_t *w, GUIEvent_t *ev){
-    /* textfield doesn't handle any input */
+	textfield_t *t = (textfield_t*) w;
+	if(ev->type == EVENT_WIDGET_DELETE) {
+		/* this widget is about to be deleted, free text memory */
+		if(t->text) {
+			vPortFree(t->text);
+		}
+	}
 	return;
 }

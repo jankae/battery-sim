@@ -367,7 +367,7 @@ void pushpull_SetDriveCurrent(uint32_t ua) {
 	if (ua >= 1900)
 		ua = 1900;
 	/* calculate necessary DAC value */
-	/* TODO: 0.6V transistor drop + outputCurrent through 1k resistor */
+	/* 0.5V transistor drop + outputCurrent through 1k resistor */
 	uint32_t Uout = 500 + ua;
 	uint32_t DACvalue = (Uout * DAC_MAX) / 3300;
 	CtrlWords[SPI_DAC1_CH_A] = DACvalue;

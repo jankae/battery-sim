@@ -213,7 +213,6 @@ void buttons_Update(void) {
 		} else {
 			/* consecutive turn in the same direction */
 			/* set movement depending on encoder speed */
-			// TODO test and adjust timing constant
 			uint16_t multiplier = 500 / timediff;
 			if (multiplier) {
 				/* speed up movement during fast rotations */

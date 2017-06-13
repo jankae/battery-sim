@@ -29,7 +29,7 @@ typedef enum {TEST_PASSED = 0, TEST_FAILED = 1, TEST_WARNING = 2} TestResult_t;
 static uint16_t get_5VRail(void) {
 	uint16_t result[2];
 	HAL_ADC_Start_DMA(&hadc1, (uint32_t*) result, 2);
-	/* wait for ADC to finish TODO this could be done nicer */
+	/* wait for ADC to finish */
 	HAL_Delay(10);
 	/* convert to mV, full scale ADC is 6.6V */
 	return (uint32_t) result[0] * 6600 / 4096;
@@ -38,7 +38,7 @@ static uint16_t get_5VRail(void) {
 static uint16_t get_3V3Rail(void) {
 	uint16_t result[2];
 	HAL_ADC_Start_DMA(&hadc1, (uint32_t*) result, 2);
-	/* wait for ADC to finish TODO this could be done nicer */
+	/* wait for ADC to finish */
 	HAL_Delay(10);
 	/* convert to mV, full scale ADC is 1.2V -> 1200mV * 4096 = 4915200 */
 	return 4915200UL / result[1];
@@ -185,7 +185,6 @@ void startup_Hardware(void) {
 	meas = pushpull_GetOutputVoltage();
 	/* Allow up to 250mV (Output does not reach GND) */
 	res = TEST_PERCENTDEV(1000000, meas);
-	res = TEST_PASSED; // TODO remove
 	overallRes |= res;
 	common_StringFromValue(buffer, 6, meas, &Unit_Voltage);
 	display_TestResult("Output low:", buffer, res);

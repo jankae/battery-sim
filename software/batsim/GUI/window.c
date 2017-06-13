@@ -53,9 +53,12 @@ GUIResult_t window_SetMainWidget(window_t *w, widget_t *widg) {
 	coords_t maxSize = window_GetAvailableArea(w);
 	if(widg->size.x > maxSize.x || widg->size.y > maxSize.y) {
 		/* widget doesn't fit in window */
-		// TODO this potentially allows for a memory leak if the application doesn't check for
-		// a return code. The widget (which failed to be attached to the window) won't get freed
-		// when the window is closed.
+		/* This potentially allows for a memory leak if the application doesn't check for
+		 * a return code. The widget (which failed to be attached to the window) won't get freed
+		 * when the window is closed.
+		 * Workaround: As an empty window is not useful at all, this will only happen during
+		 * a software error -> display error message */
+		CRIT_ERROR("Widget too big for window");
 		return GUI_ERROR;
 	}
 	w->base.firstChild = widg;
