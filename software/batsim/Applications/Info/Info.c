@@ -2,6 +2,7 @@
 #include "gui.h"
 
 #include "pushpull.h"
+#include "Battery/Battery.h"
 
 static const uint16_t imagedata[1024] = {
 		0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0001,0x0043,0x0064,0x0064,0x0064,0x0022,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,
@@ -45,12 +46,17 @@ static void Info(void *unused);
 
 /* Creates the app task, called from desktop when user start the app */
 static void Info_Start(){
-	xTaskCreate(Info, "Info", 300, NULL, 3, NULL);
+	xTaskCreate(Info, "Info", 800, NULL, 3, NULL);
 }
 
 /* Register this app */
 void Info_Init() {
 	App_Register("Info", Info_Start, icon);
+}
+
+static volatile uint8_t load = 0;
+static void loadProfile(void) {
+	load = 1;
 }
 
 static void Info(void *unused) {
@@ -70,6 +76,14 @@ static void Info(void *unused) {
 	entry_t *eHeap = entry_new(&heap, NULL, NULL, Font_Big, 6, &Unit_Memory);
 	entry_t *eDiss = entry_new(&dissipation, NULL, NULL, Font_Big, 6, &Unit_Power);
 
+	int32_t *data = pvPortMalloc(4*200);
+	uint16_t i;
+	for(i=0;i<200;i++) {
+		data[i] = 100*sin((float)i/10);
+	}
+	graph_t *g = graph_new(data, 200, 100, COLOR_DARKGREEN);
+	button_t *bProfile = button_new("Profile", Font_Big, 0, loadProfile);
+
 	container_attach(c, (widget_t*) lTemp, COORDS(5, 5));
 	container_attach(c, (widget_t*) eTemp, COORDS(200, 5));
 	container_attach(c, (widget_t*) lHeap, COORDS(5, 30));
@@ -77,9 +91,13 @@ static void Info(void *unused) {
 	container_attach(c, (widget_t*) lDiss, COORDS(5, 55));
 	container_attach(c, (widget_t*) eDiss, COORDS(200, 55));
 
+	container_attach(c, (widget_t*) g, COORDS(5, 80));
+	container_attach(c, (widget_t*) bProfile, COORDS(5, 200));
+
 	/* Notify desktop of started app */
 	desktop_AppStarted(Info_Start, (widget_t*) c);
 
+	Battery_t bat;
 	while(1) {
 
 		heap = xPortGetFreeHeapSize();
@@ -111,6 +129,22 @@ static void Info(void *unused) {
 		uint32_t signal;
 		if (App_Handler(&signal, 300)) {
 			/* Handle app signals */
+		}
+
+		if(load) {
+			char filename[16];
+			if (dialog_FileChooser("Select Preset:", filename, "0:/", "BAT")
+					== DIALOG_RESULT_OK) {
+				Battery_Load(&bat, filename);
+				for(i=0;i<200;i++) {
+					BatDataPoint_t p;
+					p.SoC = (uint64_t) i * 100000000UL / 200;
+					Battery_Interpolate(bat.profile, bat.npoints, &p);
+					data[i] = p.E;
+				}
+				graph_NewData(g, data);
+			}
+			load = 0;
 		}
 	}
 }

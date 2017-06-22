@@ -207,25 +207,28 @@ static void Supply(void *unused) {
 
 		if (App_Handler(&signal, 300)) {
 			/* received a notification */
-			if(signal & SIGNAL_ONOFF_BUTTON) {
+			if (signal & SIGNAL_ONOFF_BUTTON) {
 				on = !on;
 			}
-			if(signal & SIGNAL_PUSHPULL_UPDATE) {
+			if (signal & SIGNAL_PUSHPULL_UPDATE) {
 				/* already handled in while(1) loop, nothing to do here */
 			}
 			if (loadDialog) {
 				char filename[_MAX_LFN + 1];
 				if (dialog_FileChooser("Select Preset:", filename, "0:/", "SUP")
 						== DIALOG_RESULT_OK) {
-					if (file_ReadParameters(filename, SupplyConfig, 3)
-							== FILE_OK) {
+					if (file_open(filename, FA_OPEN_EXISTING | FA_READ) == FR_OK
+							&& file_ReadParameters(SupplyConfig, 3)
+									== FILE_OK) {
 						/* got all new parameters */
 						on = 0;
 						setVoltage = vol;
 						setMaxCurrent = source;
 						setMinCurrent = sink;
+						file_close();
 					} else {
-						dialog_MessageBox("Error", Font_Big, "Failed to read file", MSG_OK, NULL, 1);
+						dialog_MessageBox("Error", Font_Big,
+								"Failed to read file", MSG_OK, NULL, 1);
 					}
 				}
 				loadDialog = 0;
@@ -239,8 +242,13 @@ static void Supply(void *unused) {
 					vol = setVoltage;
 					source = setMaxCurrent;
 					sink = setMinCurrent;
-					if(file_WriteParameters(filename, SupplyConfig, 3) != FILE_OK) {
-						dialog_MessageBox("Error", Font_Big, "Failed to write file", MSG_OK, NULL, 1);
+					if (file_open(filename, FA_CREATE_ALWAYS | FA_WRITE)
+							!= FR_OK) {
+						dialog_MessageBox("Error", Font_Big,
+								"Failed to write file", MSG_OK, NULL, 1);
+					} else {
+						file_WriteParameters(SupplyConfig, 3);
+						file_close();
 					}
 				}
 				saveDialog = 0;

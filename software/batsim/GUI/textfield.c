@@ -46,7 +46,6 @@ textfield_t* textfield_new(const char *text, const font_t font,
 
 	t->base.flags.selectable = 0;
 	/* copy text */
-	// TODO this buffer doesn't get freed when textfield is deleted!
 	t->text = pvPortMalloc(strlen(s) + 1);
 	if(!t->text) {
 		/* malloc failed */

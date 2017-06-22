@@ -54,20 +54,25 @@ void cal_Init(void){
 	memcpy(entries, defaultEntries, sizeof(entries));
 }
 
-uint8_t cal_Save(void){
-	if (file_WriteParameters("OUTPUT.CAL", CalFileEntries,
-	CAL_NUMBER_OF_ENTRIES * 2) == FILE_OK) {
-		return 1;
-	} else {
+uint8_t cal_Save(void) {
+	if (file_open("OUTPUT.CAL", FA_CREATE_ALWAYS | FA_WRITE) != FR_OK) {
 		return 0;
 	}
+	file_WriteParameters(CalFileEntries, CAL_NUMBER_OF_ENTRIES * 2);
+	file_close();
+	return 1;
 }
 
 uint8_t cal_Load(void) {
-	if (file_ReadParameters("OUTPUT.CAL", CalFileEntries,
-	CAL_NUMBER_OF_ENTRIES * 2) == FILE_OK) {
+	if (file_open("OUTPUT.CAL", FA_OPEN_EXISTING | FA_READ) != FR_OK) {
+		return 0;
+	}
+	if (file_ReadParameters(CalFileEntries, CAL_NUMBER_OF_ENTRIES * 2)
+			== FILE_OK) {
+		file_close();
 		return 1;
 	} else {
+		file_close();
 		return 0;
 	}
 }

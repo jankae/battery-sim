@@ -126,17 +126,23 @@ int8_t touch_GetCoordinates(coords_t *c) {
 }
 
 static uint8_t touch_SaveCalibration(void) {
-	if(file_WriteParameters("TOUCH.CAL", touchCal, 4)==FILE_OK) {
-		return 1;
-	} else {
+	if (file_open("TOUCH.CAL", FA_CREATE_ALWAYS | FA_WRITE) != FR_OK) {
 		return 0;
 	}
+	file_WriteParameters(touchCal, 4);
+	file_close();
+	return 1;
 }
 
 uint8_t touch_LoadCalibration(void) {
-	if(file_ReadParameters("TOUCH.CAL", touchCal, 4)==FILE_OK) {
+	if (file_open("TOUCH.CAL", FA_OPEN_EXISTING | FA_READ) != FR_OK) {
+		return 0;
+	}
+	if (file_ReadParameters(touchCal, 4) == FILE_OK) {
+		file_close();
 		return 1;
 	} else {
+		file_close();
 		return 0;
 	}
 }

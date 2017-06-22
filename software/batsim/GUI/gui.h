@@ -15,6 +15,7 @@
 #include "itemChooser.h"
 #include "keyboard.h"
 #include "progressbar.h"
+#include "graph.h"
 
 #include "desktop.h"
 

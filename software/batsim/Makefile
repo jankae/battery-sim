@@ -28,6 +28,7 @@ MODULES+= Src \
 	Applications/Info \
 	Applications/Settings \
 	Applications/Supply \
+	Applications/Battery \
 	GUI 
 
 INC_DIRS+= Inc \
@@ -46,6 +47,7 @@ INC_DIRS+= Inc \
 	Applications/Info \
 	Applications/Settings \
 	Applications/Supply \
+	Applications/Battery \
 	GUI 
 
 
