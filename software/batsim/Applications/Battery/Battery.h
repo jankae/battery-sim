@@ -48,7 +48,7 @@ typedef struct {
 } Battery_t;
 
 int8_t Battery_Load(Battery_t * bat, const char *filename);
-
+int8_t Battery_Save(Battery_t * bat, const char *filename);
 /**
  * @brief Interpolates battery data to a given SoC
  * @param profile Pointer to the first data point of the profile
@@ -60,5 +60,9 @@ void Battery_Interpolate(const BatDataPoint_t *profile, uint16_t npoints,
 
 
 void Battery_Update(Battery_t *b, int32_t current);
+
+void Battery_NewSoc(Battery_t *b, uint32_t SoC);
+
+void Battery_NewCapacity(Battery_t *b, uint32_t capacity);
 
 #endif

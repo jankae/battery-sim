@@ -8,7 +8,7 @@ uint8_t NumApps;
 uint8_t focussed = 0xff;
 uint8_t selected = 0;
 
-extern widget_t *topWidget;
+extern volatile widget_t *topWidget;
 extern widget_t *selectedWidget;
 
 void desktop_AddApp(AppInfo_t app) {
@@ -65,15 +65,13 @@ void desktop_AppStarted(void (*start)(void), widget_t *top) {
 }
 
 void desktop_AppStopped(){
-	uint8_t num = AppNumFromTaskHandle(xTaskGetCurrentTaskHandle());
+	const uint8_t num = AppNumFromTaskHandle(xTaskGetCurrentTaskHandle());
 	if (num >= NumApps) {
 		/* failed to find correct app */
 		return;
 	}
 	AppList[num].handle = NULL;
 	AppList[num].state = APP_STOPPED;
-	/* Remove the widgets this app created */
-	widget_delete(AppList[num].topWidget);
 	/* change focus if this app had it */
 	if (focussed == num) {
 		/* choose next running app */
@@ -91,11 +89,14 @@ void desktop_AppStopped(){
 			/* no app active */
 			topWidget = NULL;
 			focussed = 0xff;
+			selectedWidget = NULL;
 			/* clear app area */
 			display_SetForeground(COLOR_BLACK);
 			display_RectangleFull(DESKTOP_ICONBAR_WIDTH, 0, DISPLAY_WIDTH - 1, DISPLAY_HEIGHT - 1);
 		}
 	}
+	/* Remove the widgets this app created */
+	widget_delete(AppList[num].topWidget);
 	AppList[num].topWidget = NULL;
 	desktop_Draw();
 }

@@ -128,10 +128,7 @@ void StartDefaultTask(void const * argument)
 
   vTaskDelete(NULL);
   /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
+  return;
   /* USER CODE END StartDefaultTask */
 }
 

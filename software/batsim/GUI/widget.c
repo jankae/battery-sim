@@ -48,6 +48,7 @@ static void widget_deleteInt(widget_t *w) {
 	 * the actual widget has a larger size (e.g. sizeof(button_t)), free still works because the
 	 * size of the memory block associated with the widget is known by the memory management functions
 	 */
+	memset(w, 0, sizeof(*w));
 	vPortFree(w);
 }
 
@@ -134,6 +135,8 @@ void widget_draw(widget_t *w, coords_t pos) {
 			w->flags.redrawClear = 0;
 		}
 		/* draw widget */
+		if(!w->func.draw)
+			CRIT_ERROR("Missing widget drawing function");
 		w->func.draw(w, pos);
 		/* clear redraw request */
 		w->flags.redraw = 0;

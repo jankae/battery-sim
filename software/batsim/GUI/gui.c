@@ -104,7 +104,5 @@ void gui_SendEvent(GUIEvent_t *ev) {
 	}
 	BaseType_t yield;
 	xQueueSendFromISR(GUIeventQueue, ev, &yield);
-	if (yield) {
-		taskYIELD();
-	}
+//	portYIELD_FROM_ISR(yield);
 }

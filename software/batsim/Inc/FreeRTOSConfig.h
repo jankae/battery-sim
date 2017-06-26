@@ -166,6 +166,9 @@ standard names. */
 /* Section where parameter definitions can be added (for instance, to override default ones in FreeRTOS.h) */
 #define configCHECK_FOR_STACK_OVERFLOW		2
 #define configUSE_TRACE_FACILITY            1
+
+//#define traceTASK_SWITCHED_IN() do{ if(pxCurrentTCB->uxTCBNumber!=2) printf("IN: %d\n", pxCurrentTCB->uxTCBNumber);}while(0)
+//#define traceTASK_SWITCHED_OUT() printf("OUT: %s\n", pxCurrentTCB->pcTaskName )
 /* USER CODE END Defines */ 
 
 #endif /* FREERTOS_CONFIG_H */

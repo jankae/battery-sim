@@ -52,7 +52,7 @@ inline int file_WriteLine(char *line) {
 
 void file_WriteParameters(const fileEntry_t *paramList,
 		uint8_t length) {
-	if (!fileOpened) {
+	if (fileOpened) {
 		/* opened file, now write parameters */
 		uint8_t i;
 		for (i = 0; i < length; i++) {

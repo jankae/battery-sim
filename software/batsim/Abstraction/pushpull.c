@@ -502,8 +502,8 @@ void pushpull_SPIComplete(void) {
 				if(output.control) {
 					BaseType_t yield;
 					xTaskNotifyFromISR(output.control, SIGNAL_PUSHPULL_UPDATE,
-							eSetValueWithOverwrite, &yield);
-					portYIELD_FROM_ISR(yield);
+							eSetBits, &yield);
+//					portYIELD_FROM_ISR(yield);
 				}
 			}
 		} else {
@@ -515,7 +515,7 @@ void pushpull_SPIComplete(void) {
 				BaseType_t yield;
 				xTaskNotifyFromISR(output.control, SIGNAL_PUSHPULL_UPDATE,
 						eSetBits, &yield);
-				portYIELD_FROM_ISR(yield);
+//				portYIELD_FROM_ISR(yield);
 			}
 		}
 		/* No calibration for bias current available */

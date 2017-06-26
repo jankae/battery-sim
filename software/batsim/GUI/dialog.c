@@ -40,10 +40,10 @@ static void MessageBoxButton(widget_t *source) {
 		dialog.msgbox.res = DIALOG_RESULT_ABORT;
 	}
 
+	window_destroy((window_t*) dialog.window);
+
 	if (dialog.msgbox.cb)
 		dialog.msgbox.cb(dialog.msgbox.res);
-
-	window_destroy((window_t*) dialog.window);
 
 	if (dialog.msgbox.dialogDone) {
 		xSemaphoreGive(dialog.msgbox.dialogDone);

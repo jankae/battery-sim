@@ -36,7 +36,8 @@ uint8_t App_Handler(uint32_t *signal, uint32_t wait) {
 			desktop_AppStopped();
 			/* Remove this apps task */
 			vTaskDelete(NULL);
-			return 0;
+			while (1)
+				;
 		} else {
 			/* Pass on signal to user task */
 			return 1;

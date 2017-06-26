@@ -49,17 +49,23 @@ void button_draw(widget_t *w, coords_t offset) {
     /* draw outline */
 	if (w->flags.selected) {
 		display_SetForeground(COLOR_SELECTED);
-	} else {
+	} else if(w->flags.selectable){
 		display_SetForeground(BUTTON_FG_COLOR);
+	} else {
+		display_SetForeground(COLOR_GRAY);
 	}
     display_VerticalLine(upperLeft.x, upperLeft.y + 1, b->base.size.y - 2);
     display_VerticalLine(lowerRight.x, upperLeft.y + 1, b->base.size.y - 2);
     display_HorizontalLine(upperLeft.x + 1, upperLeft.y, b->base.size.x - 2);
     display_HorizontalLine(upperLeft.x + 1, lowerRight.y, b->base.size.x - 2);
-	if (!b->pressed)
-		display_SetForeground(color_Tint(BUTTON_FG_COLOR, BUTTON_BG_COLOR, 75));
-	else
-		display_SetForeground(color_Tint(BUTTON_FG_COLOR, COLOR_WHITE, 200));
+	if (w->flags.selectable) {
+		if (!b->pressed)
+			display_SetForeground(
+					color_Tint(BUTTON_FG_COLOR, BUTTON_BG_COLOR, 75));
+		else
+			display_SetForeground(
+					color_Tint(BUTTON_FG_COLOR, COLOR_WHITE, 200));
+	}
     display_VerticalLine(lowerRight.x - 1, upperLeft.y + 1, b->base.size.y - 2);
     display_HorizontalLine(upperLeft.x + 1, lowerRight.y - 1,
             b->base.size.x - 2);
@@ -69,16 +75,24 @@ void button_draw(widget_t *w, coords_t offset) {
 //    display_HorizontalLine(upperLeft.x + 1, lowerRight.y - 2,
 //            b->base.size.x - 3);
 
-	if (b->pressed)
-		display_SetForeground(color_Tint(BUTTON_FG_COLOR, BUTTON_BG_COLOR, 75));
-	else
-		display_SetForeground(color_Tint(BUTTON_FG_COLOR, COLOR_WHITE, 200));
+	if (w->flags.selectable) {
+		if (b->pressed)
+			display_SetForeground(
+					color_Tint(BUTTON_FG_COLOR, BUTTON_BG_COLOR, 75));
+		else
+			display_SetForeground(
+					color_Tint(BUTTON_FG_COLOR, COLOR_WHITE, 200));
+	}
     display_VerticalLine(upperLeft.x + 1, upperLeft.y + 1, b->base.size.y - 3);
     display_HorizontalLine(upperLeft.x + 1, upperLeft.y + 1,
             b->base.size.x - 3);
 
     if (b->name) {
-    	display_SetForeground(BUTTON_FG_COLOR);
+    	if (b->base.flags.selectable) {
+    		display_SetForeground(BUTTON_FG_COLOR);
+    	} else {
+    		display_SetForeground(COLOR_GRAY);
+    	}
     	display_SetBackground(BUTTON_BG_COLOR);
 		display_SetFont(b->font);
 		display_String(upperLeft.x + b->fontStart.x,
