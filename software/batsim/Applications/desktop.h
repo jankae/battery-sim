@@ -5,7 +5,7 @@
 #include "task.h"
 #include "app.h"
 
-#define DESKTOP_MAX_APPS		5
+#define DESKTOP_MAX_APPS		6
 
 #define DESKTOP_ICONBAR_WIDTH	40
 #define DESKTOP_ICONSPACING_Y	40

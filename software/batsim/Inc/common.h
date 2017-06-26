@@ -27,8 +27,9 @@ typedef struct {
 typedef const unitElement_t *unit_t[];
 
 extern const unit_t Unit_Current, Unit_Voltage, Unit_Power, Unit_Temperature,
-		Unit_Resistance, Unit_Energy, Unit_Time, Unit_Memory, Unit_None;
-extern const int32_t null;
+		Unit_Resistance, Unit_Energy, Unit_Time, Unit_Memory, Unit_Capacity,
+		Unit_Percent, Unit_Charge, Unit_None;
+extern const int32_t null, maxPercent;
 
 #define COORDS(v1, v2)	((coords_t){.x=v1, .y=v2})
 #define SIZE(v1, v2)	COORDS(v1, v2)

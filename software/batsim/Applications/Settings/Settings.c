@@ -48,7 +48,7 @@ static xTaskHandle hTask;
 extern widget_t *topWidget;
 
 static void settings_Start(){
-	xTaskCreate(settings, "Settings", 300, NULL, 3, NULL);
+	xTaskCreate(settings, "Settings", 400, NULL, 3, NULL);
 }
 
 void settings_Init() {

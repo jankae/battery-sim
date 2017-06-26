@@ -9,17 +9,18 @@ int8_t Battery_Load(Battery_t * bat, const char *filename) {
 	}
 
 	/* get number of battery data points */
-	int16_t npoints = 0;
-	const fileEntry_t num = { .name = "points", .ptr = &npoints, .type =
-			PTR_INT16 };
+	const fileEntry_t num[2] = {
+			{.name = "points", .ptr = &bat->npoints, .type = PTR_INT16 },
+			{.name = "capacity", .ptr = &bat->capacityFull, .type = PTR_INT32 },
+	};
 
-	if (file_ReadParameters(&num, 1) != FILE_OK) {
+	if (file_ReadParameters(num, sizeof(num) / sizeof(fileEntry_t)) != FILE_OK) {
 		/* didn't find the number of points */
 		file_close();
 		return -2;
 	}
 
-	if (npoints < 1 || npoints > 200) {
+	if (bat->npoints < 1 || bat->npoints > 200) {
 		/* unreasonable number of points */
 		file_close();
 		return -3;
@@ -30,7 +31,7 @@ int8_t Battery_Load(Battery_t * bat, const char *filename) {
 		vPortFree(bat->profile);
 	}
 	/* allocate memory for points */
-	bat->profile = pvPortMalloc(npoints * sizeof(BatDataPoint_t));
+	bat->profile = pvPortMalloc(bat->npoints * sizeof(BatDataPoint_t));
 	if (!bat->profile) {
 		/* failed to allocate memory */
 		file_close();
@@ -59,7 +60,7 @@ int8_t Battery_Load(Battery_t * bat, const char *filename) {
 				{ .name = "R2", .ptr = &bat->profile[foundPoints].R2, .type = PTR_INT32 },
 				{ .name = "C", .ptr = &bat->profile[foundPoints].C, .type = PTR_INT32 },
 		};
-		if (file_ReadParameters(parms, 5) != FILE_OK) {
+		if (file_ReadParameters(parms, sizeof(parms) / sizeof(fileEntry_t)) != FILE_OK) {
 			/* incomplete parameter list */
 			vPortFree(bat->profile);
 			file_close();
@@ -75,7 +76,7 @@ int8_t Battery_Load(Battery_t * bat, const char *filename) {
 			}
 		} while (line[0] != '}');
 		foundPoints++;
-	} while (foundPoints < npoints);
+	} while (foundPoints < bat->npoints);
 
 	file_close();
 	bat->npoints = foundPoints;
@@ -89,10 +90,12 @@ int8_t Battery_Save(Battery_t * bat, const char *filename) {
 	}
 
 	/* write number of battery data points */
-	const fileEntry_t num = { .name = "points", .ptr = &bat->npoints, .type =
-			PTR_INT16 };
+	const fileEntry_t num[2] = {
+			{.name = "points", .ptr = &bat->npoints, .type = PTR_INT16 },
+			{.name = "capacity", .ptr = &bat->capacityFull, .type = PTR_INT32 },
+	};
 
-	file_WriteParameters(&num, 1);
+	file_WriteParameters(num, sizeof(num) / sizeof(fileEntry_t));
 
 	uint16_t writtenPoints;
 	for(writtenPoints=0;writtenPoints<bat->npoints;writtenPoints++) {
@@ -105,7 +108,7 @@ int8_t Battery_Save(Battery_t * bat, const char *filename) {
 				{ .name = "R2", .ptr = &bat->profile[writtenPoints].R2, .type = PTR_INT32 },
 				{ .name = "C", .ptr = &bat->profile[writtenPoints].C, .type = PTR_INT32 },
 		};
-		file_WriteParameters(parms, 5);
+		file_WriteParameters(parms, sizeof(parms) / sizeof(fileEntry_t));
 		file_WriteLine("}\n");
 	}
 
@@ -222,5 +225,8 @@ void Battery_NewCapacity(Battery_t *b, uint32_t capacity) {
 		/* no battery given */
 		return;
 	b->capacityFull = capacity;
+	if(b->capacity > capacity) {
+		b->capacity = capacity;
+	}
 	b->state.SoC = (uint64_t) b->capacity * 100000000 / b->capacityFull;
 }

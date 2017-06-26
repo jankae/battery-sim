@@ -45,16 +45,32 @@ static void Simulator(void *unused);
 
 /* Creates the app task, called from desktop when user start the app */
 static void Simulator_Start() {
-	xTaskCreate(Simulator, "Simulator", 600, NULL, 3, NULL);
+	xTaskCreate(Simulator, "Simulator", 1000, NULL, 3, NULL);
 }
 
 static Battery_t bat;
 static uint8_t batLoaded = 0;
 static TaskHandle_t handle;
 
+static entry_t *eSoC;
+static entry_t *eCapacity;
+
 /* Register this app */
 void Simulator_Init() {
 	App_Register("Simulator", Simulator_Start, icon);
+}
+
+static void batterySoCChanged(widget_t *w) {
+	entry_t *e = (entry_t*) w;
+	Battery_NewSoc(&bat, *e->value);
+	widget_RequestRedraw((widget_t*) eCapacity);
+}
+
+static void batteryCapacityChanged(widget_t *w) {
+	entry_t *e = (entry_t*) w;
+	Battery_NewCapacity(&bat, *e->value);
+	widget_RequestRedraw((widget_t*) eCapacity);
+	widget_RequestRedraw((widget_t*) eSoC);
 }
 
 static uint8_t loadDialog = 0;
@@ -72,6 +88,11 @@ static void save() {
 static void Simulator(void *unused) {
 	handle = xTaskGetCurrentTaskHandle();
 	batLoaded = 0;
+	if(bat.profile) {
+		/* Free any profile data from previous runs */
+		vPortFree(bat.profile);
+	}
+	memset(&bat, 0, sizeof(bat));
 	uint8_t on = 0;
 	int32_t voltage = 0;
 	int32_t current = 0;
@@ -84,7 +105,7 @@ static void Simulator(void *unused) {
 	/* Store and load profile */
 	button_t *bLoad = button_new("Load", Font_Big, 130, load);
 	button_t *bSave = button_new("Save", Font_Big, 130, save);
-	bSave->base.flags.selectable = 0;
+	widget_SetSelectable((widget_t*) bSave, 0);
 	container_attach(c, (widget_t*) bLoad, COORDS(5, 5));
 	container_attach(c, (widget_t*) bSave, COORDS(145, 5));
 
@@ -104,6 +125,26 @@ static void Simulator(void *unused) {
 	container_attach(c, (widget_t*) lV, COORDS(267, 153));
 	container_attach(c, (widget_t*) lA, COORDS(267, 183));
 	container_attach(c, (widget_t*) lW, COORDS(267, 213));
+	label_t *lOn = label_newWithLength(3, Font_Big, LABEL_CENTER);
+	label_SetText(lOn, "OFF");
+	lOn->color = COLOR_GRAY;
+	container_attach(c, (widget_t*) lOn, COORDS(225, 130));
+
+	/* Battery status */
+	eSoC = entry_new(&bat.state.SoC, &maxPercent, &null, Font_Big, 6, &Unit_Percent);
+	eCapacity = entry_new(&bat.capacity, &bat.capacityFull, &null, Font_Big, 8, &Unit_Charge);
+	entry_t *eCapacityFull = entry_new(&bat.capacityFull, NULL, &null, Font_Big, 8, &Unit_Charge);
+	widget_SetSelectable((widget_t*) eSoC, 0);
+	widget_SetSelectable((widget_t*) eCapacity, 0);
+	widget_SetSelectable((widget_t*) eCapacityFull, 0);
+	eSoC->changeCallback = batterySoCChanged;
+	eCapacityFull->changeCallback = batteryCapacityChanged;
+
+	container_attach(c, (widget_t*) eSoC, COORDS(50, 30));
+	container_attach(c, (widget_t*) eCapacity, COORDS(50, 55));
+	container_attach(c, (widget_t*) eCapacityFull, COORDS(50, 80));
+
+
 
 	/* Notify desktop of started app */
 	desktop_AppStarted(Simulator_Start, (widget_t*) c);
@@ -113,19 +154,44 @@ static void Simulator(void *unused) {
 	pushpull_SetDriveCurrent(200);
 	pushpull_SetEnabled(0);
 	pushpull_SetInternalResistance(0);
+	pushpull_SetSinkCurrent(MAX_SINK_CURRENT);
+	pushpull_SetSourceCurrent(MAX_SOURCE_CURRENT);
+
+	uint32_t displayUpdate = xTaskGetTickCount();
 
 	while(1) {
+		/* Update output */
+		Battery_Interpolate(bat.profile, bat.npoints, &bat.state);
+		pushpull_SetVoltage(bat.state.E + bat.CVoltage);
+		pushpull_SetInternalResistance(bat.state.R1);
+
+		if(bat.state.SoC == 0) {
+			/* battery is completely empty, switch off output */
+			on = 0;
+		}
 		if (on != pushpull_GetEnabled()) {
 			pushpull_SetEnabled(on);
-//			if (pushpull_GetEnabled()) {
-//				label_SetText(lOn, "ON");
-//				lOn->color = COLOR_RED;
-//			} else {
-//				label_SetText(lOn, "OFF");
-//				lOn->color = COLOR_GRAY;
-//			}
+			if (pushpull_GetEnabled()) {
+				label_SetText(lOn, "ON");
+				lOn->color = COLOR_RED;
+			} else {
+				label_SetText(lOn, "OFF");
+				lOn->color = COLOR_GRAY;
+			}
 			on = pushpull_GetEnabled();
 		}
+
+		if (xTaskGetTickCount() - displayUpdate > 300) {
+			displayUpdate = xTaskGetTickCount();
+			voltage = pushpull_GetBatteryVoltage() / 10000;
+			current = pushpull_GetCurrent() / 1000;
+			widget_RequestRedraw((widget_t*) sVoltage);
+			widget_RequestRedraw((widget_t*) sCurrent);
+			widget_RequestRedraw((widget_t*) sEnergy);
+			widget_RequestRedraw((widget_t*) eSoC);
+			widget_RequestRedraw((widget_t*) eCapacity);
+		}
+
 
 		uint32_t signal;
 		if (App_Handler(&signal, 300)) {
@@ -140,9 +206,9 @@ static void Simulator(void *unused) {
 			if (signal & SIGNAL_PUSHPULL_UPDATE) {
 				if (batLoaded) {
 					if (on) {
-						Battery_Update(&bat, 0);
-					} else {
 						Battery_Update(&bat, pushpull_GetCurrent());
+					} else {
+						Battery_Update(&bat, 0);
 					}
 				}
 			}
@@ -157,8 +223,14 @@ static void Simulator(void *unused) {
 						msg[14] = bat.npoints % 10 + '0';
 						dialog_MessageBox("Loaded", Font_Big, msg, MSG_OK, NULL,
 								1);
-						bSave->base.flags.selectable = 1;
-						widget_RequestRedraw((widget_t*) bSave);
+
+						Battery_NewSoc(&bat, maxPercent);
+						/* Enable battery widgets */
+						widget_SetSelectable((widget_t*) bSave, 1);
+						widget_SetSelectable((widget_t*) eSoC, 1);
+						widget_RequestRedraw((widget_t*) eCapacity);
+//						widget_SetSelectable((widget_t*) eCapacity, 1);
+						widget_SetSelectable((widget_t*) eCapacityFull, 1);
 					} else {
 						dialog_MessageBox("Error", Font_Big,
 								"Failed to read file", MSG_OK, NULL, 1);
