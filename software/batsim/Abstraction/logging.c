@@ -5,6 +5,9 @@
 
 void Log_CritError(const char *filename, uint16_t line, const char *fmt, ...) {
 	/* Something bad happened */
+	pushpull_AcquireControl();
+	pushpull_SetDefault();
+
 	display_SetForeground(COLOR_RED);
 	display_SetBackground(COLOR_BLACK);
 	display_Clear();

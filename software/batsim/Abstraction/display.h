@@ -22,6 +22,8 @@ void display_VerticalLine(uint16_t x, uint16_t y, uint16_t length);
 void display_Line(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1);
 void display_Rectangle(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1);
 void display_RectangleFull(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1);
+void display_Circle(uint16_t x0, uint16_t y0, uint16_t radius);
+void display_CircleFull(uint16_t x0, uint16_t y0, uint16_t radius);
 void display_Char(uint16_t x, uint16_t y, uint8_t c);
 void display_String(uint16_t x, uint16_t y, const char *s);
 void display_Image(uint16_t x, uint16_t y, const Image_t *im);

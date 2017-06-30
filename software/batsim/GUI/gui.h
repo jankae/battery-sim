@@ -16,6 +16,7 @@
 #include "keyboard.h"
 #include "progressbar.h"
 #include "graph.h"
+#include "custom.h"
 
 #include "desktop.h"
 

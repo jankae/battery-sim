@@ -53,7 +53,87 @@ static uint8_t batLoaded = 0;
 static TaskHandle_t handle;
 
 static entry_t *eSoC;
-static entry_t *eCapacity;
+static widget_t *batSchematic;
+
+static inline void drawSource(coords_t c, const char *name, uint32_t value, uint32_t capacity) {
+	display_VerticalLine(c.x + 10, c.y, 13);
+	display_HorizontalLine(c.x, c.y + 13, 20);
+	display_HorizontalLine(c.x + 5, c.y + 17, 10);
+	display_VerticalLine(c.x + 10, c.y + 17, 13);
+	display_String(c.x+14, c.y + 2, name);
+	char valueString[8];
+	common_StringFromValue(valueString, 6, value, &Unit_Voltage);
+	display_SetForeground(COLOR_DARKGREEN);
+	display_String(c.x + 12, c.y + 22, valueString);
+	common_StringFromValue(valueString, sizeof(valueString), capacity, &Unit_Charge);
+	display_SetForeground(COLOR_GRAY);
+	display_String(c.x + 12, c.y + 30, valueString);
+	display_SetForeground(COLOR_BLACK);
+}
+
+static inline void drawResistor(coords_t c, const char *name, uint32_t value) {
+	display_Rectangle(c.x, c.y, c.x+30, c.y+10);
+	display_String(c.x+9, c.y-8, name);
+	char valueString[6];
+	common_StringFromValue(valueString, sizeof(valueString), value, &Unit_Resistance);
+	display_SetForeground(COLOR_GRAY);
+	display_String(c.x + 15 - 3 * sizeof(valueString), c.y + 12, valueString);
+	display_SetForeground(COLOR_BLACK);
+}
+
+static inline void drawCapacitor(coords_t c, const char *name, uint32_t value, uint32_t voltage) {
+	display_HorizontalLine(c.x, c.y+10, 13);
+	display_HorizontalLine(c.x + 17, c.y+10, 13);
+	display_VerticalLine(c.x+13, c.y, 20);
+	display_VerticalLine(c.x+17, c.y, 20);
+	display_String(c.x+19, c.y, name);
+	char valueString[7];
+	display_SetForeground(COLOR_GRAY);
+	common_StringFromValue(valueString, 6, value, &Unit_Capacity);
+	display_String(c.x + 15 - 3 * sizeof(valueString), c.y + 22, valueString);
+	display_SetForeground(COLOR_DARKGREEN);
+	common_StringFromValue(valueString, 7, voltage, &Unit_Voltage);
+	display_String(c.x + 15 - 3 * sizeof(valueString), c.y + 30, valueString);
+	display_SetForeground(COLOR_BLACK);
+}
+
+static void drawBattery(widget_t *w, coords_t c) {
+	if (!batLoaded)
+		/* no profile loaded, don't draw anything */
+		return;
+	display_SetForeground(COLOR_BLACK);
+	display_SetBackground(COLOR_BG_DEFAULT);
+	display_SetFont(Font_Medium);
+
+	/* Draw E voltage source */
+	drawSource(COORDS(c.x + 5, c.y + 32), "E", bat.state.E, bat.capacity);
+	display_VerticalLine(c.x + 15, c.y + 15, 20);
+	display_VerticalLine(c.x + 15, c.y + 55, 25);
+
+	/* Draw internal resistance R1 */
+	display_HorizontalLine(c.x + 15, c.y+15, 20);
+	drawResistor(COORDS(c.x+35, c.y+10), "R1", bat.state.R1);
+
+	/* Draw internal RC element */
+	display_HorizontalLine(c.x + 65, c.y + 15, 30);
+	drawResistor(COORDS(c.x + 95, c.y + 10), "R2", bat.state.R2);
+	drawCapacitor(COORDS(c.x + 95, c.y + 35), "C", bat.state.C, bat.CVoltage);
+	/* Connecting lines */
+	display_HorizontalLine(c.x + 125, c.y + 15, 46);
+	display_HorizontalLine(c.x + 85, c.y + 45, 10);
+	display_HorizontalLine(c.x + 125, c.y + 45, 10);
+	display_VerticalLine(c.x + 85, c.y + 15, 30);
+	display_VerticalLine(c.x + 135, c.y + 15, 30);
+	/* Connecting dots */
+	display_CircleFull(c.x + 85, c.y + 15, 4);
+	display_CircleFull(c.x + 135, c.y + 15, 4);
+
+	/* Battery terminals */
+	display_Circle(c.x+175, c.y+15, 4);
+	display_Circle(c.x+175, c.y+80, 4);
+	display_HorizontalLine(c.x+15, c.y+80, 156);
+
+}
 
 /* Register this app */
 void Simulator_Init() {
@@ -63,13 +143,13 @@ void Simulator_Init() {
 static void batterySoCChanged(widget_t *w) {
 	entry_t *e = (entry_t*) w;
 	Battery_NewSoc(&bat, *e->value);
-	widget_RequestRedraw((widget_t*) eCapacity);
+	widget_RequestRedraw(batSchematic);
 }
 
 static void batteryCapacityChanged(widget_t *w) {
 	entry_t *e = (entry_t*) w;
 	Battery_NewCapacity(&bat, *e->value);
-	widget_RequestRedraw((widget_t*) eCapacity);
+	widget_RequestRedraw(batSchematic);
 	widget_RequestRedraw((widget_t*) eSoC);
 }
 
@@ -131,20 +211,22 @@ static void Simulator(void *unused) {
 	container_attach(c, (widget_t*) lOn, COORDS(225, 130));
 
 	/* Battery status */
+	label_t *lSoC = label_newWithText("State of charge:", Font_Big);
 	eSoC = entry_new(&bat.state.SoC, &maxPercent, &null, Font_Big, 6, &Unit_Percent);
-	eCapacity = entry_new(&bat.capacity, &bat.capacityFull, &null, Font_Big, 8, &Unit_Charge);
-	entry_t *eCapacityFull = entry_new(&bat.capacityFull, NULL, &null, Font_Big, 8, &Unit_Charge);
+	label_t *lCapacity = label_newWithText("Capacity:", Font_Big);
+	entry_t *eCapacity = entry_new(&bat.capacityFull, NULL, &null, Font_Big, 8, &Unit_Charge);
 	widget_SetSelectable((widget_t*) eSoC, 0);
 	widget_SetSelectable((widget_t*) eCapacity, 0);
-	widget_SetSelectable((widget_t*) eCapacityFull, 0);
 	eSoC->changeCallback = batterySoCChanged;
-	eCapacityFull->changeCallback = batteryCapacityChanged;
+	eCapacity->changeCallback = batteryCapacityChanged;
 
-	container_attach(c, (widget_t*) eSoC, COORDS(50, 30));
-	container_attach(c, (widget_t*) eCapacity, COORDS(50, 55));
-	container_attach(c, (widget_t*) eCapacityFull, COORDS(50, 80));
+	container_attach(c, (widget_t*) lSoC, COORDS(2, 32));
+	container_attach(c, (widget_t*) eSoC, COORDS(200, 30));
+	container_attach(c, (widget_t*) lCapacity, COORDS(2, 57));
+	container_attach(c, (widget_t*) eCapacity, COORDS(176, 55));
 
-
+	batSchematic = custom_new(COORDS(280, 90), drawBattery, NULL);
+	container_attach(c, batSchematic, COORDS(0, 145));
 
 	/* Notify desktop of started app */
 	desktop_AppStarted(Simulator_Start, (widget_t*) c);
@@ -165,8 +247,9 @@ static void Simulator(void *unused) {
 		pushpull_SetVoltage(bat.state.E + bat.CVoltage);
 		pushpull_SetInternalResistance(bat.state.R1);
 
-		if(bat.state.SoC == 0) {
-			/* battery is completely empty, switch off output */
+		if (bat.state.SoC == 0 && pushpull_GetCurrent() > 1000) {
+			/* battery is completely empty but the load is still drawing current
+			 * -> switch off output */
 			on = 0;
 		}
 		if (on != pushpull_GetEnabled()) {
@@ -189,7 +272,7 @@ static void Simulator(void *unused) {
 			widget_RequestRedraw((widget_t*) sCurrent);
 			widget_RequestRedraw((widget_t*) sEnergy);
 			widget_RequestRedraw((widget_t*) eSoC);
-			widget_RequestRedraw((widget_t*) eCapacity);
+			widget_RequestRedraw(batSchematic);
 		}
 
 
@@ -228,9 +311,7 @@ static void Simulator(void *unused) {
 						/* Enable battery widgets */
 						widget_SetSelectable((widget_t*) bSave, 1);
 						widget_SetSelectable((widget_t*) eSoC, 1);
-						widget_RequestRedraw((widget_t*) eCapacity);
-//						widget_SetSelectable((widget_t*) eCapacity, 1);
-						widget_SetSelectable((widget_t*) eCapacityFull, 1);
+						widget_SetSelectable((widget_t*) eCapacity, 1);
 					} else {
 						dialog_MessageBox("Error", Font_Big,
 								"Failed to read file", MSG_OK, NULL, 1);

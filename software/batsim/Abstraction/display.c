@@ -313,6 +313,42 @@ void display_RectangleFull(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1){
 	}
 }
 
+void display_Circle(uint16_t x0, uint16_t y0, uint16_t radius)
+{
+    int x = radius;
+    int y = 0;
+    int err = 0;
+
+    while (x >= y)
+    {
+    	display_Pixel(x0 + x, y0 + y, foreground);
+    	display_Pixel(x0 + y, y0 + x, foreground);
+    	display_Pixel(x0 - y, y0 + x, foreground);
+    	display_Pixel(x0 - x, y0 + y, foreground);
+    	display_Pixel(x0 - x, y0 - y, foreground);
+    	display_Pixel(x0 - y, y0 - x, foreground);
+    	display_Pixel(x0 + y, y0 - x, foreground);
+    	display_Pixel(x0 + x, y0 - y, foreground);
+
+        y += 1;
+        if (err <= 0)
+        {
+            err += 2*y + 1;
+        } else {
+            x -= 1;
+            err += 2 * (y - x) + 1;
+        }
+    }
+}
+
+void display_CircleFull(uint16_t x0, uint16_t y0, uint16_t radius) {
+	for (int y = -radius; y <= radius; y++)
+		for (int x = -radius; x <= radius; x++)
+			if (x * x + y * y <= radius * radius)
+				display_Pixel(x0 + x, y0 + y, foreground);
+}
+
+
 void display_Char(uint16_t x, uint16_t y, uint8_t c) {
 //	usb_DisplayCommand(0, x);
 //	usb_DisplayCommand(1, y);
