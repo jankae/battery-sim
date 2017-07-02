@@ -195,19 +195,30 @@ void Battery_Update(Battery_t *b, int32_t current) {
 	Battery_Interpolate(b->profile, b->npoints, &b->state);
 
 	/* calculate current through battery capacitor C in uA */
-	/* I_out = I_R2 + I_C
-	 * I_R2 = U_R2 / R2
-	 * U_R2 = -U_C
-	 * => I_C = I_out + U_C / R2 */
-	int32_t iC = current + ((int64_t) b->CVoltage * 1000000) / b->state.R2;
-
-	/* update capacitor voltage */
 	static int64_t residualCapCharge = 0;
-	residualCapCharge += iC * timediff;
-	if (abs(residualCapCharge) * 1000 > b->state.C) {
-		int32_t uVdiff = (residualCapCharge * 1000) / b->state.C;
-		b->CVoltage -= uVdiff;
-		residualCapCharge -= (int64_t) uVdiff * b->state.C / 1000;
+	if (b->state.R2 > 0) {
+		/* I_out = I_R2 + I_C
+		 * I_R2 = U_R2 / R2
+		 * U_R2 = -U_C
+		 * => I_C = I_out + U_C / R2 */
+		int32_t iC = current + ((int64_t) b->CVoltage * 1000000) / b->state.R2;
+
+		/* update capacitor voltage */
+		if (b->state.C > 0) {
+			residualCapCharge += iC * timediff;
+			if (abs(residualCapCharge) * 1000 > b->state.C) {
+				int32_t uVdiff = (residualCapCharge * 1000) / b->state.C;
+				b->CVoltage -= uVdiff;
+				residualCapCharge -= (int64_t) uVdiff * b->state.C / 1000;
+			}
+		} else {
+			/* No capacitor capacity given, switch to steady-state immediately */
+			b->CVoltage = (int64_t) current * b->state.R2 / 1000000;
+		}
+	} else {
+		/* corner case: R2 is set to 0 */
+		residualCapCharge = 0;
+		b->CVoltage = 0;
 	}
 }
 

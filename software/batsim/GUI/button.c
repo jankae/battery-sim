@@ -124,7 +124,7 @@ void button_input(widget_t *w, GUIEvent_t *ev) {
 		}
 		break;
     case EVENT_BUTTON_CLICKED:
-    	if(ev->button & (BUTTON_ENTER|BUTTON_ENCODER)) {
+    	if(ev->button & (BUTTON_UNIT1|BUTTON_ENCODER)) {
 			if (b->callback)
 				b->callback(w);
     	}

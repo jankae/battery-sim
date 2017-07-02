@@ -208,7 +208,7 @@ void keyboard_input(widget_t *w, GUIEvent_t *ev) {
 		widget_RequestRedraw(w);
 		break;
 	case EVENT_BUTTON_CLICKED:
-		if (ev->button & (BUTTON_ENTER | BUTTON_ENCODER)) {
+		if (ev->button & (BUTTON_UNIT1 | BUTTON_ENCODER)) {
 			sendChar(k);
 		} else if (BUTTON_IS_DIGIT(ev->button)) {
 			/* send this digit directly */

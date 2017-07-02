@@ -253,7 +253,7 @@ void desktop_Input(GUIEvent_t *ev) {
 				desktop_Draw();
 			}
 			break;
-		case BUTTON_ENTER:
+		case BUTTON_UNIT1:
 		case BUTTON_ENCODER:
 			/* start App */
 			desktop_SwitchToApp(selected);

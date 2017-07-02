@@ -212,7 +212,7 @@ void entry_input(widget_t *w, GUIEvent_t *ev) {
 		} else if (ev->button == BUTTON_ESC && e->flags.editing) {
 			e->flags.editing = 0;
 			widget_RequestRedraw(w);
-		} else if ((ev->button & (BUTTON_ENTER | BUTTON_ENCODER | BUTTON_UNITm))
+		} else if ((ev->button & (BUTTON_UNIT1 | BUTTON_ENCODER | BUTTON_UNITm))
 				&& e->flags.editing) {
 			e->flags.editing = 0;
 			/* TODO adjust multiplier to unit */

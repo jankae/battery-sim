@@ -72,7 +72,7 @@ void checkbox_input(widget_t *w, GUIEvent_t *ev) {
 	checkbox_t *c = (checkbox_t*) w;
 	switch(ev->type) {
 	case EVENT_BUTTON_CLICKED:
-		if(ev->button!=BUTTON_ENTER && ev->button != BUTTON_ENCODER) {
+		if(ev->button!=BUTTON_UNIT1 && ev->button != BUTTON_ENCODER) {
 			break;
 		}
 		/* no break */
