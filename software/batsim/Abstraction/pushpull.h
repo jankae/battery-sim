@@ -8,6 +8,11 @@
 #define SPI_BLOCK_SIZE				10
 
 typedef struct {
+	int32_t voltage;
+	int32_t current;
+} PushPull_State_t;
+
+typedef struct {
 	/* Controlling task */
 	TaskHandle_t control;
 	/* 'should' voltage of the Push-Pull-Stage */
@@ -42,8 +47,8 @@ typedef struct {
 	uint64_t avgOutVoltage;
 	int64_t avgOutCurrent;
 
-	/* callback function called whenever a new current value is available */
-	void (*currentChangeCB)(int32_t newCurrent);
+	/* callback function called whenever a new value is available */
+	void (*newDataCB)(PushPull_State_t*);
 } PushPull_t;
 
 typedef struct {
@@ -82,6 +87,7 @@ void pushpull_SetSinkCurrent(uint32_t ua);
 void pushpull_SetEnabled(uint8_t enabled);
 void pushpull_SetDriveCurrent(uint32_t ua);
 void pushpull_SetInternalResistance(uint32_t ur);
+void pushpull_SetCallback(void (*newDataCB)(PushPull_State_t*));
 
 uint8_t pushpull_GetEnabled(void);
 int32_t pushpull_GetCurrent(void);

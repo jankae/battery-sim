@@ -55,7 +55,7 @@ extern SPI_HandleTypeDef hspi1;
 
 void pushpull_Init(void) {
 	output.control = NULL;
-	output.currentChangeCB = NULL;
+	output.newDataCB = NULL;
 	pushpull_SPI_OK = 0;
 	pushpull_AcquireControl();
 	pushpull_SetDefault();
@@ -271,6 +271,7 @@ void pushpull_SetDefault(void) {
 	pushpull_SetSourceCurrent(0);
 	pushpull_SetSinkCurrent(0);
 	pushpull_SetInternalResistance(0);
+	pushpull_SetCallback(NULL);
 }
 
 void pushpull_SetAveraging(uint16_t samples) {
@@ -414,6 +415,10 @@ void pushpull_SetInternalResistance(uint32_t ur) {
 #endif
 }
 
+inline void pushpull_SetCallback(void (*newDataCB)(PushPull_State_t*)) {
+	output.newDataCB = newDataCB;
+}
+
 inline int32_t pushpull_GetCurrent(void) {
 	return output.outputCurrent;
 }
@@ -484,6 +489,10 @@ void pushpull_SPIComplete(void) {
 		} else {
 			/* use high current sense as low sense is saturated */
 			current = cal_GetCalibratedValue(CAL_ADC_CURRENT_HIGH, RawADC[ADC_HIGH_CURRENT]);
+		}
+		if (output.newDataCB) {
+			PushPull_State_t state = { .voltage = voltage, .current = current };
+			output.newDataCB(&state);
 		}
 		if(output.averaging) {
 			output.avgBatVoltage += battery;

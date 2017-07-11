@@ -81,6 +81,7 @@ void desktop_AppStopped(){
 				/* found an active app */
 				topWidget = AppList[i].topWidget;
 				focussed = i;
+				selected = i;
 				widget_RequestRedrawFull(topWidget);
 				break;
 			}
@@ -179,6 +180,7 @@ static void desktop_SwitchToApp(uint8_t app) {
 	switch(AppList[app].state) {
 	case APP_STOPPED:
 		/* start app */
+		selected = app;
 		AppList[app].state = APP_STARTSEND;
 		AppList[app].start();
 		break;
@@ -188,8 +190,13 @@ static void desktop_SwitchToApp(uint8_t app) {
 			topWidget = AppList[app].topWidget;
 			focussed = app;
 			widget_RequestRedrawFull(topWidget);
+			selected = app;
+			desktop_Draw();
+		} else if(selected != app) {
+			selected = app;
 			desktop_Draw();
 		}
+
 		break;
 	case APP_STARTSEND:
 	case APP_KILLSEND:
@@ -267,16 +274,16 @@ void desktop_Input(GUIEvent_t *ev) {
 	case EVENT_ENCODER_MOVED: {
 		/* switch selected App */
 		uint8_t new = selected;
-		if (ev->movement > 0) {
+		if (ev->movement < 0) {
 			/* moving up */
-			if (selected > ev->movement) {
-				new -= ev->movement;
+			if (selected > 0) {
+				new--;
 			} else {
 				new = 0;
 			}
 		} else {
-			if (NumApps - selected - 1 > -ev->movement) {
-				new -= ev->movement;
+			if (selected < NumApps - 1) {
+				new++;
 			} else {
 				new = NumApps - 1;
 			}

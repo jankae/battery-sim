@@ -2,7 +2,7 @@
 
 #include "buttons.h"
 
-button_t* button_new(const char *name, font_t font, uint8_t minWidth, void (*cb)(widget_t*)) {
+button_t* button_new(const char *name, font_t font, uint16_t minWidth, void (*cb)(widget_t*)) {
 	button_t* button = pvPortMalloc(sizeof(button_t));
 	if (!button) {
 		/* malloc failed */

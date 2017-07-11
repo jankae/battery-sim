@@ -20,7 +20,7 @@ typedef struct {
     uint8_t pressed;
 } button_t;
 
-button_t* button_new(const char *name, font_t font, uint8_t minWidth, void (*cb)(widget_t*));
+button_t* button_new(const char *name, font_t font, uint16_t minWidth, void (*cb)(widget_t*));
 void button_draw(widget_t *w, coords_t offset);
 void button_input(widget_t *w, GUIEvent_t *ev);
 

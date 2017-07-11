@@ -286,6 +286,7 @@ void startup_Software(void) {
 	Supply_Init();
 	Charger_Init();
 	Simulator_Init();
+	Characterisation_Init();
 	settings_Init();
 	Info_Init();
 
