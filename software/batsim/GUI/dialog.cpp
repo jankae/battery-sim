@@ -164,7 +164,7 @@ DialogResult_t dialog_FileChooser(const char * const title, char *result,
 	char *filenames[MAX_NUMBER_OF_FILES + 1];
 	uint8_t foundFiles = 0;
 	FRESULT fr; /* Return value */
-	DIR *dj = pvPortMalloc(sizeof(DIR)); /* Directory search object */
+	DIR *dj = (DIR*) pvPortMalloc(sizeof(DIR)); /* Directory search object */
 	FILINFO fno; /* File information */
 
 #if _USE_LFN
@@ -200,7 +200,7 @@ DialogResult_t dialog_FileChooser(const char * const title, char *result,
 				}
 			}
 			/* allocate memory for filename */
-			filenames[foundFiles] = pvPortMalloc(strlen(fn) + 1);
+			filenames[foundFiles] = (char*) pvPortMalloc(strlen(fn) + 1);
 			if (!filenames[foundFiles]) {
 				/* malloc failed */
 				/* free already allocated names and return with error */

@@ -1,7 +1,7 @@
 #include "graph.h"
 
-graph_t* graph_new(int32_t *values, uint16_t num, uint16_t height, color_t color, unit_t *unit) {
-	graph_t* g = pvPortMalloc(sizeof(graph_t));
+graph_t* graph_new(int32_t *values, uint16_t num, uint16_t height, color_t color, const unit_t * const unit) {
+	graph_t* g = (graph_t*) pvPortMalloc(sizeof(graph_t));
 	if (!g) {
 		/* malloc failed */
 		return NULL;

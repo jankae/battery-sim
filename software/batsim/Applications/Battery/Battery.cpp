@@ -10,8 +10,8 @@ int8_t Battery_Load(Battery_t * bat, const char *filename) {
 
 	/* get number of battery data points */
 	const fileEntry_t num[2] = {
-			{.name = "points", .ptr = &bat->npoints, .type = PTR_INT16 },
-			{.name = "capacity", .ptr = &bat->capacityFull, .type = PTR_INT32 },
+			{"points", &bat->npoints, PTR_INT16 },
+			{"capacity", &bat->capacityFull, PTR_INT32 },
 	};
 
 	if (file_ReadParameters(num, sizeof(num) / sizeof(fileEntry_t)) != FILE_OK) {
@@ -31,7 +31,7 @@ int8_t Battery_Load(Battery_t * bat, const char *filename) {
 		vPortFree(bat->profile);
 	}
 	/* allocate memory for points */
-	bat->profile = pvPortMalloc(bat->npoints * sizeof(BatDataPoint_t));
+	bat->profile = (BatDataPoint_t*) pvPortMalloc(bat->npoints * sizeof(BatDataPoint_t));
 	if (!bat->profile) {
 		/* failed to allocate memory */
 		file_close();
@@ -54,11 +54,11 @@ int8_t Battery_Load(Battery_t * bat, const char *filename) {
 
 		/* Read point entries */
 		const fileEntry_t parms[5] = {
-				{ .name = "SoC", .ptr =	&bat->profile[foundPoints].SoC, .type = PTR_INT32 },
-				{ .name = "E", .ptr = &bat->profile[foundPoints].E, .type = PTR_INT32 },
-				{ .name = "R1", .ptr = &bat->profile[foundPoints].R1, .type =	PTR_INT32 },
-				{ .name = "R2", .ptr = &bat->profile[foundPoints].R2, .type = PTR_INT32 },
-				{ .name = "C", .ptr = &bat->profile[foundPoints].C, .type = PTR_INT32 },
+				{"SoC", .ptr =	&bat->profile[foundPoints].SoC, .type = PTR_INT32 },
+				{"E",&bat->profile[foundPoints].E, .type = PTR_INT32 },
+				{"R1",&bat->profile[foundPoints].R1, .type =	PTR_INT32 },
+				{"R2",&bat->profile[foundPoints].R2, .type = PTR_INT32 },
+				{"C",&bat->profile[foundPoints].C, .type = PTR_INT32 },
 		};
 		if (file_ReadParameters(parms, sizeof(parms) / sizeof(fileEntry_t)) != FILE_OK) {
 			/* incomplete parameter list */
@@ -91,8 +91,8 @@ int8_t Battery_Save(Battery_t * bat, const char *filename) {
 
 	/* write number of battery data points */
 	const fileEntry_t num[2] = {
-			{.name = "points", .ptr = &bat->npoints, .type = PTR_INT16 },
-			{.name = "capacity", .ptr = &bat->capacityFull, .type = PTR_INT32 },
+			{"points",&bat->npoints,  PTR_INT16 },
+			{"capacity",&bat->capacityFull,  PTR_INT32 },
 	};
 
 	file_WriteParameters(num, sizeof(num) / sizeof(fileEntry_t));
@@ -102,11 +102,11 @@ int8_t Battery_Save(Battery_t * bat, const char *filename) {
 		file_WriteLine("{\n");
 		/* Write point entries */
 		const fileEntry_t parms[5] = {
-				{ .name = "SoC", .ptr =	&bat->profile[writtenPoints].SoC, .type = PTR_INT32 },
-				{ .name = "E", .ptr = &bat->profile[writtenPoints].E, .type = PTR_INT32 },
-				{ .name = "R1", .ptr = &bat->profile[writtenPoints].R1, .type =	PTR_INT32 },
-				{ .name = "R2", .ptr = &bat->profile[writtenPoints].R2, .type = PTR_INT32 },
-				{ .name = "C", .ptr = &bat->profile[writtenPoints].C, .type = PTR_INT32 },
+				{"SoC",&bat->profile[writtenPoints].SoC,  PTR_INT32 },
+				{"E",&bat->profile[writtenPoints].E, PTR_INT32 },
+				{"R1",&bat->profile[writtenPoints].R1, PTR_INT32 },
+				{"R2",&bat->profile[writtenPoints].R2,  PTR_INT32 },
+				{"C",&bat->profile[writtenPoints].C, PTR_INT32 },
 		};
 		file_WriteParameters(parms, sizeof(parms) / sizeof(fileEntry_t));
 		file_WriteLine("}\n");

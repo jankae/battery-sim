@@ -154,13 +154,13 @@ static void batteryCapacityChanged(widget_t *w) {
 }
 
 static uint8_t loadDialog = 0;
-static void load() {
+static void load(widget_t *w) {
 	loadDialog = 1;
 	xTaskNotify(handle, SIGNAL_WAKEUP, eSetBits);
 }
 
 static uint8_t saveDialog = 0;
-static void save() {
+static void save(widget_t *w) {
 	saveDialog = 1;
 	xTaskNotify(handle, SIGNAL_WAKEUP, eSetBits);
 }
@@ -212,7 +212,7 @@ static void Simulator(void *unused) {
 
 	/* Battery status */
 	label_t *lSoC = label_newWithText("State of charge:", Font_Big);
-	eSoC = entry_new(&bat.state.SoC, &maxPercent, &null, Font_Big, 6, &Unit_Percent);
+	eSoC = entry_new((int32_t*) &bat.state.SoC, &maxPercent, &null, Font_Big, 6, &Unit_Percent);
 	label_t *lCapacity = label_newWithText("Capacity:", Font_Big);
 	entry_t *eCapacity = entry_new(&bat.capacityFull, NULL, &null, Font_Big, 8, &Unit_Charge);
 	widget_SetSelectable((widget_t*) eSoC, 0);

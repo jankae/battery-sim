@@ -42,8 +42,17 @@
 
 #define BUTTON_TODIGIT(b)  (b>= BUTTON_9 ? __builtin_clz(b) : 0)
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 void buttons_Init();
 
 void buttons_Update(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

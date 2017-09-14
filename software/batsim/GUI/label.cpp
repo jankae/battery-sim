@@ -1,7 +1,7 @@
 #include "label.h"
 
 static label_t* label_newGeneric(void) {
-	label_t* l = pvPortMalloc(sizeof(label_t));
+	label_t* l = (label_t*) pvPortMalloc(sizeof(label_t));
 	if (!l) {
 		/* malloc failed */
 		return NULL;

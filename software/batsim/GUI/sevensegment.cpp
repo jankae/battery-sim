@@ -31,7 +31,7 @@ static const uint8_t segmentStartY[7] = {
 
 sevensegment_t* sevensegment_new(int32_t *value, uint8_t sLength,
 		uint8_t sWidth, uint8_t length, uint8_t dot, color_t color) {
-	sevensegment_t* s = pvPortMalloc(sizeof(sevensegment_t));
+	sevensegment_t* s = (sevensegment_t*) pvPortMalloc(sizeof(sevensegment_t));
 	if (!s) {
 		/* malloc failed */
 		return NULL;

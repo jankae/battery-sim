@@ -9,6 +9,11 @@
 #define DISPLAY_WIDTH		320
 #define DISPLAY_HEIGHT		240
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 void display_Init(void);
 void display_SetFont(font_t f);
 void display_SetForeground(color_t c);
@@ -28,5 +33,9 @@ void display_Char(uint16_t x, uint16_t y, uint8_t c);
 void display_String(uint16_t x, uint16_t y, const char *s);
 void display_Image(uint16_t x, uint16_t y, const Image_t *im);
 void display_ImageGrayscale(uint16_t x, uint16_t y, const Image_t *im);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -32,6 +32,11 @@ typedef enum {
 
 #define CAL_NUMBER_OF_ENTRIES		7
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /**
  * \brief Initializes the calibration data with default values
  */
@@ -48,6 +53,8 @@ int32_t cal_GetCalibratedValue(calEntryNum_t entry, int32_t rawValue);
 void cal_UpdateEntry(calEntryNum_t entry, int32_t raw1, int32_t cal1,
 		int32_t raw2, int32_t cal2);
 
-
+#ifdef __cplusplus
+}
+#endif
 
 #endif

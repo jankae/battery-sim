@@ -1,7 +1,7 @@
 #include "container.h"
 
 container_t* container_new(coords_t size) {
-	container_t *c = pvPortMalloc(sizeof(container_t));
+	container_t *c = (container_t*) pvPortMalloc(sizeof(container_t));
 	if (!c) {
 		/* malloc failed */
 		return NULL;

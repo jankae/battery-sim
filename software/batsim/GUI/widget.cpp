@@ -32,11 +32,11 @@ static void widget_deleteInt(widget_t *w) {
 	}
 	while(next) {
 		/* save pointer to this widget */
-		widget_t *this = next;
+		widget_t *w = next;
 		/* save next widget in line (will get lost when this is freed) */
-		next = this->next;
+		next = w->next;
 		/* delete and free this child */
-		widget_deleteInt(this);
+		widget_deleteInt(w);
 	}
 
 	/* Send an event to the widget, so it can free any memory it allocated */

@@ -55,15 +55,15 @@ void settings_Init() {
 	App_Register("Settings", settings_Start, icon);
 }
 
-static void calibrateTouch() {
+static void calibrateTouch(widget_t *w) {
 	calTouch = 1;
 }
 
-static void calibrateOutput() {
+static void calibrateOutput(widget_t *w) {
 	calOutput = 1;
 }
 
-static void printTaskInfo() {
+static void printTaskInfo(widget_t *w) {
 	taskInfo = 1;
 }
 
@@ -125,7 +125,7 @@ void settings(void *unused) {
 					xPortGetFreeHeapSize(), xPortGetMinimumEverFreeHeapSize());
 			/* get Task status */
 			numOfTasks = uxTaskGetNumberOfTasks();
-			status = pvPortMalloc(sizeof(TaskStatus_t) * numOfTasks);
+			status = (TaskStatus_t*) pvPortMalloc(sizeof(TaskStatus_t) * numOfTasks);
 			if (!status) {
 				/* malloc failed */
 				return;

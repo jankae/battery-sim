@@ -8,6 +8,11 @@
 #define TOUCH_RESOLUTION_X		DISPLAY_WIDTH
 #define TOUCH_RESOLUTION_Y		DISPLAY_HEIGHT
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /**
  * \brief Sets the SPI pins to idle values
  */
@@ -24,5 +29,9 @@ int8_t touch_GetCoordinates(coords_t *c);
 void touch_Calibrate(void);
 
 uint8_t touch_LoadCalibration(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

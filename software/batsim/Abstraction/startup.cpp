@@ -9,6 +9,10 @@
 #include "Supply.h"
 #include "Charger.h"
 #include "Settings.h"
+#include "Simulator.h"
+#include "Characterisation.h"
+#include "Info.h"
+#include "display.h"
 
 extern uint8_t pushpull_SPI_OK;
 extern uint16_t RawADC[SPI_BLOCK_SIZE];
@@ -82,6 +86,14 @@ static void display_TestResult(const char * const name, const char * const resul
 	line++;
 }
 
+static void updateResult(TestResult_t *overall, TestResult_t res) {
+	if(res == TEST_FAILED) {
+		*overall = TEST_FAILED;
+	} else if(res == TEST_WARNING) {
+		*overall = TEST_WARNING;
+	}
+}
+
 void startup_Hardware(void) {
 	HAL_ADCEx_Calibration_Start(&hadc1);
 	display_SetBackground(COLOR_BLACK);
@@ -101,13 +113,13 @@ void startup_Hardware(void) {
 	/* Check frontpanel board voltages */
 	meas = get_3V3Rail();
 	res = TEST_PERCENTDEV(3300, meas);
-	overallRes |= res;
+	updateResult(&overallRes, res);
 	common_StringFromValue(buffer, 6, meas * 1000, &Unit_Voltage);
 	display_TestResult("3.3V(1) rail:", buffer, res);
 
 	meas = get_5VRail();
 	res = TEST_PERCENTDEV(5000, meas);
-	overallRes |= res;
+	updateResult(&overallRes, res);
 	common_StringFromValue(buffer, 6, meas * 1000, &Unit_Voltage);
 	display_TestResult("5V(1) rail:", buffer, res);
 
@@ -126,31 +138,31 @@ void startup_Hardware(void) {
 	/* Check rails on analog board */
 	meas = get_3V3Rail_SPI();
 	res = TEST_PERCENTDEV(3300, meas);
-	overallRes |= res;
+	updateResult(&overallRes, res);
 	common_StringFromValue(buffer, 6, meas * 1000, &Unit_Voltage);
 	display_TestResult("3.3V(2) rail:", buffer, res);
 
 	meas = get_5VRail_SPI();
 	res = TEST_PERCENTDEV(5000, meas);
-	overallRes |= res;
+	updateResult(&overallRes, res);
 	common_StringFromValue(buffer, 6, meas * 1000, &Unit_Voltage);
 	display_TestResult("5V(2) rail:", buffer, res);
 
 	meas = get_24VRail_SPI();
 	res = TEST_PERCENTDEV(24000, meas);
-	overallRes |= res;
+	updateResult(&overallRes, res);
 	common_StringFromValue(buffer, 6, meas * 1000, &Unit_Voltage);
 	display_TestResult("24V rail:", buffer, res);
 
 	meas = get_neg8VRail_SPI();
 	res = TEST_PERCENTDEV(-8000, meas);
-	overallRes |= res;
+	updateResult(&overallRes, res);
 	common_StringFromValue(buffer, 6, meas * 1000, &Unit_Voltage);
 	display_TestResult("-8V rail:", buffer, res);
 
 	meas = pushpull_GetTemperature();
 	res = TEST_ABSLIMITS(-10, 60, meas);
-	overallRes |= res;
+	updateResult(&overallRes, res);
 	common_StringFromValue(buffer, 5, meas, &Unit_Temperature);
 	display_TestResult("Temperature:", buffer, res);
 
@@ -162,14 +174,14 @@ void startup_Hardware(void) {
 	/* Bias current should be close to zero at this point */
 	meas = pushpull_GetBiasCurrent();
 	res = TEST_ABSLIMITS(0, 15000, meas);
-	overallRes |= res;
+	updateResult(&overallRes, res);
 	common_StringFromValue(buffer, 6, meas, &Unit_Current);
 	display_TestResult("Bias current:", buffer, res);
 
 	/* Output current should be close to zero at this point */
 	meas = pushpull_GetCurrent();
 	res = TEST_ABSLIMITS(-10000, 10000, meas);
-	overallRes |= res;
+	updateResult(&overallRes, res);
 	common_StringFromValue(buffer, 6, meas, &Unit_Current);
 	display_TestResult("Output current:", buffer, res);
 
@@ -185,7 +197,7 @@ void startup_Hardware(void) {
 	meas = pushpull_GetOutputVoltage();
 	/* Allow up to 250mV (Output does not reach GND) */
 	res = TEST_PERCENTDEV(1000000, meas);
-	overallRes |= res;
+	updateResult(&overallRes, res);
 	common_StringFromValue(buffer, 6, meas, &Unit_Voltage);
 	display_TestResult("Output low:", buffer, res);
 
@@ -197,7 +209,7 @@ void startup_Hardware(void) {
 	/* Output voltage should be around 18V */
 	meas = pushpull_GetOutputVoltage();
 	res = TEST_PERCENTDEV(18000000, meas);
-	overallRes |= res;
+	updateResult(&overallRes, res);
 	common_StringFromValue(buffer, 6, meas, &Unit_Voltage);
 	display_TestResult("Output high:", buffer, res);
 

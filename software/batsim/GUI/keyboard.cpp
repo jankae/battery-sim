@@ -19,7 +19,7 @@ static const char upperLayout[LAYOUT_Y][LAYOUT_X] = {
 };
 
 keyboard_t* keyboard_new(void (*cb)(char)) {
-	keyboard_t* k = pvPortMalloc(sizeof(keyboard_t));
+	keyboard_t* k = (keyboard_t*) pvPortMalloc(sizeof(keyboard_t));
 	if (!k) {
 		/* malloc failed */
 		return NULL;

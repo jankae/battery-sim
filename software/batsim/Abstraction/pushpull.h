@@ -63,6 +63,11 @@ typedef struct {
 
 extern const PushPull_Limits_t Limits;
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /**
  * \brief Initializes the Push-Pull-Stage, Output switched off
  *
@@ -104,5 +109,9 @@ uint16_t pushpull_GetRawBiasCurrent(void);
 
 void pushpull_SPITransfer(void);
 void pushpull_SPIComplete(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

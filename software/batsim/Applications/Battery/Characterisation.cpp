@@ -149,7 +149,7 @@ static void pushpullCallback(PushPull_State_t *state) {
 	}
 }
 
-static void Start(void) {
+static void Start(widget_t *w) {
 	start = 1;
 	xTaskNotify(handle, SIGNAL_WAKEUP, eSetBits);
 }

@@ -2,7 +2,7 @@
 
 textfield_t* textfield_new(const char *text, const font_t font,
 		coords_t maxSize){
-	textfield_t* t = pvPortMalloc(sizeof(textfield_t));
+	textfield_t* t = (textfield_t*) pvPortMalloc(sizeof(textfield_t));
 	if (!t) {
 		/* malloc failed */
 		return NULL;
@@ -46,7 +46,7 @@ textfield_t* textfield_new(const char *text, const font_t font,
 
 	t->base.flags.selectable = 0;
 	/* copy text */
-	t->text = pvPortMalloc(strlen(s) + 1);
+	t->text = (char*) pvPortMalloc(strlen(s) + 1);
 	if(!t->text) {
 		/* malloc failed */
 		/* abort widget creation */

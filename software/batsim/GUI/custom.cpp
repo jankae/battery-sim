@@ -2,7 +2,7 @@
 
 widget_t* custom_new(coords_t size, void (*draw)(widget_t *, coords_t),
 		void (*input)(widget_t *, GUIEvent_t *)) {
-	widget_t *c = pvPortMalloc(sizeof(widget_t));
+	widget_t *c = (widget_t*) pvPortMalloc(sizeof(widget_t));
 	if (!c) {
 		/* malloc failed */
 		return NULL;

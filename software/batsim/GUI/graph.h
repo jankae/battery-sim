@@ -13,10 +13,10 @@ typedef struct {
     widget_t base;
     int32_t *values;
     color_t color;
-    unit_t *unit;
+    const unit_t *unit;
 } graph_t;
 
-graph_t* graph_new(int32_t *values, uint16_t num, uint16_t height, color_t color, unit_t *unit);
+graph_t* graph_new(int32_t *values, uint16_t num, uint16_t height, color_t color, const unit_t * const unit);
 void graph_draw(widget_t *w, coords_t offset);
 void graph_input(widget_t *w, GUIEvent_t *ev);
 void graph_NewColor(graph_t *g, color_t color);

@@ -4,7 +4,7 @@ extern widget_t *topWidget;
 extern uint8_t isPopup;
 
 window_t* window_new(const char *title, font_t font, coords_t size) {
-	window_t *w = pvPortMalloc(sizeof(window_t));
+	window_t *w = (window_t*) pvPortMalloc(sizeof(window_t));
 	if (!w) {
 		/* malloc failed */
 		return NULL;

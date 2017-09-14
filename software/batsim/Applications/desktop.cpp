@@ -60,7 +60,7 @@ void desktop_AppStarted(void (*start)(void), widget_t *top) {
 	/* bring app into focus */
 	focussed = num;
 	topWidget = AppList[num].topWidget;
-	widget_RequestRedrawFull(topWidget);
+	widget_RequestRedrawFull((widget_t*) topWidget);
 	desktop_Draw();
 }
 
@@ -82,7 +82,7 @@ void desktop_AppStopped(){
 				topWidget = AppList[i].topWidget;
 				focussed = i;
 				selected = i;
-				widget_RequestRedrawFull(topWidget);
+				widget_RequestRedrawFull((widget_t*) topWidget);
 				break;
 			}
 		}
@@ -189,7 +189,7 @@ static void desktop_SwitchToApp(uint8_t app) {
 			/* bring app into focus */
 			topWidget = AppList[app].topWidget;
 			focussed = app;
-			widget_RequestRedrawFull(topWidget);
+			widget_RequestRedrawFull((widget_t*) topWidget);
 			selected = app;
 			desktop_Draw();
 		} else if(selected != app) {
@@ -273,23 +273,23 @@ void desktop_Input(GUIEvent_t *ev) {
 		break;
 	case EVENT_ENCODER_MOVED: {
 		/* switch selected App */
-		uint8_t new = selected;
+		uint8_t newsel = selected;
 		if (ev->movement < 0) {
 			/* moving up */
 			if (selected > 0) {
-				new--;
+				newsel--;
 			} else {
-				new = 0;
+				newsel = 0;
 			}
 		} else {
 			if (selected < NumApps - 1) {
-				new++;
+				newsel++;
 			} else {
-				new = NumApps - 1;
+				newsel = NumApps - 1;
 			}
 		}
-		if (new != selected) {
-			selected = new;
+		if (newsel != selected) {
+			selected = newsel;
 			desktop_Draw();
 		}
 	}

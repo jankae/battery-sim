@@ -4,7 +4,7 @@
 
 entry_t* entry_new(int32_t *value, const int32_t *max, const int32_t *min,
 		font_t font, uint8_t length, const unit_t * const unit) {
-	entry_t* e = pvPortMalloc(sizeof(entry_t));
+	entry_t* e = (entry_t*) pvPortMalloc(sizeof(entry_t));
 	if (!e) {
 		/* malloc failed */
 		return NULL;

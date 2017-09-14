@@ -3,7 +3,7 @@
 #include "buttons.h"
 
 checkbox_t* checkbox_new(uint8_t *value, void (*cb)(widget_t*)) {
-	checkbox_t* c = pvPortMalloc(sizeof(checkbox_t));
+	checkbox_t* c = (checkbox_t*) pvPortMalloc(sizeof(checkbox_t));
 	if (!c) {
 		/* malloc failed */
 		return NULL;

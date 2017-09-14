@@ -42,11 +42,11 @@ FRESULT file_close(void) {
 	return res;
 }
 
-inline char* file_ReadLine(char *line, uint16_t maxLength) {
+char* file_ReadLine(char *line, uint16_t maxLength) {
 	return f_gets(line, maxLength, &file);
 }
 
-inline int file_WriteLine(char *line) {
+int file_WriteLine(char *line) {
 	return f_puts(line, &file);
 }
 

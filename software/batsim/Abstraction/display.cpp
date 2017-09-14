@@ -22,9 +22,7 @@ inline void setData(uint16_t data) {
 inline void selectRegister(uint8_t reg) {
 	RS_LOW();
 	setData(reg);
-//	HAL_Delay(1);
 	CS_LOW();
-//	HAL_Delay(1);
 	WR_LOW();
 	asm volatile("nop");
 	asm volatile("nop");
@@ -32,28 +30,21 @@ inline void selectRegister(uint8_t reg) {
 	asm volatile("nop");
 	asm volatile("nop");
 	WR_HIGH();
-//	HAL_Delay(1);
 	CS_HIGH();
-//	HAL_Delay(1);
 }
 
 inline void writeData(uint16_t data) {
 	RS_HIGH();
 	setData(data);
-//	HAL_Delay(1);
 	CS_LOW();
-//	HAL_Delay(1);
 	WR_LOW();
 	asm volatile("nop");
 	asm volatile("nop");
 	asm volatile("nop");
 	asm volatile("nop");
 	asm volatile("nop");
-//	HAL_Delay(1);
 	WR_HIGH();
-//	HAL_Delay(1);
 	CS_HIGH();
-//	HAL_Delay(1);
 }
 
 uint16_t readData(void) {
@@ -207,23 +198,23 @@ void display_Init(void){
 	font = Font_Big;
 }
 
-inline void display_SetFont(font_t f) {
+void display_SetFont(font_t f) {
 	font = f;
 }
 
-inline void display_SetForeground(color_t c) {
+void display_SetForeground(color_t c) {
 	foreground = c;
 }
 
-inline color_t display_GetForeground(void) {
+color_t display_GetForeground(void) {
 	return foreground;
 }
 
-inline void display_SetBackground(color_t c) {
+void display_SetBackground(color_t c) {
 	background = c;
 }
 
-inline color_t display_GetBackground(void) {
+color_t display_GetBackground(void) {
 	return background;
 }
 

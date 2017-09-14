@@ -4,7 +4,7 @@
 
 itemChooser_t* itemChooser_new(const char * const * const items, uint8_t *value,
 		font_t font, uint8_t visibleLines, uint16_t minSizeX) {
-	itemChooser_t* i = pvPortMalloc(sizeof(itemChooser_t));
+	itemChooser_t* i = (itemChooser_t*) pvPortMalloc(sizeof(itemChooser_t));
 	if (!i) {
 		/* malloc failed */
 		return NULL;

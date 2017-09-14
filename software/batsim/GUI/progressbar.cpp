@@ -1,7 +1,7 @@
 #include "progressbar.h"
 
 progressbar_t* progressbar_new(coords_t size) {
-	progressbar_t* p = pvPortMalloc(sizeof(progressbar_t));
+	progressbar_t* p = (progressbar_t*) pvPortMalloc(sizeof(progressbar_t));
 	if (!p) {
 		/* malloc failed */
 		return NULL;

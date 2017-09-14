@@ -61,13 +61,13 @@ void Supply_Init() {
 }
 
 static uint8_t loadDialog = 0;
-static void load() {
+static void load(widget_t *w) {
 	loadDialog = 1;
 	xTaskNotify(handle, SIGNAL_WAKEUP, eSetBits);
 }
 
 static uint8_t saveDialog = 0;
-static void save() {
+static void save(widget_t *w) {
 	saveDialog = 1;
 	xTaskNotify(handle, SIGNAL_WAKEUP, eSetBits);
 }

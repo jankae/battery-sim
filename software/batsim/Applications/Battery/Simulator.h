@@ -4,6 +4,6 @@
 
 #include "app.h"
 
-void Template_Init();
+void Simulator_Init();
 
 #endif

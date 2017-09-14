@@ -24,7 +24,7 @@ typedef struct {
 	uint32_t factor;
 } unitElement_t;
 
-typedef const unitElement_t *unit_t[];
+typedef const unitElement_t *unit_t[5];
 
 extern const unit_t Unit_Current, Unit_Voltage, Unit_Power, Unit_Temperature,
 		Unit_Resistance, Unit_Energy, Unit_Time, Unit_Memory, Unit_Capacity,

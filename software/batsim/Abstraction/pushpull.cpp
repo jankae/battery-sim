@@ -39,13 +39,13 @@ uint8_t pushpull_SPI_OK;
 #define ADC_BIAS_CURRENT		5
 
 const PushPull_Limits_t Limits = {
-		.minVoltage = 0,
-		.maxVoltage = MAX_VOLTAGE,
-		.minCurrent = MAX_SINK_CURRENT,
-		.maxCurrent = MAX_SOURCE_CURRENT,
-		.maxResistance = MAX_RESISTANCE,
-		.minResistance = MIN_RESISTANCE,
-		.maxTemp = PUSHPULL_MAX_TEMP,
+		minVoltage : 0,
+		maxVoltage : MAX_VOLTAGE,
+		maxCurrent : MAX_SOURCE_CURRENT,
+		minCurrent : MAX_SINK_CURRENT,
+		maxResistance : MAX_RESISTANCE,
+		minResistance : MIN_RESISTANCE,
+		maxTemp : PUSHPULL_MAX_TEMP,
 };
 
 uint16_t CtrlWords[SPI_BLOCK_SIZE];
@@ -83,7 +83,7 @@ void pushpull_ReleaseControl(void) {
 	}
 }
 
-inline TaskHandle_t pushpull_GetControlHandle(void) {
+TaskHandle_t pushpull_GetControlHandle(void) {
 	return output.control;
 }
 
@@ -361,7 +361,7 @@ void pushpull_SetEnabled(uint8_t enabled) {
 	}
 }
 
-inline uint8_t pushpull_GetEnabled(void){
+uint8_t pushpull_GetEnabled(void){
 	return output.enabled;
 }
 
@@ -419,42 +419,42 @@ void pushpull_SetInternalResistance(uint32_t ur) {
 #endif
 }
 
-inline void pushpull_SetCallback(void (*newDataCB)(PushPull_State_t*)) {
+void pushpull_SetCallback(void (*newDataCB)(PushPull_State_t*)) {
 	output.newDataCB = newDataCB;
 }
 
-inline int32_t pushpull_GetCurrent(void) {
+int32_t pushpull_GetCurrent(void) {
 	return output.outputCurrent;
 }
-inline uint32_t pushpull_GetOutputVoltage(void) {
+uint32_t pushpull_GetOutputVoltage(void) {
 	return output.outputVoltage;
 }
-inline uint32_t pushpull_GetBatteryVoltage(void) {
+uint32_t pushpull_GetBatteryVoltage(void) {
 	return output.batteryVoltage;
 }
-inline uint32_t pushpull_GetBiasCurrent(void) {
+uint32_t pushpull_GetBiasCurrent(void) {
 	return output.biasCurrent;
 }
-inline int8_t pushpull_GetTemperature(void) {
+int8_t pushpull_GetTemperature(void) {
 	return output.temperature;
 }
-inline uint16_t pushpull_GetRawCurrentLow(void) {
+uint16_t pushpull_GetRawCurrentLow(void) {
 	return output.rawCurrentLow;
 }
-inline uint16_t pushpull_GetRawCurrentHigh(void) {
+uint16_t pushpull_GetRawCurrentHigh(void) {
 	return output.rawCurrentHigh;
 }
-inline uint16_t pushpull_GetRawBatteryVoltage(void) {
+uint16_t pushpull_GetRawBatteryVoltage(void) {
 	return output.rawBatteryVoltage;
 }
-inline uint16_t pushpull_GetRawOutputVoltage(void) {
+uint16_t pushpull_GetRawOutputVoltage(void) {
 	return output.rawOutputVoltage;
 }
-inline uint16_t pushpull_GetRawBiasCurrent(void) {
+uint16_t pushpull_GetRawBiasCurrent(void) {
 	return output.rawBiasCurrent;
 }
 
-inline void pushpull_SPITransfer(void) {
+void pushpull_SPITransfer(void) {
 	HAL_SPI_TransmitReceive_DMA(&hspi1, (uint8_t*) CtrlWords,
 			(uint8_t*) RawADC, SPI_BLOCK_SIZE);
 }
