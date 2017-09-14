@@ -10,6 +10,8 @@ software/batsim/binary
 software/gluelogic/build
 software/gluelogic/binary
 software/spiTest
+software/batteryTest
+*.m
 *.d
 *.dwb
 *.d
