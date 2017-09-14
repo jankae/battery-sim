@@ -46,7 +46,7 @@ static void Info(void *unused);
 
 /* Creates the app task, called from desktop when user start the app */
 static void Info_Start(){
-	xTaskCreate(Info, "Info", 800, NULL, 3, NULL);
+	xTaskCreate(Info, "Info", 300, NULL, 3, NULL);
 }
 
 /* Register this app */

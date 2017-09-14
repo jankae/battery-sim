@@ -67,6 +67,10 @@ void pushpull_AcquireControl(void) {
 		/* Currently controlled by another task -> send termination signal */
 		xTaskNotify(output.control, SIGNAL_TERMINATE, eSetBits);
 	}
+	if(output.control != xTaskGetCurrentTaskHandle()) {
+		/* Task is just now acquiring control, set output to default */
+		pushpull_SetDefault();
+	}
 	output.control = xTaskGetCurrentTaskHandle();
 }
 
@@ -491,7 +495,7 @@ void pushpull_SPIComplete(void) {
 			current = cal_GetCalibratedValue(CAL_ADC_CURRENT_HIGH, RawADC[ADC_HIGH_CURRENT]);
 		}
 		if (output.newDataCB) {
-			PushPull_State_t state = { .voltage = voltage, .current = current };
+			PushPull_State_t state = { .voltage = battery, .current = current };
 			output.newDataCB(&state);
 		}
 		if(output.averaging) {

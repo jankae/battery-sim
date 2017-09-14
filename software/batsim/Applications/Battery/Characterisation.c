@@ -1,6 +1,7 @@
 #include "Characterisation.h"
 #include "gui.h"
 #include "pushpull.h"
+#include "Battery.h"
 
 static const uint16_t imagedata[1024] = {
 		0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,
@@ -44,7 +45,7 @@ static void Characterisation(void *unused);
 
 /* Creates the app task, called from desktop when user start the app */
 static void Characterisation_Start(){
-	xTaskCreate(Characterisation, "Supply", 300, NULL, 3, NULL);
+	xTaskCreate(Characterisation, "Characterisation", 1000, NULL, 3, NULL);
 }
 
 /* Register this app */
@@ -59,6 +60,81 @@ static int32_t vResponse[SAMPLES];
 static int32_t cResponse[SAMPLES];
 static uint32_t sampleCnt;
 static SemaphoreHandle_t samplingDone;
+
+static int analyzeResponse(int32_t *voltage, int32_t *current, uint16_t npoints,
+		BatDataPoint_t *result) {
+	printf("Response:\n");
+	uint16_t i;
+	char buf[12];
+
+	for(i=0;i<npoints;i++) {
+		printf("%ld;%ld\n", current[i], voltage[i]);
+
+	}
+
+	printf("Analyzing response...\n");
+	const int32_t startCurrent = current[0], stopCurrent = current[npoints - 1];
+
+	common_StringFromValue(buf, 10, startCurrent, &Unit_Current);
+	printf("Start current: %s\n", buf);
+	common_StringFromValue(buf, 10, stopCurrent, &Unit_Current);
+	printf("Stop current: %s\n", buf);
+
+	/* Calculate start voltage */
+	int64_t vsum = 0;
+	uint16_t currentChangeIndex = 0;
+	for (i = 0; i < npoints; i++) {
+		/* Check if current is closer to stopCurrent than to startCurrent */
+		if (startCurrent > stopCurrent) {
+			if (current[i] < (startCurrent + stopCurrent) / 2)
+				break;
+		} else {
+			if (current[i] > (startCurrent + stopCurrent) / 2)
+				break;
+		}
+		vsum += voltage[i];
+	}
+	currentChangeIndex = i;
+	printf("Change index: %d\n", i);
+	if (i < 2) {
+		/* not enough samples */
+		return -1;
+	}
+	/* remove the last sample as it might already be affected by the current change */
+	i--;
+	vsum -= voltage[i];
+	/* Get average idle voltage */
+	int32_t startVoltage = vsum / i;
+
+	common_StringFromValue(buf, 10, startVoltage, &Unit_Voltage);
+	printf("Start voltage: %s\n", buf);
+
+	/* Calculate stop voltage */
+	vsum = 0;
+	for (i = 0; i < (npoints - currentChangeIndex) / 2; i++) {
+		vsum += voltage[npoints - i - 1];
+	}
+	int32_t stopVoltage = vsum / i;
+
+	common_StringFromValue(buf, 10, voltage[currentChangeIndex + 1], &Unit_Voltage);
+	printf("Change voltage: %s\n", buf);
+	common_StringFromValue(buf, 10, stopVoltage, &Unit_Voltage);
+	printf("Stop voltage: %s\n", buf);
+
+
+	/* Calculate R1 and R2 */
+	int32_t R1drop = voltage[currentChangeIndex + 1] - startVoltage;
+	int32_t R2drop = stopVoltage - voltage[currentChangeIndex + 1];
+
+	result->R1 = (int64_t) R1drop * 1000000 / (stopCurrent - startCurrent);
+	result->R2 = (int64_t) R2drop * 1000000 / (stopCurrent - startCurrent);
+
+	common_StringFromValue(buf, 10, result->R1, &Unit_Resistance);
+	printf("R1: %s\n", buf);
+	common_StringFromValue(buf, 10, result->R2, &Unit_Resistance);
+	printf("R2: %s\n", buf);
+
+}
 
 static void pushpullCallback(PushPull_State_t *state) {
 	if (sampleCnt < SAMPLES) {
@@ -115,16 +191,21 @@ static void Characterisation(void *unused) {
 			if(start) {
 				sampleCnt = 0;
 				pushpull_SetEnabled(1);
-				vTaskDelay(1000);
+				vTaskDelay(100);
 				pushpull_SetCallback(pushpullCallback);
 				HAL_Delay(10);
 				pushpull_SetSinkCurrent(current);
 				xSemaphoreTake(samplingDone, 1000);
 				pushpull_SetDefault();
+
+				BatDataPoint_t res;
+				analyzeResponse(vResponse, cResponse, SAMPLES, &res);
+
 				dialog_MessageBox("Done", Font_Medium, "Sampling finished",
 						MSG_OK, NULL, 1);
 				widget_RequestRedrawFull((widget_t*) gvResponse);
 				widget_RequestRedrawFull((widget_t*) gcResponse);
+
 				start = 0;
 			}
 		}

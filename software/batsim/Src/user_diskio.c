@@ -175,7 +175,7 @@ void deselect(void) {
 /*-----------------------------------------------------------------------*/
 
 static
-int select(void) /* 1:OK, 0:Timeout */
+int selectCard(void) /* 1:OK, 0:Timeout */
 {
 	BYTE d;
 	if (xSemaphoreTake(xMutexSPI3, 10)) {
@@ -264,7 +264,7 @@ DWORD arg /* Argument */
 	/* Select the card and wait for ready except to stop multiple block read */
 	if (cmd != CMD12) {
 		deselect();
-		if (!select())
+		if (!selectCard())
 			return 0xFF;
 	}
 
@@ -516,7 +516,7 @@ DRESULT USER_ioctl (
 	res = RES_ERROR;
 	switch (cmd) {
 	case CTRL_SYNC: /* Make sure that no pending write process */
-		if (select())
+		if (selectCard())
 			res = RES_OK;
 		break;
 
