@@ -77,7 +77,7 @@ uint8_t cal_Load(void) {
 	}
 }
 
-#define CAL_MAX_DEV			10
+#define CAL_MAX_DEV			15
 #define CAL_PERCENTDEV(exp, meas)	abs(((exp) - (meas))*100/(exp)) <= CAL_MAX_DEV ? 0 : 1
 #define CAL_MAX_LSB_DEV_ADC	(ADC_MAX_SINGLE/40)
 #define CAL_MAX_LSB_DEV_DAC	(DAC_MAX/40)
@@ -89,6 +89,9 @@ uint8_t cal_Valid(void) {
 		/* Check calibration against default entry */
 		if (CAL_PERCENTDEV(defaultEntries[i].scale, entries[i].scale)) {
 			/* scale factor deviates too much */
+			printf(
+					"Calibration entry scale %d deviates too much: is %f, should be around %f\n",
+					i, entries[i].scale, defaultEntries[i].scale);
 			return 0;
 		}
 		int32_t maxDev;
@@ -98,12 +101,16 @@ uint8_t cal_Valid(void) {
 			maxDev = CAL_MAX_LSB_DEV_ADC;
 		} else {
 			/* probably a DAC conversion, take scale into account */
-			maxDev = (float) CAL_MAX_LSB_DEV_DAC / fabs(defaultEntries[i].scale);
+			maxDev = (float) CAL_MAX_LSB_DEV_DAC
+					/ fabs(defaultEntries[i].scale);
 		}
 
 		if (CAL_ABSLIMITS(defaultEntries[i].offset - maxDev,
-				defaultEntries[i].offset + maxDev, entries[i].offset)){
+				defaultEntries[i].offset + maxDev, entries[i].offset)) {
 			/* offset deviates too much */
+			printf(
+					"Calibration entry offset %d deviates too much: is %ld, should be around %ld\n",
+					i, entries[i].offset, defaultEntries[i].offset);
 			return 0;
 		}
 	}
