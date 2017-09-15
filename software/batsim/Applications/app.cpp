@@ -12,12 +12,8 @@
 void App_Register(const char *name, const char *descr, void (*start)(void), Image_t icon) {
 	/* register app at desktop module */
 	AppInfo_t app;
-	app.name = new char[strlen(name) + 1];
-	strcpy(app.name, name);
-	if(descr) {
-		app.descr = new char[strlen(descr) + 1];
-		strcpy(app.descr, descr);
-	}
+	app.name = name;
+	app.descr = descr;
 	app.start = start;
 	app.icon = icon;
 	desktop_AddApp(app);

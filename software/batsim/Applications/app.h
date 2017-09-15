@@ -22,8 +22,8 @@ typedef enum {
 } AppState_t;
 
 typedef struct {
-	char *name;
-	char *descr;
+	const char *name;
+	const char *descr;
 	TaskHandle_t handle;
 	void (*start)(void);
 	Widget *topWidget;
