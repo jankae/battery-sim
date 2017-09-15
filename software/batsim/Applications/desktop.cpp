@@ -149,17 +149,23 @@ void desktop_Draw(void) {
 	if (!topWidget) {
 		/* Add app names in app area */
 		display_SetBackground(COLOR_BLACK);
-		display_SetFont(Font_Big);
 		for (i = 0; i < NumApps; i++) {
 			if(i==selected) {
 				display_SetForeground(COLOR_SELECTED);
 			} else {
 				display_SetForeground(COLOR_WHITE);
 			}
+			display_SetFont(Font_Big);
 			display_String(DESKTOP_ICONBAR_WIDTH + 10,
 					i * DESKTOP_ICONSPACING_Y
-							+ (DESKTOP_ICONSPACING_Y - Font_Big.height) / 2,
+							+ (DESKTOP_ICONSPACING_Y - Font_Big.height) / 2 - 4,
 					AppList[i].name);
+
+			display_SetFont(Font_Medium);
+			display_String(DESKTOP_ICONBAR_WIDTH + 10,
+					i * DESKTOP_ICONSPACING_Y
+							+ (DESKTOP_ICONSPACING_Y - Font_Big.height) / 2 + 13,
+					AppList[i].descr);
 		}
 	}
 }

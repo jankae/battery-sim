@@ -27,6 +27,7 @@ public:
 			selectedWidget->selected = false;
 			selectedWidget->requestRedraw();
 		}
+		selectedWidget = nullptr;
 	}
 
 	void select();

@@ -52,7 +52,7 @@ static void Info_Start(){
 
 /* Register this app */
 void Info_Init() {
-	App_Register("Info", Info_Start, icon);
+	App_Register("Info", "View system state and information", Info_Start, icon);
 }
 
 static void Info(void *unused) {
@@ -72,12 +72,45 @@ static void Info(void *unused) {
 	Entry *eHeap = new Entry(&heap, nullptr, nullptr, Font_Big, 6, &Unit_Memory);
 	Entry *eDiss = new Entry(&dissipation, nullptr, nullptr, Font_Big, 6, &Unit_Power);
 
+	Label *lStackInfo = new Label("Task stacks:", Font_Big);
+	Button *bStackInfo = new Button("View", Font_Big, [](Widget &w) {
+						/* get Task status */
+						TaskStatus_t *status;
+						uint8_t numOfTasks;
+						numOfTasks = uxTaskGetNumberOfTasks();
+						status = new TaskStatus_t[numOfTasks];
+						if (!status) {
+							/* malloc failed */
+							return;
+						}
+						/* read system status */
+						uxTaskGetSystemState(status, numOfTasks, NULL);
+						char *text = new char[16*numOfTasks];
+						memset(text, ' ', 16*numOfTasks);
+						for(uint8_t i=0;i<numOfTasks;i++) {
+							uint8_t len = strlen(status[i].pcTaskName);
+							if (len > 8)
+								len = 8;
+							memcpy(&text[i*16], status[i].pcTaskName, len);
+							snprintf(&text[i*16+9], 6, "%*d", 5, status[i].usStackHighWaterMark);
+							text[strlen(text)] = ' ';
+							text[i*16+15] = '\n';
+						}
+						text[16*numOfTasks - 1] = 0;
+						Dialog::MessageBox("Task Info", Font_Big, text, Dialog::MsgBox::OK, nullptr, false);
+
+						delete text;
+						delete status;
+					});
+
 	c->attach(lTemp, COORDS(5, 5));
 	c->attach(eTemp, COORDS(200, 5));
 	c->attach(lHeap, COORDS(5, 30));
 	c->attach(eHeap, COORDS(200, 30));
 	c->attach(lDiss, COORDS(5, 55));
 	c->attach(eDiss, COORDS(200, 55));
+	c->attach(lStackInfo, COORDS(5, 83));
+	c->attach(bStackInfo, COORDS(200, 80));
 
 	/* Notify desktop of started app */
 	desktop_AppStarted(Info_Start, c);

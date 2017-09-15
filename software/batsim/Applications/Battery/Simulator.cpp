@@ -137,7 +137,7 @@ static void drawBattery(Widget &w, coords_t c) {
 
 /* Register this app */
 void Simulator_Init() {
-	App_Register("Simulator", Simulator_Start, icon);
+	App_Register("Simulator", "Simulate a battery from stored profile", Simulator_Start, icon);
 }
 
 static uint8_t loadDialog = 0;
@@ -218,7 +218,7 @@ static void Simulator(void *unused) {
 	c->attach(lCapacity, COORDS(2, 57));
 	c->attach(eCapacity, COORDS(176, 55));
 
-	batSchematic = new Custom(COORDS(280, 90), drawBattery, nullptr);
+	batSchematic = new Custom(COORDS(200, 90), drawBattery, nullptr);
 	c->attach(batSchematic, COORDS(0, 145));
 
 	/* Notify desktop of started app */

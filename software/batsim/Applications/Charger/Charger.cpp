@@ -49,7 +49,7 @@ static void Charger_Start(){
 
 /* Register this app */
 void Charger_Init() {
-	App_Register("Charger", Charger_Start, icon);
+	App_Register("Charger", "Charge/discharge different batteries", Charger_Start, icon);
 }
 
 const char modeNames[2][12] = {"Charging", "Discharging"};

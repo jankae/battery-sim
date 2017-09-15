@@ -50,7 +50,7 @@ static void Characterisation_Start(){
 
 /* Register this app */
 void Characterisation_Init() {
-	App_Register("Characterisation", Characterisation_Start, icon);
+	App_Register("Characterisation", "Measure battery characteristics", Characterisation_Start, icon);
 }
 
 static uint8_t start = 0;

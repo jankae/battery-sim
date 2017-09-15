@@ -57,7 +57,7 @@ static void Supply_Start(){
 }
 
 void Supply_Init() {
-	App_Register("Bench Supply", Supply_Start, icon);
+	App_Register("Bench Supply", "Basic supply with sink/source capability", Supply_Start, icon);
 }
 
 static uint8_t loadDialog = 0;

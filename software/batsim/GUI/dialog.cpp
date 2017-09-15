@@ -88,6 +88,7 @@ Result MessageBox(const char *title, font_t font, const char *msg,
 		Button *bOK = new Button("OK", Font_Big, MessageBoxButton, 65);
 		c->attach(bOK, COORDS((c->getSize().x - bOK->getSize().x) / 2,
 						c->getSize().y - bOK->getSize().y - 1));
+		bOK->select();
 	}
 	break;
 	case MsgBox::ABORT_OK: {
@@ -99,7 +100,7 @@ Result MessageBox(const char *title, font_t font, const char *msg,
 		c->attach(bOK,
 				COORDS(c->getSize().x / 2 + 1,
 						c->getSize().y - bOK->getSize().y - 1));
-
+		bAbort->select();
 	}
 		break;
 	}
@@ -107,7 +108,6 @@ Result MessageBox(const char *title, font_t font, const char *msg,
 	dialog.window = w;
 	dialog.msgbox.cb = cb;
 
-	w->select();
 	w->setMainWidget(c);
 
 	if(block) {
