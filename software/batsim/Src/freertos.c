@@ -52,7 +52,7 @@
 #include "cmsis_os.h"
 
 /* USER CODE BEGIN Includes */     
-#include "startup.h"
+//#include "startup.h"
 /* USER CODE END Includes */
 
 /* Variables -----------------------------------------------------------------*/

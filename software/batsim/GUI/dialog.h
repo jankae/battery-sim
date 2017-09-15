@@ -10,21 +10,24 @@
 
 #include "gui.h"
 
-typedef enum {
-	MSG_ABORT_OK, MSG_OK
-} MsgBox_t;
+namespace Dialog {
 
-typedef enum {
-	DIALOG_RESULT_OK, DIALOG_RESULT_ABORT, DIALOG_RESULT_ERR
-} DialogResult_t;
+enum class MsgBox {
+	ABORT_OK, OK
+};
 
-DialogResult_t dialog_MessageBox(const char * const title, font_t font, const char * const msg,
-		MsgBox_t type, void (*cb)(DialogResult_t), uint8_t block);
+enum class Result {
+	OK, ABORT, ERR
+};
 
-DialogResult_t dialog_FileChooser(const char * const title, char *result,
-		const char * const dir, const char * const filetype);
+Result MessageBox(const char *title, font_t font, const char *msg,
+		MsgBox type, void (*cb)(Result), uint8_t block);
 
-DialogResult_t dialog_StringInput(const char * const title, char *result, uint8_t maxLength);
+Result FileChooser(const char *title, char *result,
+		const char *dir, const char *filetype);
 
+Result StringInput(const char *title, char *result, uint8_t maxLength);
+
+}
 
 #endif /* DIALOG_H_ */

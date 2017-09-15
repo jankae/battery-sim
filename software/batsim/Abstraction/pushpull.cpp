@@ -93,10 +93,10 @@ static uint16_t sampleRaw(const char * const title, uint16_t samples, uint16_t *
 	uint32_t sum = 0;
 
 	/* Create a sampling window with nothing but a progressbar in it */
-	window_t *w = window_new(title, Font_Big, COORDS(200, 40));
-	progressbar_t *p = progressbar_new(window_GetAvailableArea(w));
+	Window *w = new Window(title, Font_Big, COORDS(200, 40));
+	ProgressBar *p = new ProgressBar(w->getAvailableArea());
 
-	window_SetMainWidget(w, (widget_t*) p);
+	w->setMainWidget(p);
 
 	pushpull_SetAveraging(0);
 
@@ -108,12 +108,12 @@ static uint16_t sampleRaw(const char * const title, uint16_t samples, uint16_t *
 				n++;
 				sum += *source;
 			}
-			progressbar_SetState(p, (uint32_t) n * 100 / samples);
+			p->setState((uint32_t) n * 100 / samples);
 		}
 	} while (n < samples);
 
 	/* sampling competed */
-	window_destroy(w);
+	delete w;
 
 	return sum / samples;
 }
@@ -123,13 +123,13 @@ static int32_t getUserInputValue(const char * const title, const unit_t * const 
 	int32_t val;
 	do {
 		char input[12];
-		dialog_StringInput(title, input, sizeof(input));
+		Dialog::StringInput(title, input, sizeof(input));
 		if(common_ValueFromString(&val, input, unit)) {
 			/* got a valid user input */
 			ok = 1;
 		} else {
-			dialog_MessageBox("ERROR", Font_Big, "Invalid input", MSG_OK, NULL,
-					1);
+			Dialog::MessageBox("ERROR", Font_Big, "Invalid input", Dialog::MsgBox::OK, NULL,
+					true);
 		}
 	} while(!ok);
 
@@ -139,8 +139,8 @@ static int32_t getUserInputValue(const char * const title, const unit_t * const 
 uint8_t pushpull_Calibrate(void) {
 	pushpull_AcquireControl();
 
-	if (dialog_MessageBox("Step 1", Font_Big, "Connect a voltmeter\nto the output",
-			MSG_ABORT_OK, NULL, 1) != DIALOG_RESULT_OK) {
+	if (Dialog::MessageBox("Step 1", Font_Big, "Connect a voltmeter\nto the output",
+			Dialog::MsgBox::ABORT_OK, NULL, true) != Dialog::Result::OK) {
 		/* abort calibration */
 		pushpull_ReleaseControl();
 		return 0;
@@ -181,8 +181,8 @@ uint8_t pushpull_Calibrate(void) {
 	uint32_t highActual = getUserInputValue("Voltage at output?", &Unit_Voltage);
 	pushpull_SetEnabled(0);
 
-	if (dialog_MessageBox("Step 2", Font_Big, "Short the output\nwith an ammeter",
-			MSG_ABORT_OK, NULL, 1) != DIALOG_RESULT_OK) {
+	if (Dialog::MessageBox("Step 2", Font_Big, "Short the output\nwith an ammeter",
+			Dialog::MsgBox::ABORT_OK, NULL, true) != Dialog::Result::OK) {
 		/* abort calibration */
 		pushpull_ReleaseControl();
 		return 0;
@@ -196,8 +196,8 @@ uint8_t pushpull_Calibrate(void) {
 	pushpull_SetEnabled(1);
 	vTaskDelay(100);
 	while (pushpull_GetBatteryVoltage() > 1000000) {
-		dialog_MessageBox("ERROR", Font_Big,
-				"Output doesn't appear\nto be shorted.\n", MSG_OK, NULL, 1);
+		Dialog::MessageBox("ERROR", Font_Big,
+				"Output doesn't appear\nto be shorted.\n", Dialog::MsgBox::OK, NULL, true);
 	}
 
 	uint16_t lowCurrent250 = sampleRaw("Low current ADC", 2000, &output.rawCurrentLow);
@@ -205,8 +205,8 @@ uint8_t pushpull_Calibrate(void) {
 	uint32_t actualCurrent250 = getUserInputValue("Current across output?", &Unit_Current);
 	pushpull_SetEnabled(0);
 
-	if (dialog_MessageBox("Step 3", Font_Big, "Keep output shorted",
-			MSG_ABORT_OK, NULL, 1) != DIALOG_RESULT_OK) {
+	if (Dialog::MessageBox("Step 3", Font_Big, "Keep output shorted",
+			Dialog::MsgBox::ABORT_OK, NULL, true) != Dialog::Result::OK) {
 		/* abort calibration */
 		pushpull_ReleaseControl();
 		return 0;
@@ -218,8 +218,8 @@ uint8_t pushpull_Calibrate(void) {
 	uint16_t raw10mAlow = sampleRaw("Source I DAC", 2000, &output.rawCurrentLow);
 	pushpull_SetEnabled(1);
 
-	if (dialog_MessageBox("Step 4", Font_Big, "Connect a >=5V\n>=300mA voltage\nsupply",
-			MSG_ABORT_OK, NULL, 1) != DIALOG_RESULT_OK) {
+	if (Dialog::MessageBox("Step 4", Font_Big, "Connect a >=5V\n>=300mA voltage\nsupply",
+			Dialog::MsgBox::ABORT_OK, NULL, true) != Dialog::Result::OK) {
 		/* abort calibration */
 		pushpull_ReleaseControl();
 		return 0;
@@ -233,8 +233,8 @@ uint8_t pushpull_Calibrate(void) {
 	pushpull_SetEnabled(1);
 	vTaskDelay(100);
 	while (pushpull_GetBatteryVoltage() < 4500000) {
-		dialog_MessageBox("ERROR", Font_Big,
-				"No sufficient\nsupply connected.\n", MSG_OK, NULL, 1);
+		Dialog::MessageBox("ERROR", Font_Big,
+				"No sufficient\nsupply connected.\n", Dialog::MsgBox::OK, NULL, true);
 	}
 	uint16_t rawNeg250Low = sampleRaw("Sink I DAC 1/2", 2000, &output.rawCurrentLow);
 	/* limit the current to approx. 10mA */
@@ -349,9 +349,9 @@ void pushpull_SetEnabled(uint8_t enabled) {
 			output.enabled = 1;
 			CtrlWords[SPI_COMMAND_WORD] |= SPI_COMMAND_OUTPUT;
 		} else {
-			/* Temperature too high, output disabled */
-			dialog_MessageBox("ERROR", Font_Big, "Temperature too high", MSG_OK,
-					NULL, 1);
+//			/* Temperature too high, output disabled */
+//			dialog_MessageBox("ERROR", Font_Big, "Temperature too high", MSG_OK,
+//					NULL, 1);
 			output.enabled = 0;
 			CtrlWords[SPI_COMMAND_WORD] &= ~SPI_COMMAND_OUTPUT;
 		}

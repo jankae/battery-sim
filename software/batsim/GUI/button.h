@@ -6,22 +6,26 @@
 #include "font.h"
 #include "common.h"
 
-#define BUTTON_MAX_NAME         16
+class Button : public Widget {
+public:
+	Button(const char *name, font_t font, void (*cb)(Widget&), uint16_t minWidth = 0);
+	~Button();
 
-#define BUTTON_FG_COLOR			COLOR_BLACK
-#define BUTTON_BG_COLOR			COLOR_BG_DEFAULT
+	char *getName() {
+		return name;
+	}
+private:
+	void draw(coords_t offset) override;
+	void input(GUIEvent_t *ev) override;
 
-typedef struct {
-    widget_t base;
-    void (*callback)(widget_t* source);
-    char name[BUTTON_MAX_NAME + 1];
+	static constexpr color_t Foreground = COLOR_BLACK;
+	static constexpr color_t Background = COLOR_BG_DEFAULT;
+
+    void (*callback)(Widget& source);
+    char *name;
     font_t font;
     coords_t fontStart;
-    uint8_t pressed;
-} button_t;
-
-button_t* button_new(const char *name, font_t font, uint16_t minWidth, void (*cb)(widget_t*));
-void button_draw(widget_t *w, coords_t offset);
-void button_input(widget_t *w, GUIEvent_t *ev);
+    bool pressed;
+};
 
 #endif

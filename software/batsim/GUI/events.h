@@ -28,7 +28,7 @@ struct event {
 		/* coordinates for position based events */
 		coords_t pos;
 		/* pointer to widget for widget based events */
-		widget_t *w;
+		class Widget *w;
 		/* Button mask for button related events */
 		uint32_t button;
 		/* Encoder movement */

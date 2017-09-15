@@ -3,27 +3,27 @@
 
 #include "widget.h"
 #include "display.h"
-#include "font.h"
+//#include "font.h"
 #include "common.h"
-#include "dialog.h"
+//#include "dialog.h"
 
-#define SEVENSEGMENT_BG_COLOR				COLOR_BG_DEFAULT
-#define SEVENSEGMENT_FG_COLOR				COLOR_FG_DEFAULT
-#define SEVENSEGMENT_BORDER_COLOR			COLOR_FG_DEFAULT
+class SevenSegment : public Widget {
+public:
+	SevenSegment(int32_t *value, uint8_t sLength, uint8_t sWidth, uint8_t length, uint8_t dot, color_t color);
 
-typedef struct {
-    widget_t base;
+private:
+	void draw_Digit(int16_t x, int16_t y, uint8_t digit);
+
+	void draw(coords_t offset) override;
+
+	static constexpr color_t Background = COLOR_BG_DEFAULT;
+
     int32_t *value;
     uint8_t segmentLength;
     uint8_t segmentWidth;
     uint8_t length;
     uint8_t dot;
     color_t color;
-} sevensegment_t;
-
-sevensegment_t* sevensegment_new(int32_t *value, uint8_t sLength, uint8_t sWidth, uint8_t length, uint8_t dot, color_t color);
-
-void sevensegment_draw(widget_t *w, coords_t offset);
-void sevensegment_input(widget_t *w, GUIEvent_t *ev);
+};
 
 #endif

@@ -1,57 +1,49 @@
 #include "window.h"
 
-extern widget_t *topWidget;
-extern uint8_t isPopup;
+extern Widget *topWidget;
+extern bool isPopup;
 
-window_t* window_new(const char *title, font_t font, coords_t size) {
-	window_t *w = (window_t*) pvPortMalloc(sizeof(window_t));
-	if (!w) {
-		/* malloc failed */
-		return NULL;
-	}
-	widget_init((widget_t*) w);
-	w->base.size = size;
+Window::Window(const char *title, font_t font, coords_t size) {
+	this->size = size;
 	/* center window on screen */
-	w->base.position.x = (DISPLAY_WIDTH - size.x) / 2;
-	w->base.position.y = (DISPLAY_HEIGHT - size.y) / 2;
-	w->base.func.draw = window_draw;
-	w->base.func.input = window_input;
-	w->base.func.drawChildren = window_drawChildren;
+	position.x = (DISPLAY_WIDTH - size.x) / 2;
+	position.y = (DISPLAY_HEIGHT - size.y) / 2;
 	/* a new widget must have its area cleared */
-	w->base.flags.redrawClear = 1;
-	w->font = font;
+	redrawClear = 1;
+	this->font = font;
 	/* set title */
-	uint8_t i = 0;
-	while (*title && i < WINDOW_MAX_NAME) {
-		w->title[i++] = *title++;
-	}
-	w->title[i] = 0;
+	uint16_t titlelength = strlen(title);
+	this->title = new char[titlelength + 1];
+	memcpy(this->title, title, titlelength + 1);
 	/* store last top widget (will be restored when this window closes) */
-	w->lastTopWidget = topWidget;
-	topWidget = (widget_t*) w;
-	w->lastPopup = isPopup;
-	isPopup = 1;
-
-	return w;
+	lastTopWidget = topWidget;
+	topWidget = this;
+	lastPopup = isPopup;
+	isPopup = true;
 }
-
-void window_destroy(window_t *w) {
+Window::~Window() {
 	/* restore last top widget */
-	topWidget = w->lastTopWidget;
-	isPopup = w->lastPopup;
-	/* delete this window and all its sub-widgets */
-	widget_delete((widget_t*) w);
+	Widget::deselect();
+	topWidget = lastTopWidget;
+	isPopup = lastPopup;
 	/* request full redraw of new top widget */
-	widget_RequestRedrawFull(topWidget);
+	topWidget->requestRedrawFull();
+	// TODO this is extremely ugly
+	GUIEvent_t ev;
+	ev.type = EVENT_WINDOW_CLOSE;
+	ev.w = this;
+	gui_SendEvent(&ev);
+
+	delete title;
 }
 
-GUIResult_t window_SetMainWidget(window_t *w, widget_t *widg) {
-	if(w->base.firstChild) {
+void Window::setMainWidget(Widget *w) {
+	if(firstChild) {
 		/* window already has a widget in it */
-		return GUI_ERROR;
+		CRIT_ERROR("Window already has a widget");
 	}
-	coords_t maxSize = window_GetAvailableArea(w);
-	if(widg->size.x > maxSize.x || widg->size.y > maxSize.y) {
+	coords_t maxSize = getAvailableArea();
+	if(w->getSize().x > maxSize.x || w->getSize().y > maxSize.y) {
 		/* widget doesn't fit in window */
 		/* This potentially allows for a memory leak if the application doesn't check for
 		 * a return code. The widget (which failed to be attached to the window) won't get freed
@@ -59,75 +51,63 @@ GUIResult_t window_SetMainWidget(window_t *w, widget_t *widg) {
 		 * Workaround: As an empty window is not useful at all, this will only happen during
 		 * a software error -> display error message */
 		CRIT_ERROR("Widget too big for window");
-		return GUI_ERROR;
 	}
-	w->base.firstChild = widg;
-	w->base.flags.redrawChild = 1;
-	widg->parent = (widget_t*) w;
+	firstChild = w;
+	redrawChild = 1;
+	w->parent = this;
 	/* set child offset */
-	widg->position.x = 1;
-	widg->position.y = w->font.height + 4;
-
-	return GUI_OK;
+	w->setPosition(COORDS(1, font.height + 4));
 }
-void window_draw(widget_t *w, coords_t offset) {
-	window_t *window = (window_t*) w;
-    /* calculate corners */
-    coords_t upperLeft = offset;
-    coords_t lowerRight = upperLeft;
-    lowerRight.x += w->size.x - 1;
-    lowerRight.y += w->size.y - 1;
-	display_SetForeground(WINDOW_BORDER_COLOR);
-    /* draw outline */
+coords_t Window::getAvailableArea() {
+	return SIZE(size.x - 2, size.y - font.height - 5);
+}
+
+void Window::draw(coords_t offset) {
+	/* calculate corners */
+	coords_t upperLeft = offset;
+	coords_t lowerRight = upperLeft;
+	lowerRight.x += size.x - 1;
+	lowerRight.y += size.y - 1;
+	display_SetForeground(Border);
+	/* draw outline */
 	display_Rectangle(upperLeft.x, upperLeft.y, lowerRight.x, lowerRight.y);
 	/* draw dividing line under the title bar */
-	display_HorizontalLine(upperLeft.x + 1, upperLeft.y + window->font.height + 3, w->size.x - 2);
+	display_HorizontalLine(upperLeft.x + 1, upperLeft.y + font.height + 3,
+			size.x - 2);
 	/* draw dividing line between title and close button */
-//	display_VerticalLine(upperLeft.x + window->font.height + 3, upperLeft.y + 1,
-//			window->font.height + 2);
+//	display_VerticalLine(upperLeft.x + font.height + 3, upperLeft.y + 1,
+//			font.height + 2);
 //	/* fill close area with background color */
 //	display_SetForeground(WINDOW_CLOSE_AREA_COLOR);
 //	display_RectangleFull(upperLeft.x + 1, upperLeft.y + 1,
-//			upperLeft.x + window->font.height + 2,
-//			upperLeft.y + window->font.height + 2);
+//			upperLeft.x + font.height + 2,
+//			upperLeft.y + font.height + 2);
 //	/* draw X in close area */
 //	display_SetForeground(WINDOW_CLOSE_X_COLOR);
 //	display_Line(upperLeft.x + 2, upperLeft.y + 2,
-//			upperLeft.x + window->font.height + 1,
-//			upperLeft.y + window->font.height + 1);
-//	display_Line(upperLeft.x + 2, upperLeft.y + window->font.height + 1,
-//			upperLeft.x + window->font.height + 1, upperLeft.y + 2);
+//			upperLeft.x + font.height + 1,
+//			upperLeft.y + font.height + 1);
+//	display_Line(upperLeft.x + 2, upperLeft.y + font.height + 1,
+//			upperLeft.x + font.height + 1, upperLeft.y + 2);
 	/* fill title bar with background color */
-	display_SetForeground(WINDOW_TITLE_BG_COLOR);
-	display_RectangleFull(upperLeft.x + 1/*+ window->font.height + 4*/,
-			upperLeft.y + 1, lowerRight.x - 1,
-			upperLeft.y + window->font.height + 2);
+	display_SetForeground(TitleBackground);
+	display_RectangleFull(upperLeft.x + 1/*+ font.height + 4*/, upperLeft.y + 1,
+			lowerRight.x - 1, upperLeft.y + font.height + 2);
 	/* add title */
-	display_SetForeground(WINDOW_TITLE_FG_COLOR);
-	display_SetBackground(WINDOW_TITLE_BG_COLOR);
-	display_SetFont(window->font);
-	display_String(upperLeft.x + 1/*+ window->font.height + 5*/, upperLeft.y + 2,
-			window->title);
+	display_SetForeground(TitleForeground);
+	display_SetBackground(TitleBackground);
+	display_SetFont(font);
+	display_String(upperLeft.x + 1/*+ font.height + 5*/, upperLeft.y + 2,
+			title);
 }
 
-void window_drawChildren(widget_t *w, coords_t offset) {
-	if (w->firstChild) {
-		widget_draw(w->firstChild, offset);
-	}
-}
-
-coords_t window_GetAvailableArea(window_t *w) {
-	return SIZE(w->base.size.x - 2, w->base.size.y - w->font.height - 5);
-}
-
-void window_input(widget_t *w, GUIEvent_t *ev) {
-//	window_t *window = (window_t*) w;
+//void Window::input(GUIEvent_t *ev) {
 //	switch (ev->type) {
 //	case EVENT_TOUCH_RELEASED:
-//		if (ev->pos.y <= window->font.height + 3) {
+//		if (ev->pos.y <= font.height + 3) {
 //			/* mark event as handled */
 //			ev->type = EVENT_NONE;
-//			if (ev->pos.x <= window->font.height + 3) {
+//			if (ev->pos.x <= font.height + 3) {
 //				/* clicked into window close area, close this window */
 //				GUIEvent_t ev = { .type = EVENT_WINDOW_CLOSE, .w = w };
 //				gui_SendEvent(&ev);
@@ -137,4 +117,10 @@ void window_input(widget_t *w, GUIEvent_t *ev) {
 //	default:
 //		break;
 //	}
+//}
+
+void Window::drawChildren(coords_t offset) {
+	if (firstChild) {
+		Widget::draw(firstChild, offset);
+	}
 }

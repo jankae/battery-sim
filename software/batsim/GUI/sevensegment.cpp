@@ -29,74 +29,62 @@ static const uint8_t segmentStartY[7] = {
 		0, 0, 1, 2, 1, 0, 1
 };
 
-sevensegment_t* sevensegment_new(int32_t *value, uint8_t sLength,
-		uint8_t sWidth, uint8_t length, uint8_t dot, color_t color) {
-	sevensegment_t* s = (sevensegment_t*) pvPortMalloc(sizeof(sevensegment_t));
-	if (!s) {
-		/* malloc failed */
-		return NULL;
-	}
-	widget_init((widget_t*) s);
-	/* set widget functions */
-	s->base.func.draw = sevensegment_draw;
-	s->base.func.input = sevensegment_input;
+SevenSegment::SevenSegment(int32_t *value, uint8_t sLength, uint8_t sWidth,
+		uint8_t length, uint8_t dot, color_t color) {
 	/* set member variables */
-	s->value = value;
-	s->segmentLength = sLength;
-	s->segmentWidth = sWidth;
-	s->length = length;
-	s->dot = dot;
-	s->color = color;
+	this->value = value;
+	segmentLength = sLength;
+	segmentWidth = sWidth;
+	this->length = length;
+	this->dot = dot;
+	this->color = color;
 
 	uint16_t height = sWidth + 2 * sLength;
 	uint16_t digitWidth = sWidth + sLength;
-	s->base.size.y = height;
-	s->base.size.x = digitWidth * length + sWidth * (length - 1);
-
-	return s;
+	size.y = height;
+	size.x = digitWidth * length + sWidth * (length - 1);
 }
 
-static void draw_Digit(sevensegment_t *s, int16_t x, int16_t y, uint8_t digit) {
+void SevenSegment::draw_Digit(int16_t x, int16_t y, uint8_t digit) {
 	uint8_t i;
 	for (i = 0; i < 7; i++) {
 		/* Select color for this segment */
 		if ((1 << i) & digitToSegments[digit]) {
-			display_SetForeground(s->color);
+			display_SetForeground(color);
 		} else {
-			display_SetForeground(SEVENSEGMENT_BG_COLOR);
+			display_SetForeground (Background);
 		}
 
 		/* draw the segment */
-		int16_t offsetX = x + segmentStartX[i] * (s->segmentLength + 1);
-		int16_t offsetY = y + segmentStartY[i] * (s->segmentLength + 1);
+		int16_t offsetX = x + segmentStartX[i] * (segmentLength + 1);
+		int16_t offsetY = y + segmentStartY[i] * (segmentLength + 1);
 
 		if ((1 << i) & segmentOrientation) {
 			/* this is a horizontal segment */
-			display_HorizontalLine(offsetX + 1, offsetY, s->segmentLength);
+			display_HorizontalLine(offsetX + 1, offsetY, segmentLength);
 			uint8_t j;
-			for (j = 1; j <= s->segmentWidth / 2; j++) {
+			for (j = 1; j <= segmentWidth / 2; j++) {
 				display_HorizontalLine(offsetX + j + 1, offsetY + j,
-						s->segmentLength - 2 * j);
+						segmentLength - 2 * j);
 				display_HorizontalLine(offsetX + j + 1, offsetY - j,
-						s->segmentLength - 2 * j);
+						segmentLength - 2 * j);
 			}
 		} else {
 			/* this is a vertical segment */
-			display_VerticalLine(offsetX, offsetY + 1, s->segmentLength);
+			display_VerticalLine(offsetX, offsetY + 1, segmentLength);
 			uint8_t j;
-			for (j = 1; j <= s->segmentWidth / 2; j++) {
+			for (j = 1; j <= segmentWidth / 2; j++) {
 				display_VerticalLine(offsetX + j, offsetY + j + 1,
-						s->segmentLength - 2 * j);
+						segmentLength - 2 * j);
 				display_VerticalLine(offsetX - j, offsetY + j + 1,
-						s->segmentLength - 2 * j);
+						segmentLength - 2 * j);
 			}
 		}
 	}
 }
 
-void sevensegment_draw(widget_t *w, coords_t offset) {
-	sevensegment_t * s = (sevensegment_t*) w;
-	int32_t buf = *s->value;
+void SevenSegment::draw(coords_t offset) {
+	int32_t buf = *value;
 	uint8_t neg = 0;
 	if (buf < 0) {
 		buf = -buf;
@@ -104,41 +92,36 @@ void sevensegment_draw(widget_t *w, coords_t offset) {
 	}
 	uint8_t i;
 	int16_t x = offset.x
-			+ (s->length - 1) * (s->segmentLength + 2 * s->segmentWidth)
-			+ s->segmentWidth / 2;
-	int16_t y = offset.y + s->segmentWidth / 2;
-	for (i = 0; i < s->length; i++) {
-		if (i == s->length - 1) {
+			+ (length - 1) * (segmentLength + 2 * segmentWidth)
+			+ segmentWidth / 2;
+	int16_t y = offset.y + segmentWidth / 2;
+	for (i = 0; i < length; i++) {
+		if (i == length - 1) {
 			/* this is the negative sign position */
 			if (neg) {
-				draw_Digit(s, x, y, 10);
+				draw_Digit(x, y, 10);
 			} else {
-				draw_Digit(s, x, y, 11);
+				draw_Digit(x, y, 11);
 			}
 		} else {
-			draw_Digit(s, x, y, buf % 10);
+			draw_Digit(x, y, buf % 10);
 		}
-		if (s->dot && (s->dot == i + 1)) {
+		if (dot && (dot == i + 1)) {
 			/* draw dot in front of current digit */
-			int16_t offsetX = x - s->segmentWidth;
-			int16_t offsetY = y + 2 * (s->segmentLength + 1)
-					- s->segmentWidth / 2;
-			display_SetForeground(s->color);
-			display_VerticalLine(offsetX, offsetY + 1, s->segmentWidth);
+			int16_t offsetX = x - segmentWidth;
+			int16_t offsetY = y + 2 * (segmentLength + 1)
+					- segmentWidth / 2;
+			display_SetForeground(color);
+			display_VerticalLine(offsetX, offsetY + 1, segmentWidth);
 			uint8_t j;
-			for (j = 1; j <= s->segmentWidth / 2; j++) {
+			for (j = 1; j <= segmentWidth / 2; j++) {
 				display_VerticalLine(offsetX + j, offsetY + j + 1,
-						s->segmentWidth - 2 * j);
+						segmentWidth - 2 * j);
 				display_VerticalLine(offsetX - j, offsetY + j + 1,
-						s->segmentWidth - 2 * j);
+						segmentWidth - 2 * j);
 			}
 		}
-		x -= s->segmentLength + 2 * s->segmentWidth;
+		x -= segmentLength + 2 * segmentWidth;
 		buf /= 10;
 	}
-}
-
-void sevensegment_input(widget_t *w, GUIEvent_t *ev) {
-    /* sevensegment doesn't handle any input */
-	return;
 }

@@ -18,264 +18,239 @@ static const char upperLayout[LAYOUT_Y][LAYOUT_X] = {
 		{'Z', 'X','C','V','B','N','M','<','>','_',},
 };
 
-keyboard_t* keyboard_new(void (*cb)(char)) {
-	keyboard_t* k = (keyboard_t*) pvPortMalloc(sizeof(keyboard_t));
-	if (!k) {
-		/* malloc failed */
-		return NULL;
-	}
-    /* initialize common widget values */
-    widget_init((widget_t*) k);
-    /* set widget functions */
-    k->base.func.draw = keyboard_draw;
-    k->base.func.input = keyboard_input;
-    /* a textfield can't have any children */
-    k->base.func.drawChildren = NULL;
+Keyboard::Keyboard(void (*cb)(char)) {
+	keyPressedCallback = cb;
+	selectedX = 0;
+	selectedY = 0;
+	shift = false;
 
-    k->keyPressedCallback = cb;
-    k->selectedX = 0;
-    k->selectedY = 0;
-    k->shift = 0;
-
-    k->base.size.x = LAYOUT_X * KEYBOARD_SPACING_X + 1;
-    k->base.size.y = (LAYOUT_Y + 1) * KEYBOARD_SPACING_Y + 1;
-
-    return k;
+    size.x = LAYOUT_X * spacingX + 1;
+    size.y = (LAYOUT_Y + 1) * spacingY + 1;
 }
-void keyboard_draw(widget_t *w, coords_t offset) {
-	keyboard_t *k = (keyboard_t*) w;
 
+void Keyboard::draw(coords_t offset) {
 	/* calculate corners */
     coords_t upperLeft = offset;
-    coords_t lowerRight = upperLeft;
-    lowerRight.x += k->base.size.x - 1;
-    lowerRight.y += k->base.size.y - 1;
+	coords_t lowerRight = upperLeft;
+	lowerRight.x += size.x - 1;
+	lowerRight.y += size.y - 1;
 
-    /* Draw surrounding rectangle */
-	if (w->flags.selected) {
-		display_SetForeground(COLOR_SELECTED);
+	/* Draw surrounding rectangle */
+	if (selected) {
+		display_SetForeground(Selected);
 	} else {
-		display_SetForeground(KEYBOARD_BORDER_COLOR);
+		display_SetForeground(Border);
 	}
-    display_Rectangle(upperLeft.x, upperLeft.y, lowerRight.x, lowerRight.y);
-	display_SetForeground(KEYBOARD_BORDER_COLOR);
+	display_Rectangle(upperLeft.x, upperLeft.y, lowerRight.x, lowerRight.y);
+	display_SetForeground(Border);
 
 	/* display dividing lines */
-	display_SetForeground(KEYBOARD_LINE_COLOR);
+	display_SetForeground(Line);
 	uint8_t i;
 	for (i = 1; i <= LAYOUT_Y; i++) {
-		display_HorizontalLine(upperLeft.x + 1,
-				upperLeft.y + i * KEYBOARD_SPACING_Y, w->size.x - 2);
+		display_HorizontalLine(upperLeft.x + 1, upperLeft.y + i * spacingX,
+				size.x - 2);
 	}
 	for (i = 1; i < LAYOUT_X; i++) {
-		uint8_t length = LAYOUT_Y * KEYBOARD_SPACING_Y - 1;
+		uint8_t length = LAYOUT_Y * spacingY - 1;
 		if (i == 3 || i == LAYOUT_X - 3) {
-			length += KEYBOARD_SPACING_Y;
+			length += spacingY;
 		}
-		display_VerticalLine(upperLeft.x + i * KEYBOARD_SPACING_X,
-				upperLeft.y + 1, length);
+		display_VerticalLine(upperLeft.x + i * spacingX, upperLeft.y + 1,
+				length);
 	}
 
-	display_SetBackground(KEYBOARD_BG_COLOR);
+	display_SetBackground(Background);
 	/* Draw keys */
 	for (i = 0; i < LAYOUT_Y; i++) {
 		uint8_t j;
 		for (j = 0; j < LAYOUT_X; j++) {
-			if (i == k->selectedY && j == k->selectedX) {
+			if (i == selectedY && j == selectedX) {
 				/* this is the selected key */
-				display_SetForeground(KEYBOARD_SELECTED_COLOR);
+				display_SetForeground(Selected);
 			} else {
-				display_SetForeground(KEYBOARD_BORDER_COLOR);
+				display_SetForeground(Border);
 			}
 			char c = lowerLayout[i][j];
-			if (k->shift) {
+			if (shift) {
 				c = upperLayout[i][j];
 			}
 			display_Char(
-					upperLeft.x + j * KEYBOARD_SPACING_X
-							+ (KEYBOARD_SPACING_X - KEYBOARD_FONT.width) / 2,
-					upperLeft.y + i * KEYBOARD_SPACING_Y
-							+ (KEYBOARD_SPACING_Y - KEYBOARD_FONT.height) / 2,
+					upperLeft.x + j * spacingX + (spacingX - Font->width) / 2,
+					upperLeft.y + i * spacingY + (spacingY - Font->height) / 2,
 					c);
 		}
 	}
 
 	/* Draw bottom bar with shift, space and backspace */
 	/* SHIFT */
-	if(k->selectedY == LAYOUT_Y && k->selectedX<3) {
+	if (selectedY == LAYOUT_Y && selectedX < 3) {
 		/* shift is selected */
-		display_SetForeground(KEYBOARD_SELECTED_COLOR);
-	} else if(k->shift){
+		display_SetForeground(Selected);
+	} else if (shift) {
 		/* shift is not selected, but active */
-		display_SetForeground(KEYBOARD_SHIFT_ACTIVE_COLOR);
+		display_SetForeground(ShiftActive);
 	} else {
-		display_SetForeground(KEYBOARD_BORDER_COLOR);
+		display_SetForeground(Border);
 	}
-	display_String(
-			upperLeft.x
-					+ (3 * KEYBOARD_SPACING_X - 5 * KEYBOARD_FONT.width) / 2,
-			upperLeft.y + LAYOUT_Y * KEYBOARD_SPACING_Y
-					+ (KEYBOARD_SPACING_Y - KEYBOARD_FONT.height) / 2, "SHIFT");
+	display_String(upperLeft.x + (3 * spacingX - 5 * Font->width) / 2,
+			upperLeft.y + LAYOUT_Y * spacingY + (spacingY - Font->height) / 2,
+			"SHIFT");
 
 	/* SPACE */
-	if (k->selectedY == LAYOUT_Y && k->selectedX >= 3
-			&& k->selectedX < LAYOUT_X - 3) {
+	if (selectedY == LAYOUT_Y && selectedX >= 3 && selectedX < LAYOUT_X - 3) {
 		/* space is selected */
-		display_SetForeground(KEYBOARD_SELECTED_COLOR);
+		display_SetForeground(Selected);
 	} else {
-		display_SetForeground(KEYBOARD_BORDER_COLOR);
+		display_SetForeground(Border);
 	}
 	display_String(
-			upperLeft.x
-					+ ((LAYOUT_X - 6) * KEYBOARD_SPACING_X
-							- 5 * KEYBOARD_FONT.width)
-							/ 2+ 3*KEYBOARD_SPACING_X,
-			upperLeft.y + LAYOUT_Y * KEYBOARD_SPACING_Y
-					+ (KEYBOARD_SPACING_Y - KEYBOARD_FONT.height) / 2, "SPACE");
+			upperLeft.x + ((LAYOUT_X - 6) * spacingX - 5 * Font->width) / 2
+					+ 3 * spacingX,
+			upperLeft.y + LAYOUT_Y * spacingY + (spacingY - Font->height) / 2,
+			"SPACE");
 
 	/* DEL */
-	if (k->selectedY == LAYOUT_Y && k->selectedX >= LAYOUT_X - 3) {
+	if (selectedY == LAYOUT_Y && selectedX >= LAYOUT_X - 3) {
 		/* del is selected */
-		display_SetForeground(KEYBOARD_SELECTED_COLOR);
+		display_SetForeground (Selected);
 	} else {
-		display_SetForeground(KEYBOARD_BORDER_COLOR);
+		display_SetForeground (Border);
 	}
 	display_String(
-			upperLeft.x
-					+ (3 * KEYBOARD_SPACING_X - 3 * KEYBOARD_FONT.width)
-							/ 2+ (LAYOUT_X-3)*KEYBOARD_SPACING_X,
-			upperLeft.y + LAYOUT_Y * KEYBOARD_SPACING_Y
-					+ (KEYBOARD_SPACING_Y - KEYBOARD_FONT.height) / 2, "DEL");
+			upperLeft.x + (3 * spacingX - 3 * Font->width) / 2
+					+ (LAYOUT_X - 3) * spacingX,
+			upperLeft.y + LAYOUT_Y * spacingY + (spacingY - Font->height) / 2,
+			"DEL");
+
 }
 
-static void sendChar(keyboard_t *k) {
-	if(k->selectedY < LAYOUT_Y) {
-		/* a character key is selected */
-		if (k->keyPressedCallback) {
-			char c = lowerLayout[k->selectedY][k->selectedX];
-			if (k->shift) {
-				c = upperLayout[k->selectedY][k->selectedX];
-			}
-			k->keyPressedCallback(c);
-		}
-	} else {
-		if(k->selectedX <3) {
-			/* shift is selected */
-			k->shift = !k->shift;
-			widget_RequestRedraw((widget_t*) k);
-		} else if(k->selectedX >= LAYOUT_X - 3) {
-			/* del is selected */
-			if (k->keyPressedCallback) {
-				k->keyPressedCallback(0x08);
-			}
-		} else {
-			/* space is selected */
-			if (k->keyPressedCallback) {
-				k->keyPressedCallback(' ');
-			}
-		}
-	}
-}
-
-void keyboard_input(widget_t *w, GUIEvent_t *ev) {
-	keyboard_t *k = (keyboard_t*) w;
-
+void Keyboard::input(GUIEvent_t *ev) {
 	switch(ev->type) {
 	case EVENT_ENCODER_MOVED:
 		if (ev->movement > 0) {
 			/* move to the right, ignore amount of movement */
-			k->selectedX++;
-			if (k->selectedX >= LAYOUT_X) {
-				k->selectedX = 0;
-				k->selectedY++;
-				if (k->selectedY > LAYOUT_Y) {
-					k->selectedY = 0;
+			selectedX++;
+			if (selectedX >= LAYOUT_X) {
+				selectedX = 0;
+				selectedY++;
+				if (selectedY > LAYOUT_Y) {
+					selectedY = 0;
 				}
 			}
 		} else {
 			/* move to the left, ignore amount of movement */
-			if (k->selectedX > 0) {
-				k->selectedX--;
+			if (selectedX > 0) {
+				selectedX--;
 			} else {
-				k->selectedX = LAYOUT_X - 1;
-				if (k->selectedY > 0) {
-					k->selectedY--;
+				selectedX = LAYOUT_X - 1;
+				if (selectedY > 0) {
+					selectedY--;
 				} else {
-					k->selectedY = LAYOUT_Y;
+					selectedY = LAYOUT_Y;
 				}
 			}
 		}
-		widget_RequestRedraw(w);
+		requestRedraw();
 		break;
 	case EVENT_BUTTON_CLICKED:
 		if (ev->button & (BUTTON_UNIT1 | BUTTON_ENCODER)) {
-			sendChar(k);
+			sendChar();
 		} else if (BUTTON_IS_DIGIT(ev->button)) {
 			/* send this digit directly */
-			if (k->keyPressedCallback) {
-				k->keyPressedCallback(BUTTON_TODIGIT(ev->button) + '0');
+			if (keyPressedCallback) {
+				keyPressedCallback(BUTTON_TODIGIT(ev->button) + '0');
 			}
 		} else if (BUTTON_IS_ARROW(ev->button)) {
 			switch (ev->button) {
 			case BUTTON_LEFT:
-				if (k->selectedX > 0) {
-					k->selectedX--;
+				if (selectedX > 0) {
+					selectedX--;
 				} else {
-					k->selectedX = LAYOUT_X - 1;
+					selectedX = LAYOUT_X - 1;
 				}
 				break;
 			case BUTTON_RIGHT:
-				if (k->selectedX < LAYOUT_X - 1) {
-					k->selectedX++;
+				if (selectedX < LAYOUT_X - 1) {
+					selectedX++;
 				} else {
-					k->selectedX = 0;
+					selectedX = 0;
 				}
 				break;
 			case BUTTON_UP:
-				if (k->selectedY > 0) {
-					k->selectedY--;
+				if (selectedY > 0) {
+					selectedY--;
 				} else {
-					k->selectedY = LAYOUT_Y;
+					selectedY = LAYOUT_Y;
 				}
 				break;
 			case BUTTON_DOWN:
-				if (k->selectedY < LAYOUT_Y) {
-					k->selectedY++;
+				if (selectedY < LAYOUT_Y) {
+					selectedY++;
 				} else {
-					k->selectedY = 0;
+					selectedY = 0;
 				}
 				break;
 			}
-			widget_RequestRedraw(w);
+			requestRedraw();
 		} else if(ev->button == BUTTON_DEL) {
-			if (k->keyPressedCallback) {
-				k->keyPressedCallback(0x08);
+			if (keyPressedCallback) {
+				keyPressedCallback(0x08);
 			}
 		} else if(ev->button == BUTTON_DOT) {
 			/* send dot directly */
-			if (k->keyPressedCallback) {
-				k->keyPressedCallback('.');
+			if (keyPressedCallback) {
+				keyPressedCallback('.');
 			}
 		} else if(ev->button == BUTTON_SIGN) {
 			/* send sign directly */
-			if (k->keyPressedCallback) {
-				k->keyPressedCallback('-');
+			if (keyPressedCallback) {
+				keyPressedCallback('-');
 			}
 		}
 		break;
 	case EVENT_TOUCH_PRESSED:
-		if (w->flags.selected) {
+		if (selected) {
 			/* only react to touch if already selected. This allows
 			 * the user to select the widget without already changing the value */
 			/* Calculate key pressed */
-			k->selectedX = ev->pos.x / KEYBOARD_SPACING_X;
-			k->selectedY = ev->pos.y / KEYBOARD_SPACING_Y;
-			sendChar(k);
-			widget_RequestRedraw(w);
+			selectedX = ev->pos.x / spacingX;
+			selectedY = ev->pos.y / spacingY;
+			sendChar();
+			requestRedraw();
 		}
 		break;
 	default:
 		break;
 	}
-	return;
+
+}
+
+void Keyboard::sendChar() {
+	if(selectedY < LAYOUT_Y) {
+		/* a character key is selected */
+		if (keyPressedCallback) {
+			char c = lowerLayout[selectedY][selectedX];
+			if (shift) {
+				c = upperLayout[selectedY][selectedX];
+			}
+			keyPressedCallback(c);
+		}
+	} else {
+		if(selectedX <3) {
+			/* shift is selected */
+			shift = !shift;
+			requestRedraw();
+		} else if(selectedX >= LAYOUT_X - 3) {
+			/* del is selected */
+			if (keyPressedCallback) {
+				keyPressedCallback(0x08);
+			}
+		} else {
+			/* space is selected */
+			if (keyPressedCallback) {
+				keyPressedCallback(' ');
+			}
+		}
+	}
 }

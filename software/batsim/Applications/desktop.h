@@ -13,7 +13,7 @@
 #define DESKTOP_ICONOFFSET_X	4
 
 void desktop_AddApp(AppInfo_t app);
-void desktop_AppStarted(void (*start)(void), widget_t *top);
+void desktop_AppStarted(void (*start)(void), Widget *top);
 void desktop_AppStopped(void);
 void desktop_Draw(void);
 void desktop_Input(GUIEvent_t *ev);

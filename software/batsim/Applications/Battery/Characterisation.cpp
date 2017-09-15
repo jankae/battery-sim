@@ -59,7 +59,7 @@ static TaskHandle_t handle;
 static int32_t vResponse[SAMPLES];
 static int32_t cResponse[SAMPLES];
 static uint32_t sampleCnt;
-static SemaphoreHandle_t samplingDone;
+static volatile bool samplingDone;
 
 static int analyzeResponse(int32_t *voltage, int32_t *current, uint16_t npoints,
 		BatDataPoint_t *result) {
@@ -134,6 +134,8 @@ static int analyzeResponse(int32_t *voltage, int32_t *current, uint16_t npoints,
 	common_StringFromValue(buf, 10, result->R2, &Unit_Resistance);
 	printf("R2: %s\n", buf);
 
+	// TODO complete
+	return 0;
 }
 
 static void pushpullCallback(PushPull_State_t *state) {
@@ -144,12 +146,12 @@ static void pushpullCallback(PushPull_State_t *state) {
 	} else {
 		pushpull_SetCallback(NULL);
 		BaseType_t yield;
-		xSemaphoreGiveFromISR(samplingDone, &yield);
+		samplingDone = true;
 		portYIELD_FROM_ISR(yield);
 	}
 }
 
-static void Start(widget_t *w) {
+static void Start(Widget &w) {
 	start = 1;
 	xTaskNotify(handle, SIGNAL_WAKEUP, eSetBits);
 }
@@ -157,32 +159,32 @@ static void Start(widget_t *w) {
 static void Characterisation(void *unused) {
 	handle = xTaskGetCurrentTaskHandle();
 	/* Create GUI elements */
-	container_t *c= container_new(COORDS(280, 240));
-	c->base.position.x = 40;
+	Container *c= new Container(COORDS(280, 240));
+	c->setPosition(COORDS(40, 0));
 
 	int32_t current = 0;
 
-	label_t *lCurrent = label_newWithText("Test current:", Font_Big);
-	entry_t *eCurrent = entry_new(&current, &Limits.maxCurrent, &null, Font_Big, 6, &Unit_Current);
+	Label *lCurrent = new Label("Test current:", Font_Big);
+	Entry *eCurrent = new Entry(&current, &Limits.maxCurrent, &null, Font_Big, 6, &Unit_Current);
 
-	graph_t *gvResponse = graph_new(vResponse, SAMPLES, 85, COLOR_DARKGREEN, &Unit_Voltage);
-	graph_t *gcResponse = graph_new(cResponse, SAMPLES, 85, COLOR_RED, &Unit_Current);
+	Graph *gvResponse = new Graph(vResponse, SAMPLES, 85, COLOR_DARKGREEN, &Unit_Voltage);
+	Graph *gcResponse = new Graph(cResponse, SAMPLES, 85, COLOR_RED, &Unit_Current);
 
-	button_t *bStart = button_new("START", Font_Big, 260, Start);
+	Button *bStart = new Button("START", Font_Big, Start, 260);
 
-	container_attach(c, (widget_t*) lCurrent, COORDS(5, 7));
-	container_attach(c, (widget_t*) eCurrent, COORDS(180, 5));
-	container_attach(c, (widget_t*) gvResponse, COORDS(2, 30));
-	container_attach(c, (widget_t*) gcResponse, COORDS(2, 120));
-	container_attach(c, (widget_t*) bStart, COORDS(10, 210));
+	c->attach(lCurrent, COORDS(5, 7));
+	c->attach(eCurrent, COORDS(180, 5));
+	c->attach(gvResponse, COORDS(2, 30));
+	c->attach(gcResponse, COORDS(2, 120));
+	c->attach(bStart, COORDS(10, 210));
 
 	/* Notify desktop of started app */
-	desktop_AppStarted(Characterisation_Start, (widget_t*) c);
+	desktop_AppStarted(Characterisation_Start, c);
 
 	pushpull_AcquireControl();
 	pushpull_SetAveraging(300);
 
-	samplingDone = xSemaphoreCreateBinary();
+	samplingDone = false;
 
 	while(1) {
 		uint32_t signal;
@@ -195,16 +197,18 @@ static void Characterisation(void *unused) {
 				pushpull_SetCallback(pushpullCallback);
 				HAL_Delay(10);
 				pushpull_SetSinkCurrent(current);
-				xSemaphoreTake(samplingDone, 1000);
+				while(!samplingDone) {
+					HAL_Delay(100);
+				}
 				pushpull_SetDefault();
 
 				BatDataPoint_t res;
 				analyzeResponse(vResponse, cResponse, SAMPLES, &res);
 
-				dialog_MessageBox("Done", Font_Medium, "Sampling finished",
-						MSG_OK, NULL, 1);
-				widget_RequestRedrawFull((widget_t*) gvResponse);
-				widget_RequestRedrawFull((widget_t*) gcResponse);
+				Dialog::MessageBox("Done", Font_Medium, "Sampling finished",
+						Dialog::MsgBox::OK, NULL, true);
+				gvResponse->requestRedrawFull();
+				gcResponse->requestRedrawFull();
 
 				start = 0;
 			}

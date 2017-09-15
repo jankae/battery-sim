@@ -52,8 +52,8 @@ static Battery_t bat;
 static uint8_t batLoaded = 0;
 static TaskHandle_t handle;
 
-static entry_t *eSoC;
-static widget_t *batSchematic;
+static Entry *eSoC;
+static Custom *batSchematic;
 
 static inline void drawSource(coords_t c, const char *name, uint32_t value, uint32_t capacity) {
 	display_VerticalLine(c.x + 10, c.y, 13);
@@ -97,7 +97,7 @@ static inline void drawCapacitor(coords_t c, const char *name, uint32_t value, u
 	display_SetForeground(COLOR_BLACK);
 }
 
-static void drawBattery(widget_t *w, coords_t c) {
+static void drawBattery(Widget &w, coords_t c) {
 	if (!batLoaded)
 		/* no profile loaded, don't draw anything */
 		return;
@@ -140,27 +140,25 @@ void Simulator_Init() {
 	App_Register("Simulator", Simulator_Start, icon);
 }
 
-static void batterySoCChanged(widget_t *w) {
-	entry_t *e = (entry_t*) w;
-	Battery_NewSoc(&bat, *e->value);
-	widget_RequestRedraw(batSchematic);
+static void batterySoCChanged(Widget &w) {
+	Battery_NewSoc(&bat, bat.state.SoC);
+	batSchematic->requestRedraw();
 }
 
-static void batteryCapacityChanged(widget_t *w) {
-	entry_t *e = (entry_t*) w;
-	Battery_NewCapacity(&bat, *e->value);
-	widget_RequestRedraw(batSchematic);
-	widget_RequestRedraw((widget_t*) eSoC);
+static void batteryCapacityChanged(Widget &w) {
+	Battery_NewCapacity(&bat, bat.capacityFull);
+	batSchematic->requestRedraw();
+	eSoC->requestRedraw();
 }
 
 static uint8_t loadDialog = 0;
-static void load(widget_t *w) {
+static void load(Widget &w) {
 	loadDialog = 1;
 	xTaskNotify(handle, SIGNAL_WAKEUP, eSetBits);
 }
 
 static uint8_t saveDialog = 0;
-static void save(widget_t *w) {
+static void save(Widget &w) {
 	saveDialog = 1;
 	xTaskNotify(handle, SIGNAL_WAKEUP, eSetBits);
 }
@@ -179,57 +177,59 @@ static void Simulator(void *unused) {
 	int32_t energy = 0;
 
 	/* Create GUI elements */
-	container_t *c= container_new(COORDS(280, 240));
-	c->base.position.x = 40;
+	Container *c= new Container(COORDS(280, 240));
+	c->setPosition(COORDS(40, 0));
 
 	/* Store and load profile */
-	button_t *bLoad = button_new("Load", Font_Big, 130, load);
-	button_t *bSave = button_new("Save", Font_Big, 130, save);
-	widget_SetSelectable((widget_t*) bSave, 0);
-	container_attach(c, (widget_t*) bLoad, COORDS(5, 5));
-	container_attach(c, (widget_t*) bSave, COORDS(145, 5));
+	Button *bLoad = new Button("Load", Font_Big, load, 130);
+	Button *bSave = new Button("Save", Font_Big, save, 130);
+	bSave->setSelectable(false);
+	c->attach(bLoad, COORDS(5, 5));
+	c->attach(bSave, COORDS(145, 5));
 
 	/* Voltage/current display */
-	sevensegment_t *sVoltage = sevensegment_new(&voltage, 10, 3, 5, 2, COLOR_DARKGREEN);
-	sevensegment_t *sCurrent = sevensegment_new(&current, 10, 3, 5, 3, COLOR_RED);
-	sevensegment_t *sEnergy = sevensegment_new(&energy, 10, 3, 5, 2, COLOR_BLUE);
-	container_attach(c, (widget_t*) sVoltage, COORDS(185, 150));
-	container_attach(c, (widget_t*) sCurrent, COORDS(185, 180));
-	container_attach(c, (widget_t*) sEnergy, COORDS(185, 210));
-	label_t *lV = label_newWithText("V", Font_Big);
-	lV->color = COLOR_DARKGREEN;
-	label_t *lA = label_newWithText("A", Font_Big);
-	lA->color = COLOR_RED;
-	label_t *lW = label_newWithText("Wh", Font_Medium);
-	lW->color = COLOR_BLUE;
-	container_attach(c, (widget_t*) lV, COORDS(267, 153));
-	container_attach(c, (widget_t*) lA, COORDS(267, 183));
-	container_attach(c, (widget_t*) lW, COORDS(267, 213));
-	label_t *lOn = label_newWithLength(3, Font_Big, LABEL_CENTER);
-	label_SetText(lOn, "OFF");
-	lOn->color = COLOR_GRAY;
-	container_attach(c, (widget_t*) lOn, COORDS(225, 130));
+	SevenSegment *sVoltage = new SevenSegment(&voltage, 10, 3, 5, 2, COLOR_DARKGREEN);
+	SevenSegment *sCurrent = new SevenSegment(&current, 10, 3, 5, 3, COLOR_RED);
+	SevenSegment *sEnergy = new SevenSegment(&energy, 10, 3, 5, 2, COLOR_BLUE);
+	c->attach(sVoltage, COORDS(185, 150));
+	c->attach(sCurrent, COORDS(185, 180));
+	c->attach(sEnergy, COORDS(185, 210));
+	Label *lV = new Label("V", Font_Big);
+	lV->setColor(COLOR_DARKGREEN);
+	Label *lA = new Label("A", Font_Big);
+	lA->setColor(COLOR_RED);
+	Label *lW = new Label("Wh", Font_Medium);
+	lW->setColor(COLOR_BLUE);
+	c->attach(lV, COORDS(267, 153));
+	c->attach(lA, COORDS(267, 183));
+	c->attach(lW, COORDS(267, 213));
+	Label *lOn = new Label(3, Font_Big, Label::Orientation::CENTER);
+	lOn->setText("OFF");
+	lOn->setColor(COLOR_GRAY);
+	c->attach(lOn, COORDS(225, 130));
 
 	/* Battery status */
-	label_t *lSoC = label_newWithText("State of charge:", Font_Big);
-	eSoC = entry_new((int32_t*) &bat.state.SoC, &maxPercent, &null, Font_Big, 6, &Unit_Percent);
-	label_t *lCapacity = label_newWithText("Capacity:", Font_Big);
-	entry_t *eCapacity = entry_new(&bat.capacityFull, NULL, &null, Font_Big, 8, &Unit_Charge);
-	widget_SetSelectable((widget_t*) eSoC, 0);
-	widget_SetSelectable((widget_t*) eCapacity, 0);
-	eSoC->changeCallback = batterySoCChanged;
-	eCapacity->changeCallback = batteryCapacityChanged;
+	Label *lSoC = new Label("State of charge:", Font_Big);
+	eSoC = new Entry((int32_t*) &bat.state.SoC, &maxPercent, &null, Font_Big, 6,
+			&Unit_Percent);
+	Label *lCapacity = new Label("Capacity:", Font_Big);
+	Entry *eCapacity = new Entry(&bat.capacityFull, NULL, &null, Font_Big, 8,
+			&Unit_Charge);
+	eSoC->setSelectable(false);
+	eCapacity->setSelectable(false);
+	eSoC->setCallback(batterySoCChanged);
+	eCapacity->setCallback(batteryCapacityChanged);
 
-	container_attach(c, (widget_t*) lSoC, COORDS(2, 32));
-	container_attach(c, (widget_t*) eSoC, COORDS(200, 30));
-	container_attach(c, (widget_t*) lCapacity, COORDS(2, 57));
-	container_attach(c, (widget_t*) eCapacity, COORDS(176, 55));
+	c->attach(lSoC, COORDS(2, 32));
+	c->attach(eSoC, COORDS(200, 30));
+	c->attach(lCapacity, COORDS(2, 57));
+	c->attach(eCapacity, COORDS(176, 55));
 
-	batSchematic = custom_new(COORDS(280, 90), drawBattery, NULL);
-	container_attach(c, batSchematic, COORDS(0, 145));
+	batSchematic = new Custom(COORDS(280, 90), drawBattery, nullptr);
+	c->attach(batSchematic, COORDS(0, 145));
 
 	/* Notify desktop of started app */
-	desktop_AppStarted(Simulator_Start, (widget_t*) c);
+	desktop_AppStarted(Simulator_Start, c);
 
 	pushpull_AcquireControl();
 	pushpull_SetAveraging(10);
@@ -241,7 +241,7 @@ static void Simulator(void *unused) {
 
 	uint32_t displayUpdate = xTaskGetTickCount();
 
-	while(1) {
+	while (1) {
 		/* Update output */
 		Battery_Interpolate(bat.profile, bat.npoints, &bat.state);
 		pushpull_SetVoltage(bat.state.E + bat.CVoltage);
@@ -255,11 +255,11 @@ static void Simulator(void *unused) {
 		if (on != pushpull_GetEnabled()) {
 			pushpull_SetEnabled(on);
 			if (pushpull_GetEnabled()) {
-				label_SetText(lOn, "ON");
-				lOn->color = COLOR_RED;
+				lOn->setText("ON");
+				lOn->setColor(COLOR_RED);
 			} else {
-				label_SetText(lOn, "OFF");
-				lOn->color = COLOR_GRAY;
+				lOn->setText("OFF");
+				lOn->setColor(COLOR_GRAY);
 			}
 			on = pushpull_GetEnabled();
 		}
@@ -268,13 +268,12 @@ static void Simulator(void *unused) {
 			displayUpdate = xTaskGetTickCount();
 			voltage = pushpull_GetBatteryVoltage() / 10000;
 			current = pushpull_GetCurrent() / 1000;
-			widget_RequestRedraw((widget_t*) sVoltage);
-			widget_RequestRedraw((widget_t*) sCurrent);
-			widget_RequestRedraw((widget_t*) sEnergy);
-			widget_RequestRedraw((widget_t*) eSoC);
-			widget_RequestRedraw(batSchematic);
+			sVoltage->requestRedraw();
+			sCurrent->requestRedraw();
+			sEnergy->requestRedraw();
+			eSoC->requestRedraw();
+			batSchematic->requestRedraw();
 		}
-
 
 		uint32_t signal;
 		if (App_Handler(&signal, 300)) {
@@ -297,37 +296,39 @@ static void Simulator(void *unused) {
 			}
 			if (loadDialog) {
 				char filename[_MAX_LFN + 1];
-				if (dialog_FileChooser("Select Preset:", filename, "0:/", "BAT")
-						== DIALOG_RESULT_OK) {
+				if (Dialog::FileChooser("Select Preset:", filename, "0:/",
+						"BAT") == Dialog::Result::OK) {
 					if (Battery_Load(&bat, filename) == 0) {
 						batLoaded = 1;
 						char msg[] = "Profile with xx\npoints loaded.";
 						msg[13] = bat.npoints / 10 + '0';
 						msg[14] = bat.npoints % 10 + '0';
-						dialog_MessageBox("Loaded", Font_Big, msg, MSG_OK, NULL,
-								1);
+						Dialog::MessageBox("Loaded", Font_Big, msg,
+								Dialog::MsgBox::OK, NULL, true);
 
 						Battery_NewSoc(&bat, maxPercent);
 						/* Enable battery widgets */
-						widget_SetSelectable((widget_t*) bSave, 1);
-						widget_SetSelectable((widget_t*) eSoC, 1);
-						widget_SetSelectable((widget_t*) eCapacity, 1);
+						bSave->setSelectable(true);
+						eSoC->setSelectable(true);
+						eCapacity->setSelectable(true);
 					} else {
-						dialog_MessageBox("Error", Font_Big,
-								"Failed to read file", MSG_OK, NULL, 1);
+						Dialog::MessageBox("Error", Font_Big,
+								"Failed to read file", Dialog::MsgBox::OK, NULL,
+								true);
 					}
 				}
 				loadDialog = 0;
 			}
 			if (saveDialog) {
 				char filename[_MAX_LFN + 1];
-				if (dialog_StringInput("Preset name:", filename, _MAX_LFN - 4)
-						== DIALOG_RESULT_OK) {
+				if (Dialog::StringInput("Preset name:", filename, _MAX_LFN - 4)
+						== Dialog::Result::OK) {
 					/* add file extension */
 					strcat(filename, ".BAT");
 					if (!Battery_Save(&bat, filename) == 0) {
-						dialog_MessageBox("Error", Font_Big,
-								"Failed to write file", MSG_OK, NULL, 1);
+						Dialog::MessageBox("Error", Font_Big,
+								"Failed to write file", Dialog::MsgBox::OK,
+								NULL, true);
 					}
 				}
 				saveDialog = 0;

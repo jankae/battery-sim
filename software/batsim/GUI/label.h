@@ -5,26 +5,32 @@
 #include "display.h"
 #include "font.h"
 
-#define LABEL_MAX_NAME      18
+class Label : public Widget {
+public:
+	enum class Orientation {
+		LEFT, CENTER, RIGHT
+	};
+	Label(uint8_t length, font_t font, Orientation o);
+	Label(const char *text, font_t font);
+	~Label();
 
-#define LABEL_FG_COLOR		COLOR_BLACK
-#define LABEL_BG_COLOR		COLOR_BG_DEFAULT
+	void setText(const char *text);
+	void setColor(color_t c) {
+		color = c;
+		requestRedraw();
+	}
 
-typedef enum {LABEL_LEFT, LABEL_CENTER, LABEL_RIGHT} labelOrient_t;
+private:
+	void draw(coords_t offset) override;
 
-typedef struct {
-    widget_t base;
-    char name[LABEL_MAX_NAME + 1];
+	static constexpr color_t Foreground = COLOR_BLACK;
+	static constexpr color_t Background = COLOR_BG_DEFAULT;
+
+    char *text;
+    Orientation orient;
     font_t font;
-    labelOrient_t orient;
-    uint32_t fontStartX;
+    uint16_t fontStartX;
     color_t color;
-} label_t;
-
-label_t* label_newWithLength(const uint8_t length, const font_t font, const labelOrient_t orient);
-label_t* label_newWithText(const char * const text, const font_t font);
-void label_SetText(label_t *l, const char * const text);
-void label_draw(widget_t *w, coords_t offset);
-void label_input(widget_t *w, GUIEvent_t *ev);
+};
 
 #endif

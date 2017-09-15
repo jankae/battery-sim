@@ -4,22 +4,21 @@
 #include "widget.h"
 #include "display.h"
 
-#define GRAPH_BG_COLOR			COLOR_BG_DEFAULT
-#define GRAPH_BORDER_COLOR		COLOR_FG_DEFAULT
-#define GRAPH_TICKED_COLOR		COLOR(0, 192, 0)
-#define GRAPH_UNTICKED_COLOR		COLOR(238, 0, 0)
+class Graph : public Widget {
+public:
+	Graph(const int32_t *values, uint16_t num, uint16_t height, color_t color, const unit_t *unit);
 
-typedef struct {
-    widget_t base;
-    int32_t *values;
+	void newColor(color_t color);
+	void newData(const int32_t *data);
+private:
+	void draw(coords_t offset) override;
+
+	static constexpr color_t Background = COLOR_BG_DEFAULT;
+	static constexpr color_t Border = COLOR_FG_DEFAULT;
+
+    const int32_t *values;
     color_t color;
     const unit_t *unit;
-} graph_t;
-
-graph_t* graph_new(int32_t *values, uint16_t num, uint16_t height, color_t color, const unit_t * const unit);
-void graph_draw(widget_t *w, coords_t offset);
-void graph_input(widget_t *w, GUIEvent_t *ev);
-void graph_NewColor(graph_t *g, color_t color);
-void graph_NewData(graph_t *g, int32_t *data);
+};
 
 #endif

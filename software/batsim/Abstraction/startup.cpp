@@ -294,7 +294,7 @@ void startup_Software(void) {
 		warning = 1;
 	}
 
-	/* Setup Apps */
+//	/* Setup Apps */
 	Supply_Init();
 	Charger_Init();
 	Simulator_Init();

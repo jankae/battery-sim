@@ -5,18 +5,19 @@
 #include "display.h"
 #include "font.h"
 
-#define TEXTFIELD_FG_COLOR		COLOR_BLACK
-#define TEXTFIELD_BG_COLOR		COLOR_BG_DEFAULT
+class Textfield : public Widget {
+public:
+	Textfield(const char *text, const font_t font);
+	~Textfield();
 
-typedef struct {
-    widget_t base;
+private:
+	void draw(coords_t offset) override;
+
+	static constexpr color_t Foreground = COLOR_FG_DEFAULT;
+	static constexpr color_t Background = COLOR_BG_DEFAULT;
+
     char *text;
     font_t font;
-} textfield_t;
-
-textfield_t* textfield_new(const char *text, const font_t font,
-		coords_t maxSize);
-void textfield_draw(widget_t *w, coords_t offset);
-void textfield_input(widget_t *w, GUIEvent_t *ev);
+};
 
 #endif

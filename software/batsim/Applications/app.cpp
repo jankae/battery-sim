@@ -9,7 +9,7 @@
  * @param start Pointer to a function creating the application task
  * @param icon Icon of the application
  */
-void App_Register(char *name, void (*start)(void), Image_t icon) {
+void App_Register(const char *name, void (*start)(void), Image_t icon) {
 	/* register app at desktop module */
 	AppInfo_t app;
 	strncpy(app.name, name, APP_MAX_NAMELENGTH);

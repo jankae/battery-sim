@@ -4,65 +4,87 @@
 #include <string.h>
 #include <stdint.h>
 
-#include "display.h"
-#include "FreeRTOS.h"
 #include "common.h"
-
-typedef struct widgetFunctions widgetFunctions_t;
-typedef struct widget widget_t;
-
 #include "events.h"
 
-struct widgetFunctions {
-    void (*draw)(widget_t *w, coords_t offset);
-    void (*drawChildren)(widget_t *w, coords_t offset);
-    void (*input)(widget_t *w, GUIEvent_t *ev);
+class Widget {
+	/* Classes which can have children need extended access to their childrens members */
+	friend class Container;
+	friend class Window;
+public:
+	Widget();
+	virtual ~Widget();
+
+	static void draw(Widget *w, coords_t pos);
+	static void input(Widget *w, GUIEvent_t *ev);
+
+	static Widget *getSelected() {
+		return selectedWidget;
+	}
+
+	static void deselect() {
+		if (selectedWidget) {
+			selectedWidget->selected = false;
+			selectedWidget->requestRedraw();
+		}
+	}
+
+	void select();
+
+	void requestRedrawChildren();
+	void requestRedraw();
+	void requestRedrawFull();
+
+	void setSelectable(bool s) {
+		if(s && !selectable) {
+			selectable = true;
+			requestRedrawFull();
+		} else if(!s && selectable) {
+			selectable = false;
+			requestRedrawFull();
+		}
+	}
+
+	void widget_SetVisible(bool v) {
+		if(visible != v) {
+			visible = v;
+			requestRedrawFull();
+		}
+	}
+
+	bool isInArea(coords_t pos);
+
+	coords_t getSize() {
+		return size;
+	}
+
+	void setPosition(coords_t pos) {
+		position = pos;
+	}
+
+protected:
+	virtual void draw(coords_t offset) { return; }
+	virtual void input(GUIEvent_t *ev) { return; }
+	virtual void drawChildren(coords_t offset) { return; }
+
+	static Widget *selectedWidget;
+
+	Widget *parent;
+	Widget *firstChild;
+	Widget *next;
+
+	coords_t position;
+	coords_t size;
+	bool visible :1;
+	bool selected :1;
+	bool selectable :1;
+//	bool focus :1;
+	/* this widget needs to be redrawn */
+	bool redraw :1;
+	/* the widget area has to be cleared and the widget redrawn completely */
+	bool redrawClear :1;
+	/* some widget down this widgets branch has to be redrawn */
+	bool redrawChild :1;
 };
-
-struct widget {
-    widget_t *parent;
-    widget_t *firstChild;
-    widget_t *next;
-
-    coords_t position;
-    coords_t size;
-//    coords_t childrenOffset;
-
-    struct {
-        uint8_t visible :1;
-        uint8_t selected :1;
-        uint8_t selectable :1;
-        uint8_t focus :1;
-        /* this widget needs to be redrawn */
-        uint8_t redraw :1;
-        /* the widget area has to be cleared and the widget redrawn completely */
-        uint8_t redrawClear :1;
-        /* some widget down this widgets branch has to be redrawn */
-        uint8_t redrawChild :1;
-    } flags;
-
-    widgetFunctions_t func;
-};
-
-
-
-void widget_init(widget_t *w);
-void widget_delete(widget_t *w);
-void widget_Select(widget_t *w);
-void widget_SetSelectable(widget_t *w, uint8_t selectable);
-void widget_gotFocus(widget_t *w);
-void widget_lostFocus(widget_t *w);
-void widget_draw(widget_t *w, coords_t offset);
-void widget_input(widget_t *w, GUIEvent_t *ev);
-GUIResult_t widget_RequestRedrawChildren(widget_t *first);
-GUIResult_t widget_RequestRedraw(widget_t *w);
-GUIResult_t widget_RequestRedrawFull(widget_t *w);
-
-inline void widget_SetVisible(widget_t *w) {
-    w->flags.visible = 1;
-}
-inline void widget_SetInvisible(widget_t *w) {
-    w->flags.visible = 0;
-}
 
 #endif

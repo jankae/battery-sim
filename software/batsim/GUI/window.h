@@ -14,27 +14,29 @@
 #include "common.h"
 #include "gui.h"
 
-#define WINDOW_MAX_NAME         		25
-#define WINDOW_BORDER_COLOR				COLOR_BLACK
-#define WINDOW_TITLE_BG_COLOR			COLOR(65, 64, 59)
-#define WINDOW_TITLE_FG_COLOR			COLOR(215, 214, 207)
-#define WINDOW_CLOSE_AREA_COLOR			COLOR(229, 99, 42)
-#define WINDOW_CLOSE_X_COLOR			COLOR_BG_DEFAULT
+class Window : public Widget {
+public:
+	Window(const char *title, font_t font, coords_t size);
+	~Window();
 
-typedef struct {
-    widget_t base;
-    char title[WINDOW_MAX_NAME + 1];
+	void setMainWidget(Widget *w);
+	coords_t getAvailableArea();
+
+private:
+	void draw(coords_t offset) override;
+//	void input(GUIEvent_t *ev) override;
+	void drawChildren(coords_t offset) override;
+
+	static constexpr color_t Border = COLOR_BLACK;
+	static constexpr color_t TitleBackground = COLOR(65, 64, 59);
+	static constexpr color_t TitleForeground = COLOR(215, 214, 207);
+	static constexpr color_t CloseAreaBackground = COLOR(229, 99, 42);
+	static constexpr color_t CloseAreaForeground = COLOR_BG_DEFAULT;
+
+    char *title;
     font_t font;
-    widget_t *lastTopWidget;
-    uint8_t lastPopup;
-} window_t;
-
-window_t* window_new(const char *title, font_t font, coords_t size);
-void window_destroy(window_t *w);
-GUIResult_t window_SetMainWidget(window_t *w, widget_t *widg);
-coords_t window_GetAvailableArea(window_t *w);
-void window_draw(widget_t *w, coords_t offset);
-void window_drawChildren(widget_t *w, coords_t offset);
-void window_input(widget_t *w, GUIEvent_t *ev);
+    Widget *lastTopWidget;
+    bool lastPopup;
+};
 
 #endif /* WINDOW_H_ */

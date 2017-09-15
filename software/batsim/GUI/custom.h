@@ -3,7 +3,30 @@
 
 #include "widget.h"
 
-widget_t* custom_new(coords_t size, void (*draw)(widget_t *, coords_t), void (*input)(widget_t *, GUIEvent_t *));
-void custom_dummyInput(widget_t *w, GUIEvent_t *ev);
+class Custom: public Widget {
+public:
+	Custom(coords_t size, void (*draw)(Widget&, coords_t),
+			void (*input)(Widget&, GUIEvent_t *)) {
+		this->size = size;
+		drawCB = draw;
+		inputCB = input;
+	}
+
+private:
+	void draw(coords_t offset) override {
+		if (drawCB) {
+			drawCB(*this, offset);
+		}
+	}
+
+	void input(GUIEvent_t *ev) override {
+		if (inputCB) {
+			inputCB(*this, ev);
+		}
+	}
+
+	void (*drawCB)(Widget&, coords_t);
+	void (*inputCB)(Widget&, GUIEvent_t*);
+};
 
 #endif

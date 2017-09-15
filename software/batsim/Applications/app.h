@@ -25,7 +25,7 @@ typedef struct {
 	char name[APP_MAX_NAMELENGTH + 1];
 	TaskHandle_t handle;
 	void (*start)(void);
-	widget_t *topWidget;
+	Widget *topWidget;
 	AppState_t state;
 	Image_t icon;
 } AppInfo_t;
@@ -36,7 +36,7 @@ typedef struct {
  * @param start Pointer to a function creating the application task
  * @param icon Icon of the application
  */
-void App_Register(char *name, void (*start)(void), Image_t icon);
+void App_Register(const char *name, void (*start)(void), Image_t icon);
 
 /**
  * @brief Handles common application signals, passes special signals on to

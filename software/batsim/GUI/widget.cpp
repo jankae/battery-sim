@@ -1,69 +1,37 @@
 #include "widget.h"
 
-#include "desktop.h"
+#include "color.h"
+#include "display.h"
+//#include "desktop.h"
 
-widget_t *selectedWidget;
+Widget *Widget::selectedWidget = nullptr;
 
-void widget_init(widget_t *w) {
-	if (!w)
-		/* no widget given */
-		return;
-    memset(w, 0, sizeof(widget_t));
-    w->flags.visible = 1;
-    w->flags.selectable = 1;
-    w->flags.redraw = 1;
+Widget::Widget() {
+	/* Initialize all members with default values */
+	parent = nullptr;
+	firstChild = nullptr;
+	next = nullptr;
+
+	position = {0, 0};
+	size = {0, 0};
+
+    visible = true;
+    selected = false;
+    selectable = true;
+    redraw = true;
+    redrawClear = false;
+    redrawChild = false;
 }
 
-/**
- * @brief Deletes a widget WITHOUT removing it from its parents list
- *
- * This function is only used internally when deleting widgets whos
- * parent will also be deleted.
- * @param w Widget to delete
- */
-static void widget_deleteInt(widget_t *w) {
-	if (!w)
-		/* no widget given */
-		return;
-	/* delete children first as we still have the firstChild pointer */
-	widget_t *next = w->firstChild;
-	if(w->flags.selected) {
-		widget_Select(NULL);
-	}
-	while(next) {
-		/* save pointer to this widget */
-		widget_t *w = next;
-		/* save next widget in line (will get lost when this is freed) */
-		next = w->next;
-		/* delete and free this child */
-		widget_deleteInt(w);
-	}
-
-	/* Send an event to the widget, so it can free any memory it allocated */
-	GUIEvent_t ev;
-	ev.type = EVENT_WIDGET_DELETE;
-	w->func.input(w, &ev);
-	/* free memory of this widget */
-	/* Although the exact size of the widget data is not known (widget_t is only the base data,
-	 * the actual widget has a larger size (e.g. sizeof(button_t)), free still works because the
-	 * size of the memory block associated with the widget is known by the memory management functions
-	 */
-	memset(w, 0, sizeof(*w));
-	vPortFree(w);
-}
-
-void widget_delete(widget_t *w) {
-	if (!w)
-		/* no widget given */
-		return;
-	/* remove this widget from its parents list */
-	if(w->parent) {
+Widget::~Widget() {
+	/* Remove the widget from its parents list */
+	if(parent) {
 		/* remove widget from parent linked list */
-		widget_t *it = w->parent->firstChild;
+		Widget *it = parent->firstChild;
 		/* which pointer is pointing to it */
-		widget_t **pointer = &(w->parent->firstChild);
+		Widget **pointer = &(parent->firstChild);
 		while (it) {
-			if (it == w) {
+			if (it == this) {
 				/* found this widget */
 				/* set pointer to point to next widget, removing this widget from the list */
 				*pointer = it->next;
@@ -75,55 +43,24 @@ void widget_delete(widget_t *w) {
 				it = it->next;
 			}
 		}
-		/* request full redraw for parent */
-		widget_RequestRedrawFull(w->parent);
+		// TODO was this necessary?
+//		/* request full redraw for parent */
+//		widget_RequestRedrawFull(w->parent);
 	}
-	/* delete the actually widget */
-	widget_deleteInt(w);
-}
 
-void widget_Select(widget_t *w) {
-	/* de-select currently selected widget */
-	if (selectedWidget) {
-		selectedWidget->flags.selected = 0;
-		widget_RequestRedraw(selectedWidget);
-	}
-	if(w) {
-		w->flags.selected = 1;
-		widget_RequestRedraw(w);
-	}
-	if ((w && !selectedWidget) || (!w && selectedWidget)) {
-		/* focus changed from/to desktop */
-		selectedWidget = w;
-		desktop_Draw();
-	} else {
-		selectedWidget = w;
+	/* Delete all of its children */
+	while (firstChild) {
+		delete firstChild;
 	}
 }
 
-void widget_SetSelectable(widget_t *w, uint8_t selectable) {
-	if (!w)
-		/* no widget given */
-		return;
-	if (selectable && !w->flags.selectable) {
-		w->flags.selectable = 1;
-		widget_RequestRedrawFull(w);
-	} else if (!selectable && w->flags.selectable) {
-		w->flags.selectable = 0;
-		widget_RequestRedrawFull(w);
-	}
-}
-
-void widget_draw(widget_t *w, coords_t pos) {
-	if (!w)
-		/* no widget given */
-		return;
+void Widget::draw(Widget *w, coords_t pos) {
 	/* calculate new position */
 	pos.x += w->position.x;
 	pos.y += w->position.y;
-	if (w->flags.redraw) {
-		if (w->flags.redrawClear) {
-			if (w->flags.selectable) {
+	if (w->redraw) {
+		if (w->redrawClear) {
+			if (w->selectable) {
 				display_SetForeground(COLOR_BG_DEFAULT);
 			} else {
 				display_SetForeground(COLOR_UNSELECTABLE);
@@ -132,28 +69,23 @@ void widget_draw(widget_t *w, coords_t pos) {
 			display_RectangleFull(pos.x, pos.y, pos.x + w->size.x - 1,
 					pos.y + w->size.y - 1);
 			/* clear flag */
-			w->flags.redrawClear = 0;
+			w->redrawClear = false;
 		}
 		/* draw widget */
-		if(!w->func.draw)
-			CRIT_ERROR("Missing widget drawing function");
-		w->func.draw(w, pos);
+		w->draw(pos);
 		/* clear redraw request */
-		w->flags.redraw = 0;
+		w->redraw = false;
 	}
-	if (w->flags.redrawChild) {
+	if (w->redrawChild) {
 		/* draw children of this widget */
-		w->func.drawChildren(w, pos);
+		w->drawChildren(pos);
 		/* clear redraw request */
-		w->flags.redrawChild = 0;
+		w->redrawChild = false;
 	}
 }
 
-void widget_input(widget_t *w, GUIEvent_t *ev) {
-	if (!w || !ev)
-		/* no widget given */
-		return;
-	switch(ev->type) {
+void Widget::input(Widget *w, GUIEvent_t* ev) {
+	switch (ev->type) {
 	case EVENT_TOUCH_PRESSED:
 	case EVENT_TOUCH_RELEASED:
 		/* position based event */
@@ -161,20 +93,20 @@ void widget_input(widget_t *w, GUIEvent_t *ev) {
 		ev->pos.x -= w->position.x;
 		ev->pos.y -= w->position.y;
 		/* first, try to handle it itself */
-		w->func.input(w, ev);
-		if(ev->type != EVENT_NONE) {
+		w->input(ev);
+		if (ev->type != EVENT_NONE) {
 			/* event not handled yet */
 			/* find matching child */
-			widget_t *child = w->firstChild;
+			Widget *child = w->firstChild;
 			for (; child; child = child->next) {
-				if (child->flags.selectable) {
+				if (child->selectable) {
 					/* potential candidate, check position */
 					if (ev->pos.x >= child->position.x
 							&& ev->pos.x <= child->position.x + child->size.x
 							&& ev->pos.y >= child->position.y
 							&& ev->pos.y <= child->position.y + child->size.y) {
 						/* event is in child region */
-						widget_input(child, ev);
+						input(child, ev);
 						/* send event only to first match */
 						return;
 					}
@@ -182,72 +114,93 @@ void widget_input(widget_t *w, GUIEvent_t *ev) {
 			}
 			/* Couldn't find any matching children -> this widget will be selected */
 			if (ev->type == EVENT_TOUCH_PRESSED)
-				widget_Select(w);
+				w->select();
 		} else {
 			/* widget handled the input itself -> it is now selected */
 			if (ev->type == EVENT_TOUCH_PRESSED)
-				widget_Select(w);
+				w->select();
 		}
+		break;
+	case EVENT_BUTTON_CLICKED:
+	case EVENT_ENCODER_MOVED:
+		w->input(ev);
 		break;
 	default:
 		break;
 	}
-//    /* First pass it on to any active child */
-//    widget_t *child = w->firstChild;
-//    for (; child; child = child->next) {
-//        if (child->flags.selected) {
-//            ev = widget_input(child, ev);
-//        }
-//    }
-//    /* Then try to handle the event itself */
-//    ev = w->func.input(w, ev);
-//    return ev;
 }
 
-GUIResult_t widget_RequestRedrawChildren(widget_t *first){
-    if (!first)
-        return GUI_ERROR;
-    /* iterate over all widgets and request a redraw them */
-    while (first) {
-        first->flags.redraw = 1;
-		/* recursively request redraw of their children */
-		if (first->firstChild) {
-			/* widget got children itself */
-			first->flags.redrawChild = 1;
-			widget_RequestRedrawChildren(first->firstChild);
+void Widget::select() {
+	if(this != selectedWidget) {
+		/* de-select currently selected widget */
+		if (selectedWidget) {
+			selectedWidget->selected = false;
+			selectedWidget->requestRedraw();
 		}
-		first = first->next;
+		selectedWidget = this;
+		selected = true;
+		requestRedraw();
+		// TODO
+//		if ((w && !selectedWidget) || (!w && selectedWidget)) {
+//			/* focus changed from/to desktop */
+//			selectedWidget = w;
+//			desktop_Draw();
+//		} else {
+//			selectedWidget = w;
+//		}
 	}
-	return GUI_OK;
 }
 
-GUIResult_t widget_RequestRedraw(widget_t *w) {
-	if(!w)
-		return GUI_ERROR;
+void Widget::requestRedrawChildren() {
+	if (!firstChild) {
+		/* Widget does not have any children */
+		return;
+	}
+	/* iterate over all widgets and request a redraw them */
+	redrawChild = true;
+	Widget *w = firstChild;
+	while (w) {
+		w->redraw = true;
+		/* recursively request redraw of their children */
+		if (w->firstChild) {
+			/* widget got children itself */
+			w->requestRedrawChildren();
+		}
+		w = w->next;
+	}
+}
+
+void Widget::requestRedraw() {
 	/* mark this widget */
-	w->flags.redraw = 1;
-	while(w->parent) {
+	redraw = true;
+	Widget *w = parent;
+	while(w) {
 		/* this is not the top widget, indicate branch redraw */
-		w = w->parent;
-		if (w->flags.redrawChild) {
+		if (w->redrawChild) {
 			/* reached a part that is already scheduled for redrawing */
 			break;
 		}
-		w->flags.redrawChild = 1;
+		w->redrawChild = true;
+		w = w->parent;
 	}
-	return GUI_OK;
 }
 
-GUIResult_t widget_RequestRedrawFull(widget_t *w) {
-	if(!w)
-		return GUI_ERROR;
+void Widget::requestRedrawFull() {
 	/* mark this widget */
-	w->flags.redrawClear = 1;
+	redrawClear = true;
 	/* mark all children */
-	if (w->firstChild) {
-		w->flags.redrawChild = 1;
-		widget_RequestRedrawChildren(w->firstChild);
+	if (firstChild) {
+		requestRedrawChildren();
 	}
 	/* mark parents */
-	return widget_RequestRedraw(w);
+	requestRedraw();
+}
+
+bool Widget::isInArea(coords_t pos) {
+	if (pos.x >= position.x && pos.x < position.x + size.x
+			&& pos.y >= position.y && pos.y < position.y + size.y) {
+		return true;
+	} else {
+		return false;
+	}
 }

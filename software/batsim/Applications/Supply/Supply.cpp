@@ -61,13 +61,13 @@ void Supply_Init() {
 }
 
 static uint8_t loadDialog = 0;
-static void load(widget_t *w) {
+static void load(Widget &w) {
 	loadDialog = 1;
 	xTaskNotify(handle, SIGNAL_WAKEUP, eSetBits);
 }
 
 static uint8_t saveDialog = 0;
-static void save(widget_t *w) {
+static void save(Widget &w) {
 	saveDialog = 1;
 	xTaskNotify(handle, SIGNAL_WAKEUP, eSetBits);
 }
@@ -84,59 +84,59 @@ static void Supply(void *unused) {
 
 	/* create GUI */
 	/* Read back of current/voltage */
-	entry_t *eSetVoltage = entry_new(&setVoltage, &Limits.maxVoltage, &Limits.minVoltage, Font_Big, 7, &Unit_Voltage);
-	entry_t *eMaxCurrent = entry_new(&setMaxCurrent, &Limits.maxCurrent, &null, Font_Big, 7, &Unit_Current);
-	entry_t *eMinCurrent = entry_new(&setMinCurrent, &Limits.minCurrent, &null, Font_Big, 7, &Unit_Current);
+	Entry *eSetVoltage = new Entry(&setVoltage, &Limits.maxVoltage, &Limits.minVoltage, Font_Big, 7, &Unit_Voltage);
+	Entry *eMaxCurrent = new Entry(&setMaxCurrent, &Limits.maxCurrent, &null, Font_Big, 7, &Unit_Current);
+	Entry *eMinCurrent = new Entry(&setMinCurrent, &Limits.minCurrent, &null, Font_Big, 7, &Unit_Current);
 
-	label_t *lVol = label_newWithText("Voltage set:", Font_Big);
-	label_t *lMax = label_newWithText("Source I set:", Font_Big);
-	label_t *lMin = label_newWithText("Sink I set:", Font_Big);
+	Label *lVol = new Label("Voltage set:", Font_Big);
+	Label *lMax = new Label("Source I set:", Font_Big);
+	Label *lMin = new Label("Sink I set:", Font_Big);
 
-	button_t *bLoad = button_new("Load", Font_Big, 0, load);
-	button_t *bSave = button_new("Save", Font_Big, 0, save);
+	Button *bLoad = new Button("Load", Font_Big, load);
+	Button *bSave = new Button("Save", Font_Big, save);
 
-	sevensegment_t *sVol = sevensegment_new(&voltage, 20, 7, 5, 2, COLOR_DARKGREEN);
-	sevensegment_t *sCur = sevensegment_new(&current, 20, 7, 5, 3, COLOR_RED);
-	sevensegment_t *sPow = sevensegment_new(&power, 20, 7, 5, 2, COLOR_BLUE);
+	SevenSegment *sVol = new SevenSegment(&voltage, 20, 7, 5, 2, COLOR_DARKGREEN);
+	SevenSegment *sCur = new SevenSegment(&current, 20, 7, 5, 3, COLOR_RED);
+	SevenSegment *sPow = new SevenSegment(&power, 20, 7, 5, 2, COLOR_BLUE);
 
-	label_t *lV = label_newWithText("V", Font_Big);
-	lV->color = COLOR_DARKGREEN;
-	label_t *lA = label_newWithText("A", Font_Big);
-	lA->color = COLOR_RED;
-	label_t *lW = label_newWithText("W", Font_Big);
-	lW->color = COLOR_BLUE;
+	Label *lV = new Label("V", Font_Big);
+	lV->setColor(COLOR_DARKGREEN);
+	Label *lA = new Label("A", Font_Big);
+	lA->setColor(COLOR_RED);
+	Label *lW = new Label("W", Font_Big);
+	lW->setColor(COLOR_BLUE);
 
-	label_t *lOutput = label_newWithText("Output", Font_Big);
-	label_t *lOn = label_newWithLength(6, Font_Big, LABEL_CENTER);
-	label_SetText(lOn, "OFF");
-	lOn->color = COLOR_GRAY;
+	Label *lOutput = new Label("Output", Font_Big);
+	Label *lOn = new Label(6, Font_Big, Label::Orientation::CENTER);
+	lOn->setText("OFF");
+	lOn->setColor(COLOR_GRAY);
 
-	container_t *c= container_new(COORDS(280, 240));
+	Container *c= new Container(COORDS(280, 240));
 
-	container_attach(c, (widget_t*) sVol, COORDS(100, 0));
-	container_attach(c, (widget_t*) sCur, COORDS(100, 55));
-	container_attach(c, (widget_t*) sPow, COORDS(100, 110));
+	c->attach(sVol, COORDS(100, 0));
+	c->attach(sCur, COORDS(100, 55));
+	c->attach(sPow, COORDS(100, 110));
 
-	container_attach(c, (widget_t*) lV, COORDS(267, 3));
-	container_attach(c, (widget_t*) lA, COORDS(267, 58));
-	container_attach(c, (widget_t*) lW, COORDS(267, 113));
+	c->attach(lV, COORDS(267, 3));
+	c->attach(lA, COORDS(267, 58));
+	c->attach(lW, COORDS(267, 113));
 
-	container_attach(c, (widget_t*) lOutput, COORDS(5, 9));
-	container_attach(c, (widget_t*) lOn, COORDS(5, 27));
+	c->attach(lOutput, COORDS(5, 9));
+	c->attach(lOn, COORDS(5, 27));
 
-	container_attach(c, (widget_t*) bLoad, COORDS(5, 120));
-	container_attach(c, (widget_t*) bSave, COORDS(5, 150));
+	c->attach(bLoad, COORDS(5, 120));
+	c->attach(bSave, COORDS(5, 150));
 
-	container_attach(c, (widget_t*) lVol, COORDS(0, 182));
-	container_attach(c, (widget_t*) eSetVoltage, COORDS(190, 180));
-	container_attach(c, (widget_t*) lMax, COORDS(0, 202));
-	container_attach(c, (widget_t*) eMaxCurrent, COORDS(190, 200));
-	container_attach(c, (widget_t*) lMin, COORDS(0, 222));
-	container_attach(c, (widget_t*) eMinCurrent, COORDS(190, 220));
+	c->attach(lVol, COORDS(0, 182));
+	c->attach(eSetVoltage, COORDS(190, 180));
+	c->attach(lMax, COORDS(0, 202));
+	c->attach(eMaxCurrent, COORDS(190, 200));
+	c->attach(lMin, COORDS(0, 222));
+	c->attach(eMinCurrent, COORDS(190, 220));
 
-	c->base.position.x = 40;
+	c->setPosition(COORDS(40, 0));
 
-	desktop_AppStarted(Supply_Start, (widget_t*) c);
+	desktop_AppStarted(Supply_Start, c);
 	uint32_t signal;
 
 	pushpull_AcquireControl();
@@ -145,14 +145,14 @@ static void Supply(void *unused) {
 	pushpull_SetEnabled(0);
 	pushpull_SetInternalResistance(0);
 
-	while(1) {
+	while (1) {
 		/* Update values */
-		voltage = pushpull_GetBatteryVoltage()/10000;
-		current = pushpull_GetCurrent()/1000;
+		voltage = pushpull_GetBatteryVoltage() / 10000;
+		current = pushpull_GetCurrent() / 1000;
 		power = voltage * current / 1000;
-		widget_RequestRedraw((widget_t*) sVol);
-		widget_RequestRedraw((widget_t*) sCur);
-		widget_RequestRedraw((widget_t*) sPow);
+		sVol->requestRedraw();
+		sCur->requestRedraw();
+		sPow->requestRedraw();
 
 		pushpull_SetVoltage(setVoltage);
 		pushpull_SetSourceCurrent(setMaxCurrent);
@@ -161,11 +161,11 @@ static void Supply(void *unused) {
 		if (on != pushpull_GetEnabled()) {
 			pushpull_SetEnabled(on);
 			if (pushpull_GetEnabled()) {
-				label_SetText(lOn, "ON");
-				lOn->color = COLOR_RED;
+				lOn->setText("ON");
+				lOn->setColor(COLOR_RED);
 			} else {
-				label_SetText(lOn, "OFF");
-				lOn->color = COLOR_GRAY;
+				lOn->setText("OFF");
+				lOn->setColor(COLOR_GRAY);
 			}
 			on = pushpull_GetEnabled();
 		}
@@ -180,8 +180,8 @@ static void Supply(void *unused) {
 			}
 			if (loadDialog) {
 				char filename[_MAX_LFN + 1];
-				if (dialog_FileChooser("Select Preset:", filename, "0:/", "SUP")
-						== DIALOG_RESULT_OK) {
+				if (Dialog::FileChooser("Select Preset:", filename, "0:/",
+						"SUP") == Dialog::Result::OK) {
 					if (file_open(filename, FA_OPEN_EXISTING | FA_READ) == FR_OK
 							&& file_ReadParameters(SupplyConfig, 3)
 									== FILE_OK) {
@@ -192,16 +192,17 @@ static void Supply(void *unused) {
 						setMinCurrent = sink;
 						file_close();
 					} else {
-						dialog_MessageBox("Error", Font_Big,
-								"Failed to read file", MSG_OK, NULL, 1);
+						Dialog::MessageBox("Error", Font_Big,
+								"Failed to read file", Dialog::MsgBox::OK, NULL,
+								true);
 					}
 				}
 				loadDialog = 0;
 			}
 			if (saveDialog) {
 				char filename[_MAX_LFN + 1];
-				if (dialog_StringInput("Preset name:", filename, _MAX_LFN - 4)
-						== DIALOG_RESULT_OK) {
+				if (Dialog::StringInput("Preset name:", filename, _MAX_LFN - 4)
+						== Dialog::Result::OK) {
 					/* add file extension */
 					strcat(filename, ".SUP");
 					vol = setVoltage;
@@ -209,8 +210,9 @@ static void Supply(void *unused) {
 					sink = setMinCurrent;
 					if (file_open(filename, FA_CREATE_ALWAYS | FA_WRITE)
 							!= FR_OK) {
-						dialog_MessageBox("Error", Font_Big,
-								"Failed to write file", MSG_OK, NULL, 1);
+						Dialog::MessageBox("Error", Font_Big,
+								"Failed to write file", Dialog::MsgBox::OK,
+								NULL, true);
 					} else {
 						file_WriteParameters(SupplyConfig, 3);
 						file_close();

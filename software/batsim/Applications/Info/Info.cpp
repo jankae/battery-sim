@@ -2,7 +2,8 @@
 #include "gui.h"
 
 #include "pushpull.h"
-#include "Battery/Battery.h"
+#include "desktop.h"
+//#include "Battery/Battery.h"
 
 static const uint16_t imagedata[1024] = {
 		0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0001,0x0043,0x0064,0x0064,0x0064,0x0022,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,
@@ -56,30 +57,30 @@ void Info_Init() {
 
 static void Info(void *unused) {
 	/* Create GUI elements */
-	container_t *c= container_new(COORDS(280, 240));
-	c->base.position.x = 40;
+	Container *c= new Container(COORDS(280, 240));
+	c->setPosition(COORDS(40, 0));
 
-	label_t *lTemp = label_newWithText("Temperature:", Font_Big);
-	label_t *lHeap = label_newWithText("Free HEAP:", Font_Big);
-	label_t *lDiss = label_newWithText("Int. Dissipat.:", Font_Big);
+	Label *lTemp = new Label("Temperature:", Font_Big);
+	Label *lHeap = new Label("Free HEAP:", Font_Big);
+	Label *lDiss = new Label("Int. Dissipat.:", Font_Big);
 
 	int32_t heap;
 	int32_t temp;
 	int32_t dissipation;
 
-	entry_t *eTemp = entry_new(&temp, NULL, NULL, Font_Big, 6, &Unit_Temperature);
-	entry_t *eHeap = entry_new(&heap, NULL, NULL, Font_Big, 6, &Unit_Memory);
-	entry_t *eDiss = entry_new(&dissipation, NULL, NULL, Font_Big, 6, &Unit_Power);
+	Entry *eTemp = new Entry(&temp, nullptr, nullptr, Font_Big, 6, &Unit_Temperature);
+	Entry *eHeap = new Entry(&heap, nullptr, nullptr, Font_Big, 6, &Unit_Memory);
+	Entry *eDiss = new Entry(&dissipation, nullptr, nullptr, Font_Big, 6, &Unit_Power);
 
-	container_attach(c, (widget_t*) lTemp, COORDS(5, 5));
-	container_attach(c, (widget_t*) eTemp, COORDS(200, 5));
-	container_attach(c, (widget_t*) lHeap, COORDS(5, 30));
-	container_attach(c, (widget_t*) eHeap, COORDS(200, 30));
-	container_attach(c, (widget_t*) lDiss, COORDS(5, 55));
-	container_attach(c, (widget_t*) eDiss, COORDS(200, 55));
+	c->attach(lTemp, COORDS(5, 5));
+	c->attach(eTemp, COORDS(200, 5));
+	c->attach(lHeap, COORDS(5, 30));
+	c->attach(eHeap, COORDS(200, 30));
+	c->attach(lDiss, COORDS(5, 55));
+	c->attach(eDiss, COORDS(200, 55));
 
 	/* Notify desktop of started app */
-	desktop_AppStarted(Info_Start, (widget_t*) c);
+	desktop_AppStarted(Info_Start, c);
 
 	while(1) {
 
@@ -105,9 +106,9 @@ static void Info(void *unused) {
 			dissipation = pushpull_GetBiasCurrent() * (24000000/1000000);
 		}
 
-		widget_RequestRedraw((widget_t*) eTemp);
-		widget_RequestRedraw((widget_t*) eHeap);
-		widget_RequestRedraw((widget_t*) eDiss);
+		eTemp->requestRedraw();
+		eHeap->requestRedraw();
+		eDiss->requestRedraw();
 
 		uint32_t signal;
 		if (App_Handler(&signal, 300)) {

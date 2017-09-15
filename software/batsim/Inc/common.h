@@ -31,7 +31,7 @@ extern const unit_t Unit_Current, Unit_Voltage, Unit_Power, Unit_Temperature,
 		Unit_Percent, Unit_Charge, Unit_None;
 extern const int32_t null, maxPercent;
 
-#define COORDS(v1, v2)	((coords_t){.x=v1, .y=v2})
+#define COORDS(v1, v2)	((coords_t){v1, v2})
 #define SIZE(v1, v2)	COORDS(v1, v2)
 
 int32_t common_Map(int32_t value, int32_t scaleFromLow, int32_t scaleFromHigh,

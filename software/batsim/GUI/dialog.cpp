@@ -2,18 +2,20 @@
 
 #include "logging.h"
 
-#define INPUT_DIALOG_LENGTH		10
-
 extern SemaphoreHandle_t fileAccess;
 extern TaskHandle_t GUIHandle;
 
+namespace Dialog {
+
+#define INPUT_DIALOG_LENGTH		10
+
 struct {
-	window_t *window;
+	Window *window;
 	union {
 		struct {
 			SemaphoreHandle_t dialogDone;
-			DialogResult_t res;
-			void (*cb)(DialogResult_t);
+			Result res;
+			void (*cb)(Result);
 		} msgbox;
 		struct {
 			SemaphoreHandle_t dialogDone;
@@ -23,24 +25,24 @@ struct {
 			SemaphoreHandle_t dialogDone;
 			uint8_t OKclicked;
 			char *string;
-			label_t *lString;
+			Label *lString;
 			uint8_t pos;
 			uint8_t maxLength;
 		} StringInput;
 	};
 } dialog;
 
-static void MessageBoxButton(widget_t *source) {
-	button_t *b = (button_t*) source;
-	dialog.msgbox.res = DIALOG_RESULT_ERR;
+static void MessageBoxButton(Widget &w) {
+	dialog.msgbox.res = Result::ERR;
+	Button *b = (Button*) &w;
 	/* find which button has been pressed */
-	if(!strcmp(b->name, "OK")) {
-		dialog.msgbox.res = DIALOG_RESULT_OK;
-	} else if(!strcmp(b->name, "ABORT")) {
-		dialog.msgbox.res = DIALOG_RESULT_ABORT;
+	if(!strcmp(b->getName(), "OK")) {
+		dialog.msgbox.res = Result::OK;
+	} else if(!strcmp(b->getName(), "ABORT")) {
+		dialog.msgbox.res = Result::ABORT;
 	}
 
-	window_destroy((window_t*) dialog.window);
+	delete dialog.window;
 
 	if (dialog.msgbox.cb)
 		dialog.msgbox.cb(dialog.msgbox.res);
@@ -50,11 +52,11 @@ static void MessageBoxButton(widget_t *source) {
 	}
 }
 
-DialogResult_t dialog_MessageBox(const char * const title, font_t font, const char * const msg,
-		MsgBox_t type, void (*cb)(DialogResult_t), uint8_t block){
+Result MessageBox(const char *title, font_t font, const char *msg,
+		MsgBox type, void (*cb)(Result), uint8_t block){
 	/* check pointers */
 	if (!title || !msg) {
-		return DIALOG_RESULT_ERR;
+		return Result::ERR;
 	}
 
 	memset(&dialog, 0, sizeof(dialog));
@@ -69,38 +71,34 @@ DialogResult_t dialog_MessageBox(const char * const title, font_t font, const ch
 	}
 
 	/* create dialog window and elements */
-	textfield_t *text = textfield_new(msg, font, COORDS(300, 180));
-	if (!text) {
-		return DIALOG_RESULT_ERR;
-	}
+	Textfield *text = new Textfield(msg, font);
 	/* calculate window size */
-	coords_t windowSize = text->base.size;
+	coords_t windowSize = text->getSize();
 	if (windowSize.x < 132) {
 		windowSize.x = 136;
 	} else {
 		windowSize.x += 4;
 	}
 	windowSize.y += 50;
-	window_t *w = window_new(title, Font_Big, windowSize);
-	container_t *c = container_new(window_GetAvailableArea(w));
-	container_attach(c, (widget_t*) text, COORDS(1, 2));
+	Window *w = new Window(title, Font_Big, windowSize);
+	Container *c = new Container(w->getAvailableArea());
+	c->attach(text, COORDS(1, 2));
 	switch (type) {
-	case MSG_OK: {
-		button_t *bOK = button_new("OK", Font_Big, 65, MessageBoxButton);
-		container_attach(c, (widget_t*) bOK,
-				COORDS((c->base.size.x - bOK->base.size.x) / 2,
-						c->base.size.y - bOK->base.size.y - 1));
+	case MsgBox::OK: {
+		Button *bOK = new Button("OK", Font_Big, MessageBoxButton, 65);
+		c->attach(bOK, COORDS((c->getSize().x - bOK->getSize().x) / 2,
+						c->getSize().y - bOK->getSize().y - 1));
 	}
-		break;
-	case MSG_ABORT_OK: {
-		button_t *bOK = button_new("OK", Font_Big, 65, MessageBoxButton);
-		button_t *bAbort = button_new("ABORT", Font_Big, 65, MessageBoxButton);
-		container_attach(c, (widget_t*) bAbort,
-				COORDS(c->base.size.x / 2 - bAbort->base.size.x - 1,
-						c->base.size.y - bAbort->base.size.y - 1));
-		container_attach(c, (widget_t*) bOK,
-				COORDS(c->base.size.x / 2 + 1,
-						c->base.size.y - bOK->base.size.y - 1));
+	break;
+	case MsgBox::ABORT_OK: {
+		Button *bOK = new Button("OK", Font_Big, MessageBoxButton, 65);
+		Button *bAbort = new Button("ABORT", Font_Big, MessageBoxButton, 65);
+		c->attach(bAbort,
+				COORDS(c->getSize().x / 2 - bAbort->getSize().x - 1,
+						c->getSize().y - bAbort->getSize().y - 1));
+		c->attach(bOK,
+				COORDS(c->getSize().x / 2 + 1,
+						c->getSize().y - bOK->getSize().y - 1));
 
 	}
 		break;
@@ -109,8 +107,8 @@ DialogResult_t dialog_MessageBox(const char * const title, font_t font, const ch
 	dialog.window = w;
 	dialog.msgbox.cb = cb;
 
-	widget_Select((widget_t*) w);
-	window_SetMainWidget(w, (widget_t*) c);
+	w->select();
+	w->setMainWidget(c);
 
 	if(block) {
 		/* wait for dialog to finish and return result */
@@ -119,23 +117,23 @@ DialogResult_t dialog_MessageBox(const char * const title, font_t font, const ch
 		return dialog.msgbox.res;
 	} else {
 		/* non blocking mode, return immediately */
-		return DIALOG_RESULT_OK;
+		return Result::OK;
 	}
 }
 
-static void FileChooserButton(widget_t *source) {
-	button_t *b = (button_t*) source;
+static void FileChooserButton(Widget &w) {
+	Button *b = (Button*) &w;
 	/* find which button has been pressed */
-	if(!strcmp(b->name, "OK")) {
+	if(!strcmp(b->getName(), "OK")) {
 		dialog.fileChooser.OKclicked = 1;
-	} else if(!strcmp(b->name, "ABORT")) {
+	} else if(!strcmp(b->getName(), "ABORT")) {
 		dialog.fileChooser.OKclicked = 0;
 	}
 	xSemaphoreGive(dialog.fileChooser.dialogDone);
 }
 
-DialogResult_t dialog_FileChooser(const char * const title, char *result,
-		const char * const dir, const char * const filetype) {
+Result FileChooser(const char *title, char *result,
+		const char *dir, const char *filetype) {
 	if(xTaskGetCurrentTaskHandle() == GUIHandle) {
 		/* This dialog must never be called by the GUI thread (Deadlock) */
 		CRIT_ERROR("Dialog started from GUI thread.");
@@ -143,7 +141,7 @@ DialogResult_t dialog_FileChooser(const char * const title, char *result,
 
 	/* check pointers */
 	if (!title || !dir) {
-		return DIALOG_RESULT_ERR;
+		return Result::ERR;
 	}
 
 	memset(&dialog, 0, sizeof(dialog));
@@ -151,13 +149,13 @@ DialogResult_t dialog_FileChooser(const char * const title, char *result,
 	dialog.fileChooser.dialogDone = xSemaphoreCreateBinary();
 	if(!dialog.fileChooser.dialogDone) {
 		/* failed to create semaphore */
-		return DIALOG_RESULT_ERR;
+		return Result::ERR;
 	}
 
 	/* Find applicable files */
 	if(!xSemaphoreTake(fileAccess, 1000)) {
 		/* failed to allocate fileAccess */
-		return DIALOG_RESULT_ERR;
+		return Result::ERR;
 	}
 
 #define MAX_NUMBER_OF_FILES		50
@@ -209,7 +207,7 @@ DialogResult_t dialog_FileChooser(const char * const title, char *result,
 					vPortFree(filenames[foundFiles]);
 				}
 				vPortFree(dj);
-				return DIALOG_RESULT_ERR;
+				return Result::ERR;
 			}
 			/* copy filename */
 			strcpy(filenames[foundFiles], fn);
@@ -225,35 +223,35 @@ DialogResult_t dialog_FileChooser(const char * const title, char *result,
 	filenames[foundFiles] = 0;
 
 	/* Create window */
-	window_t *w = window_new(title, Font_Big, COORDS(280, 200));
-	container_t *c = container_new(window_GetAvailableArea(w));
+	Window *w = new Window(title, Font_Big, COORDS(280, 200));
+	Container *c = new Container(w->getAvailableArea());
 
-	button_t *bAbort = button_new("ABORT", Font_Big, 80, FileChooserButton);
+	Button *bAbort = new Button("ABORT", Font_Big, FileChooserButton, 80);
 
 	uint8_t selectedFile = 0;
 	if (foundFiles) {
-		itemChooser_t *i = itemChooser_new((const char**) filenames,
+		ItemChooser *i = new ItemChooser((const char**) filenames,
 				&selectedFile, Font_Big,
-				(c->base.size.y - 30) / Font_Big.height, c->base.size.x);
-		container_attach(c, (widget_t*) i, COORDS(0, 0));
-		button_t *bOK = button_new("OK", Font_Big, 80, FileChooserButton);
-		container_attach(c, (widget_t*) bOK,
-				COORDS(c->base.size.x - bOK->base.size.x - 5,
-						c->base.size.y - bOK->base.size.y - 5));
-		widget_Select((widget_t*) i);
+				(c->getSize().y - 30) / Font_Big.height, c->getSize().x);
+		c->attach(i, COORDS(0, 0));
+		Button *bOK = new Button("OK", Font_Big, FileChooserButton, 80);
+		c->attach(bOK,
+				COORDS(c->getSize().x - bOK->getSize().x - 5,
+						c->getSize().y - bOK->getSize().y - 5));
+		i->select();
 	} else {
 		/* got no files */
-		label_t *lNoFiles = label_newWithText("No files available", Font_Big);
-		container_attach(c, (widget_t*) lNoFiles,
-				COORDS((c->base.size.x - lNoFiles->base.size.x) / 2, 40));
-		widget_Select((widget_t*) bAbort);
+		Label *lNoFiles = new Label("No files available", Font_Big);
+		c->attach(lNoFiles,
+				COORDS((c->getSize().x - lNoFiles->getSize().x) / 2, 40));
+		bAbort->select();
 	}
 
 
-	container_attach(c, (widget_t*) bAbort,
-			COORDS(5, c->base.size.y - bAbort->base.size.y - 5));
+	c->attach(bAbort,
+			COORDS(5, c->getSize().y - bAbort->getSize().y - 5));
 
-	window_SetMainWidget(w, (widget_t*) c);
+	w->setMainWidget(c);
 
 	/* Wait for button to be clicked */
 	xSemaphoreTake(dialog.fileChooser.dialogDone, portMAX_DELAY);
@@ -270,12 +268,12 @@ DialogResult_t dialog_FileChooser(const char * const title, char *result,
 	}
 
 	/* delete window */
-	window_destroy((window_t*) w);
+	delete w;
 
 	if(dialog.fileChooser.OKclicked) {
-		return DIALOG_RESULT_OK;
+		return Result::OK;
 	} else {
-		return DIALOG_RESULT_ABORT;
+		return Result::ERR;
 	}
 }
 
@@ -285,30 +283,30 @@ static void stringInputChar(char c) {
 		if(dialog.StringInput.pos>0) {
 			dialog.StringInput.pos--;
 			dialog.StringInput.string[dialog.StringInput.pos] = 0;
-			label_SetText(dialog.StringInput.lString, dialog.StringInput.string);
+			dialog.StringInput.lString->setText(dialog.StringInput.string);
 		}
 	} else {
 		/* append character if space is available */
 		if(dialog.StringInput.pos<dialog.StringInput.maxLength - 1) {
 			dialog.StringInput.string[dialog.StringInput.pos] = c;
 			dialog.StringInput.pos++;
-			label_SetText(dialog.StringInput.lString, dialog.StringInput.string);
+			dialog.StringInput.lString->setText(dialog.StringInput.string);
 		}
 	}
 }
 
-static void StringInputButton(widget_t *source) {
-	button_t *b = (button_t*) source;
+static void StringInputButton(Widget &w) {
+	Button *b = (Button*) &w;
 	/* find which button has been pressed */
-	if(!strcmp(b->name, "OK")) {
+	if(!strcmp(b->getName(), "OK")) {
 		dialog.StringInput.OKclicked = 1;
-	} else if(!strcmp(b->name, "ABORT")) {
+	} else if(!strcmp(b->getName(), "ABORT")) {
 		dialog.StringInput.OKclicked = 0;
 	}
 	xSemaphoreGive(dialog.StringInput.dialogDone);
 }
 
-DialogResult_t dialog_StringInput(const char * const title, char *result, uint8_t maxLength) {
+Result StringInput(const char *title, char *result, uint8_t maxLength) {
 	if(xTaskGetCurrentTaskHandle() == GUIHandle) {
 		/* This dialog must never be called by the GUI thread (Deadlock) */
 		CRIT_ERROR("Dialog started from GUI thread.");
@@ -316,7 +314,7 @@ DialogResult_t dialog_StringInput(const char * const title, char *result, uint8_
 
 	/* check pointers */
 	if (!title || !result) {
-		return DIALOG_RESULT_ERR;
+		return Result::ERR;
 	}
 
 	memset(&dialog, 0, sizeof(dialog));
@@ -324,7 +322,7 @@ DialogResult_t dialog_StringInput(const char * const title, char *result, uint8_
 	dialog.StringInput.dialogDone = xSemaphoreCreateBinary();
 	if(!dialog.StringInput.dialogDone) {
 		/* failed to create semaphore */
-		return DIALOG_RESULT_ERR;
+		return Result::ERR;
 	}
 
 	dialog.StringInput.string = result;
@@ -334,40 +332,41 @@ DialogResult_t dialog_StringInput(const char * const title, char *result, uint8_
 	memset(result, 0, maxLength);
 
 	/* Create window */
-	window_t *w = window_new(title, Font_Big, COORDS(313, 233));
-	container_t *c = container_new(window_GetAvailableArea(w));
+	Window *w = new Window(title, Font_Big, COORDS(313, 233));
+	Container *c = new Container(w->getAvailableArea());
 
-	keyboard_t *k = keyboard_new(stringInputChar);
+	Keyboard *k = new Keyboard(stringInputChar);
 
-	dialog.StringInput.lString = label_newWithLength(
-			c->base.size.x / Font_Big.width, Font_Big, LABEL_CENTER);
+	dialog.StringInput.lString = new Label(
+			c->getSize().x / Font_Big.width, Font_Big, Label::Orientation::CENTER);
 
 	/* Create buttons */
-	button_t *bOK = button_new("OK", Font_Big, 80, StringInputButton);
-	button_t *bAbort = button_new("ABORT", Font_Big, 80, StringInputButton);
+	Button *bOK = new Button("OK", Font_Big, StringInputButton, 80);
+	Button *bAbort = new Button("ABORT", Font_Big, StringInputButton, 80);
 
-	container_attach(c, (widget_t*) dialog.StringInput.lString, COORDS(0, 8));
-	container_attach(c, (widget_t*) k, COORDS(0, 30));
-	container_attach(c, (widget_t*) bOK,
-			COORDS(c->base.size.x - bOK->base.size.x - 5,
-					c->base.size.y - bOK->base.size.y - 5));
-	container_attach(c, (widget_t*) bAbort,
-			COORDS(5, c->base.size.y - bAbort->base.size.y - 5));
+	c->attach(dialog.StringInput.lString, COORDS(0, 8));
+	c->attach(k, COORDS(0, 30));
+	c->attach(bOK,
+			COORDS(c->getSize().x - bOK->getSize().x - 5,
+					c->getSize().y - bOK->getSize().y - 5));
+	c->attach(bAbort,
+			COORDS(5, c->getSize().y - bAbort->getSize().y - 5));
 
-	widget_Select((widget_t*) k);
-	window_SetMainWidget(w, (widget_t*) c);
+	k->select();
+	w->setMainWidget(c);
 
 	/* Wait for button to be clicked */
 	xSemaphoreTake(dialog.StringInput.dialogDone, portMAX_DELAY);
 	vPortFree(dialog.StringInput.dialogDone);
 
 	/* delete window */
-	window_destroy((window_t*) w);
+	delete w;
 
 	if(dialog.StringInput.OKclicked) {
-		return DIALOG_RESULT_OK;
+		return Result::OK;
 	} else {
-		return DIALOG_RESULT_ABORT;
+		return Result::ABORT;
 	}
 }
 
+}

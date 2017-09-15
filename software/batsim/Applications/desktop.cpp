@@ -8,8 +8,7 @@ uint8_t NumApps;
 uint8_t focussed = 0xff;
 uint8_t selected = 0;
 
-extern volatile widget_t *topWidget;
-extern widget_t *selectedWidget;
+extern Widget *topWidget;
 
 void desktop_AddApp(AppInfo_t app) {
 	if (NumApps < DESKTOP_MAX_APPS) {
@@ -48,7 +47,7 @@ static uint8_t AppNumFromTaskHandle(TaskHandle_t handle) {
 	return num;
 }
 
-void desktop_AppStarted(void (*start)(void), widget_t *top) {
+void desktop_AppStarted(void (*start)(void), Widget *top) {
 	uint8_t num = AppNumFromStartFunction(start);
 	if (num >= NumApps) {
 		/* failed to find correct app */
@@ -60,7 +59,7 @@ void desktop_AppStarted(void (*start)(void), widget_t *top) {
 	/* bring app into focus */
 	focussed = num;
 	topWidget = AppList[num].topWidget;
-	widget_RequestRedrawFull((widget_t*) topWidget);
+	topWidget->requestRedrawFull();
 	desktop_Draw();
 }
 
@@ -82,7 +81,7 @@ void desktop_AppStopped(){
 				topWidget = AppList[i].topWidget;
 				focussed = i;
 				selected = i;
-				widget_RequestRedrawFull((widget_t*) topWidget);
+				topWidget->requestRedrawFull();
 				break;
 			}
 		}
@@ -90,14 +89,14 @@ void desktop_AppStopped(){
 			/* no app active */
 			topWidget = NULL;
 			focussed = 0xff;
-			selectedWidget = NULL;
+			Widget::deselect();
 			/* clear app area */
 			display_SetForeground(COLOR_BLACK);
 			display_RectangleFull(DESKTOP_ICONBAR_WIDTH, 0, DISPLAY_WIDTH - 1, DISPLAY_HEIGHT - 1);
 		}
 	}
 	/* Remove the widgets this app created */
-	widget_delete(AppList[num].topWidget);
+	delete AppList[num].topWidget;
 	AppList[num].topWidget = NULL;
 	desktop_Draw();
 }
@@ -136,7 +135,7 @@ void desktop_Draw(void) {
 		display_HorizontalLine(2, (i + 1) * DESKTOP_ICONSPACING_Y - 2,
 		DESKTOP_ICONBAR_WIDTH - 2);
 	}
-	if(!selectedWidget) {
+	if(!Widget::getSelected()) {
 		/* no widget is selected, main control is with desktop */
 		display_SetForeground(COLOR_SELECTED);
 		uint8_t i;
@@ -167,8 +166,8 @@ void desktop_Draw(void) {
 
 static uint8_t iAppToClose = 0;
 
-static void msgBoxResult(DialogResult_t res) {
-	if (res == DIALOG_RESULT_OK) {
+static void msgBoxResult(Dialog::Result res) {
+	if (res == Dialog::Result::OK) {
 		/* Stop app */
 		xTaskNotify(AppList[iAppToClose].handle, SIGNAL_TERMINATE,
 				eSetBits);
@@ -189,7 +188,7 @@ static void desktop_SwitchToApp(uint8_t app) {
 			/* bring app into focus */
 			topWidget = AppList[app].topWidget;
 			focussed = app;
-			widget_RequestRedrawFull((widget_t*) topWidget);
+			topWidget->requestRedrawFull();
 			selected = app;
 			desktop_Draw();
 		} else if(selected != app) {
@@ -209,7 +208,7 @@ static void desktop_ConfirmClose(uint8_t app) {
 	switch(AppList[app].state) {
 	case APP_RUNNING:
 		iAppToClose = app;
-		dialog_MessageBox("Close?", Font_Big, "Close this app?", MSG_ABORT_OK, msgBoxResult, 0);
+		Dialog::MessageBox("Close?", Font_Big, "Close this app?", Dialog::MsgBox::ABORT_OK, msgBoxResult, false);
 		break;
 	case APP_STARTSEND:
 	case APP_KILLSEND:
@@ -220,10 +219,7 @@ static void desktop_ConfirmClose(uint8_t app) {
 }
 
 void desktop_Input(GUIEvent_t *ev) {
-	if(selectedWidget) {
-		/* de-select widget */
-		widget_Select(NULL);
-	}
+	Widget::deselect();
 	switch (ev->type) {
 	case EVENT_TOUCH_PRESSED:
 		/* get icon number */

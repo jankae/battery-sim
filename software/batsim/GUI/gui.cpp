@@ -2,14 +2,13 @@
 
 #include "buttons.h"
 #include "pushpull.h"
+#include "app.h"
 
 QueueHandle_t GUIeventQueue = NULL;
-widget_t *topWidget;
-uint8_t isPopup;
+Widget *topWidget;
+bool isPopup;
 
 TaskHandle_t GUIHandle;
-
-extern widget_t *selectedWidget;
 
 static void guiThread(void) {
 	GUIHandle = xTaskGetCurrentTaskHandle();
@@ -22,6 +21,10 @@ static void guiThread(void) {
 
 	desktop_Draw();
 
+//	Button *test = new Button("Test", Font_Big, nullptr);
+//
+//	topWidget = test;
+
 	while (1) {
 		if (xQueueReceive(GUIeventQueue, &event, 100)) {
 			if (topWidget) {
@@ -32,15 +35,9 @@ static void guiThread(void) {
 					/* these are position based events */
 					/* check if applicable for top widget
 					 * (which, for smaller windows, might not be the case */
-					if (event.pos.x >= topWidget->position.x
-							&& event.pos.y >= topWidget->position.y
-							&& event.pos.x
-									< topWidget->position.x + topWidget->size.x
-							&& event.pos.y
-									< topWidget->position.y
-											+ topWidget->size.y) {
+					if (topWidget->isInArea(event.pos)) {
 						/* send event to top widget */
-						widget_input(topWidget, &event);
+						Widget::input(topWidget, &event);
 					} else if (!isPopup) {
 						/* only pass on events to desktop if no popup is present */
 						desktop_Input(&event);
@@ -60,14 +57,14 @@ static void guiThread(void) {
 					/* no break */
 				case EVENT_ENCODER_MOVED:
 					/* these events are always valid for the selected widget */
-					if (selectedWidget) {
-						selectedWidget->func.input(selectedWidget, &event);
+					if (Widget::getSelected()) {
+						Widget::input(Widget::getSelected(), &event);
 					} else {
 						desktop_Input(&event);
 					}
 					break;
 				case EVENT_WINDOW_CLOSE:
-					window_destroy((window_t*) event.w);
+					desktop_Draw();
 					break;
 				default:
 					break;
@@ -77,7 +74,7 @@ static void guiThread(void) {
 			}
 		}
 		if (topWidget) {
-			widget_draw(topWidget, COORDS(0, 0));
+			Widget::draw(topWidget, COORDS(0, 0));
 		}
 	}
 }

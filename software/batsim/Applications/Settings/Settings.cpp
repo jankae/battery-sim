@@ -45,7 +45,7 @@ static Image_t icon = { .width = 32, .height = 32, .data = imagedata };
 
 static xTaskHandle hTask;
 
-extern widget_t *topWidget;
+extern Widget *topWidget;
 
 static void settings_Start(){
 	xTaskCreate(settings, "Settings", 600, NULL, 3, NULL);
@@ -55,15 +55,15 @@ void settings_Init() {
 	App_Register("Settings", settings_Start, icon);
 }
 
-static void calibrateTouch(widget_t *w) {
+static void calibrateTouch(Widget &w) {
 	calTouch = 1;
 }
 
-static void calibrateOutput(widget_t *w) {
+static void calibrateOutput(Widget &w) {
 	calOutput = 1;
 }
 
-static void printTaskInfo(widget_t *w) {
+static void printTaskInfo(Widget &w) {
 	taskInfo = 1;
 }
 
@@ -71,17 +71,17 @@ void settings(void *unused) {
 	hTask = xTaskGetCurrentTaskHandle();
 
 	/* create GUI */
-	container_t *c = container_new(COORDS(280, 240));
-	button_t *bCalTouch = button_new("Calibrate Touch", Font_Big, 0, calibrateTouch);
-	button_t *bCalOutput = button_new("Calibrate Output", Font_Big, 0, calibrateOutput);
-	button_t *bTaskInfo = button_new("Task Info", Font_Big, 0, printTaskInfo);
+	Container *c = new Container(COORDS(280, 240));
+	Button *bCalTouch = new Button("Calibrate Touch", Font_Big, calibrateTouch);
+	Button *bCalOutput = new Button("Calibrate Output", Font_Big, calibrateOutput);
+	Button *bTaskInfo = new Button("Task Info", Font_Big, printTaskInfo);
 
-	container_attach(c, (widget_t*) bCalTouch, COORDS(40, 20));
-	container_attach(c, (widget_t*) bCalOutput, COORDS(40, 60));
-	container_attach(c, (widget_t*) bTaskInfo, COORDS(40, 100));
-	c->base.position.x = 40;
+	c->attach(bCalTouch, COORDS(40, 20));
+	c->attach(bCalOutput, COORDS(40, 60));
+	c->attach(bTaskInfo, COORDS(40, 100));
+	c->setPosition(COORDS(40, 0));
 
-	desktop_AppStarted(settings_Start, (widget_t*) c);
+	desktop_AppStarted(settings_Start, c);
 	uint32_t signal;
 
 	while (1) {
@@ -91,7 +91,7 @@ void settings(void *unused) {
 
 		if(calTouch) {
 			touch_Calibrate();
-			widget_RequestRedrawFull(topWidget);
+			topWidget->requestRedrawFull();
 			desktop_Draw();
 			calTouch = 0;
 		}
@@ -99,19 +99,19 @@ void settings(void *unused) {
 		if (calOutput) {
 			if (!pushpull_Calibrate()) {
 				/* Calibration failed or has been aborted */
-				dialog_MessageBox("FAILED", Font_Big,
-						"Calibration failed\nor has been aborted", MSG_OK, NULL,
-						1);
+				Dialog::MessageBox("FAILED", Font_Big,
+						"Calibration failed\nor has been aborted", Dialog::MsgBox::OK, NULL,
+						true);
 			} else {
 				/* writing calibration data into file */
 				if (!cal_Save()) {
-					dialog_MessageBox("ERROR", Font_Big,
-							"Calibration data\ncould not be saved", MSG_OK,
-							NULL, 1);
+					Dialog::MessageBox("ERROR", Font_Big,
+							"Calibration data\ncould not be saved", Dialog::MsgBox::OK,
+							NULL, true);
 				} else {
-					dialog_MessageBox("SAVED", Font_Big,
-							"Calibration data saved", MSG_OK,
-							NULL, 1);
+					Dialog::MessageBox("SAVED", Font_Big,
+							"Calibration data saved", Dialog::MsgBox::OK,
+							NULL, true);
 				}
 			}
 			calOutput = 0;
@@ -139,8 +139,8 @@ void settings(void *unused) {
 						status[i].pcTaskName);
 			}
 			vPortFree(status);
-			dialog_MessageBox("INFO", Font_Big,
-					"Task Info has been\nsent via UART", MSG_OK, NULL, 1);
+			Dialog::MessageBox("INFO", Font_Big,
+					"Task Info has been\nsent via UART", Dialog::MsgBox::OK, NULL, true);
 			taskInfo = 0;
 		}
 	}

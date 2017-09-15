@@ -4,26 +4,30 @@
 #include "widget.h"
 #include "display.h"
 
-#define ITEMCHOOSER_SCROLLBAR_SIZE    	8
-#define ITEMCHOOSER_SCROLLBAR_COLOR		COLOR_ORANGE
+class ItemChooser : public Widget {
+public:
+	ItemChooser(const char * const *items, uint8_t *value, font_t font,
+			uint8_t visibleLines, uint16_t minSizeX = 0);
 
-#define ITEMCHOOSER_BG_COLOR			COLOR_BG_DEFAULT
-#define ITEMCHOOSER_BORDER_COLOR		COLOR_FG_DEFAULT
-#define ITEMCHOOSER_SELECTED_BG_COLOR	COLOR(100, 100, 100)
+	void setCallback(void (*cb)(Widget&)) {
+		changeCallback = cb;
+	}
+private:
+	void draw(coords_t offset) override;
+	void input(GUIEvent_t *ev) override;
 
-typedef struct {
-    widget_t base;
+	static constexpr uint8_t ScrollbarSize = 8;
+	static constexpr color_t ScrollbarColor = COLOR_ORANGE;
+	static constexpr color_t Border = COLOR_FG_DEFAULT;
+	static constexpr color_t Selected = COLOR(100, 100, 100);
+	static constexpr color_t Background = COLOR_BG_DEFAULT;
+
     uint8_t *value;
     const char * const * itemlist;
     font_t font;
     uint8_t lines;
-    void (*changeCallback)(widget_t*);
+    void (*changeCallback)(Widget&);
     uint8_t topVisibleEntry;
-} itemChooser_t;
-
-itemChooser_t* itemChooser_new(const char * const * const items, uint8_t *value,
-		font_t font, uint8_t visibleLines, uint16_t minSizeX);
-void itemChooser_draw(widget_t *w, coords_t offset);
-void itemChooser_input(widget_t *w, GUIEvent_t *ev);
+};
 
 #endif

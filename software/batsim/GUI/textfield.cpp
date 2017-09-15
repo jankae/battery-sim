@@ -1,21 +1,7 @@
 #include "textfield.h"
 
-textfield_t* textfield_new(const char *text, const font_t font,
-		coords_t maxSize){
-	textfield_t* t = (textfield_t*) pvPortMalloc(sizeof(textfield_t));
-	if (!t) {
-		/* malloc failed */
-		return NULL;
-	}
-    /* initialize common widget values */
-    widget_init((widget_t*) t);
-    /* set widget functions */
-    t->base.func.draw = textfield_draw;
-    t->base.func.input = textfield_input;
-    /* a textfield can't have any children */
-    t->base.func.drawChildren = NULL;
-
-    t->font = font;
+Textfield::Textfield(const char *text, const font_t font) {
+    this->font = font;
 
 	/* extract necessary size from text */
 	uint16_t maxWidth = 0;
@@ -32,56 +18,38 @@ textfield_t* textfield_new(const char *text, const font_t font,
 				maxWidth = width;
 			}
 		}
-		if (height > maxSize.y || maxWidth > maxSize.x) {
-			/* text exceeds maximum widget size */
-			/* abort widget creation */
-			vPortFree(t);
-			return NULL;
-		}
 		text++;
 	}
 	/* set widget size */
-	t->base.size.x = maxWidth;
-	t->base.size.y = height;
+	size.x = maxWidth;
+	size.y = height;
 
-	t->base.flags.selectable = 0;
+	selectable = false;
 	/* copy text */
-	t->text = (char*) pvPortMalloc(strlen(s) + 1);
-	if(!t->text) {
-		/* malloc failed */
-		/* abort widget creation */
-		vPortFree(t);
-		return NULL;
-	}
-	strcpy(t->text, s);
-
-	return t;
+	this->text = new char[strlen(s) + 1];
+	memcpy(this->text, s, strlen(s) + 1);
 }
-void textfield_draw(widget_t *w, coords_t offset) {
-	textfield_t *t = (textfield_t*) w;
-	char *s = t->text;
+
+Textfield::~Textfield() {
+	if(text) {
+		delete text;
+	}
+}
+
+void Textfield::draw(coords_t offset) {
+	const char *s = text;
 	coords_t pos = offset;
-	display_SetForeground(TEXTFIELD_FG_COLOR);
-	display_SetBackground(TEXTFIELD_BG_COLOR);
-	display_SetFont(t->font);
+	display_SetForeground(Foreground);
+	display_SetBackground(Background);
+	display_SetFont(font);
 	while (*s) {
 		if (*s == '\n') {
 			pos.x = offset.x;
-			pos.y += t->font.height;
+			pos.y += font.height;
 		} else {
 			display_Char(pos.x, pos.y, *s);
-			pos.x += t->font.width;
+			pos.x += font.width;
 		}
 		s++;
 	}
-}
-void textfield_input(widget_t *w, GUIEvent_t *ev){
-	textfield_t *t = (textfield_t*) w;
-	if(ev->type == EVENT_WIDGET_DELETE) {
-		/* this widget is about to be deleted, free text memory */
-		if(t->text) {
-			vPortFree(t->text);
-		}
-	}
-	return;
 }

@@ -3,21 +3,21 @@
 
 #include "widget.h"
 #include "display.h"
-#include "font.h"
 #include "common.h"
 
-#define PROGRESSBAR_BORDER_COLOR		COLOR_BLACK
-#define PROGRESSBAR_BG_COLOR			COLOR_BG_DEFAULT
-#define PROGRESSBAR_BAR_COLOR			COLOR_GREEN
+class ProgressBar : public Widget {
+public:
+	ProgressBar(coords_t size);
 
-typedef struct {
-    widget_t base;
+	void setState(uint8_t state);
+private:
+	void draw(coords_t offset) override;
+
+	static constexpr color_t Border = COLOR_BLACK;
+	static constexpr color_t Bar = COLOR_GREEN;
+	static constexpr color_t Background = COLOR_BG_DEFAULT;
+
     uint8_t state;
-} progressbar_t;
-
-progressbar_t* progressbar_new(coords_t size);
-void progressbar_SetState(progressbar_t *p, uint8_t state);
-void progressbar_draw(widget_t *w, coords_t offset);
-void progressbar_input(widget_t *w, GUIEvent_t *ev);
+};
 
 #endif
