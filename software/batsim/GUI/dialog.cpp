@@ -121,17 +121,6 @@ Result MessageBox(const char *title, font_t font, const char *msg,
 	}
 }
 
-static void FileChooserButton(Widget &w) {
-	Button *b = (Button*) &w;
-	/* find which button has been pressed */
-	if(!strcmp(b->getName(), "OK")) {
-		dialog.fileChooser.OKclicked = 1;
-	} else if(!strcmp(b->getName(), "ABORT")) {
-		dialog.fileChooser.OKclicked = 0;
-	}
-	xSemaphoreGive(dialog.fileChooser.dialogDone);
-}
-
 Result FileChooser(const char *title, char *result,
 		const char *dir, const char *filetype) {
 	if(xTaskGetCurrentTaskHandle() == GUIHandle) {
@@ -226,7 +215,10 @@ Result FileChooser(const char *title, char *result,
 	Window *w = new Window(title, Font_Big, COORDS(280, 200));
 	Container *c = new Container(w->getAvailableArea());
 
-	Button *bAbort = new Button("ABORT", Font_Big, FileChooserButton, 80);
+	Button *bAbort = new Button("ABORT", Font_Big, [](Widget &w) {
+		dialog.fileChooser.OKclicked = 0;
+		xSemaphoreGive(dialog.fileChooser.dialogDone);
+	}, 80);
 
 	uint8_t selectedFile = 0;
 	if (foundFiles) {
@@ -234,7 +226,10 @@ Result FileChooser(const char *title, char *result,
 				&selectedFile, Font_Big,
 				(c->getSize().y - 30) / Font_Big.height, c->getSize().x);
 		c->attach(i, COORDS(0, 0));
-		Button *bOK = new Button("OK", Font_Big, FileChooserButton, 80);
+		Button *bOK = new Button("OK", Font_Big, [](Widget &w) {
+			dialog.fileChooser.OKclicked = 1;
+			xSemaphoreGive(dialog.fileChooser.dialogDone);
+		}, 80);
 		c->attach(bOK,
 				COORDS(c->getSize().x - bOK->getSize().x - 5,
 						c->getSize().y - bOK->getSize().y - 5));
@@ -295,17 +290,6 @@ static void stringInputChar(char c) {
 	}
 }
 
-static void StringInputButton(Widget &w) {
-	Button *b = (Button*) &w;
-	/* find which button has been pressed */
-	if(!strcmp(b->getName(), "OK")) {
-		dialog.StringInput.OKclicked = 1;
-	} else if(!strcmp(b->getName(), "ABORT")) {
-		dialog.StringInput.OKclicked = 0;
-	}
-	xSemaphoreGive(dialog.StringInput.dialogDone);
-}
-
 Result StringInput(const char *title, char *result, uint8_t maxLength) {
 	if(xTaskGetCurrentTaskHandle() == GUIHandle) {
 		/* This dialog must never be called by the GUI thread (Deadlock) */
@@ -341,8 +325,14 @@ Result StringInput(const char *title, char *result, uint8_t maxLength) {
 			c->getSize().x / Font_Big.width, Font_Big, Label::Orientation::CENTER);
 
 	/* Create buttons */
-	Button *bOK = new Button("OK", Font_Big, StringInputButton, 80);
-	Button *bAbort = new Button("ABORT", Font_Big, StringInputButton, 80);
+	Button *bOK = new Button("OK", Font_Big, [](Widget &w) {
+		dialog.StringInput.OKclicked = 1;
+		xSemaphoreGive(dialog.StringInput.dialogDone);
+	}, 80);
+	Button *bAbort = new Button("ABORT", Font_Big, [](Widget &w) {
+		dialog.StringInput.OKclicked = 0;
+		xSemaphoreGive(dialog.StringInput.dialogDone);
+	}, 80);
 
 	c->attach(dialog.StringInput.lString, COORDS(0, 8));
 	c->attach(k, COORDS(0, 30));

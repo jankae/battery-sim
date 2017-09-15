@@ -140,28 +140,8 @@ void Simulator_Init() {
 	App_Register("Simulator", Simulator_Start, icon);
 }
 
-static void batterySoCChanged(Widget &w) {
-	Battery_NewSoc(&bat, bat.state.SoC);
-	batSchematic->requestRedraw();
-}
-
-static void batteryCapacityChanged(Widget &w) {
-	Battery_NewCapacity(&bat, bat.capacityFull);
-	batSchematic->requestRedraw();
-	eSoC->requestRedraw();
-}
-
 static uint8_t loadDialog = 0;
-static void load(Widget &w) {
-	loadDialog = 1;
-	xTaskNotify(handle, SIGNAL_WAKEUP, eSetBits);
-}
-
 static uint8_t saveDialog = 0;
-static void save(Widget &w) {
-	saveDialog = 1;
-	xTaskNotify(handle, SIGNAL_WAKEUP, eSetBits);
-}
 
 static void Simulator(void *unused) {
 	handle = xTaskGetCurrentTaskHandle();
@@ -181,8 +161,14 @@ static void Simulator(void *unused) {
 	c->setPosition(COORDS(40, 0));
 
 	/* Store and load profile */
-	Button *bLoad = new Button("Load", Font_Big, load, 130);
-	Button *bSave = new Button("Save", Font_Big, save, 130);
+	Button *bLoad = new Button("Load", Font_Big, [](Widget &w) {
+		loadDialog = 1;
+		xTaskNotify(handle, SIGNAL_WAKEUP, eSetBits);
+	}, 130);
+	Button *bSave = new Button("Save", Font_Big, [](Widget &w) {
+		saveDialog = 1;
+		xTaskNotify(handle, SIGNAL_WAKEUP, eSetBits);
+	}, 130);
 	bSave->setSelectable(false);
 	c->attach(bLoad, COORDS(5, 5));
 	c->attach(bSave, COORDS(145, 5));
@@ -217,8 +203,15 @@ static void Simulator(void *unused) {
 			&Unit_Charge);
 	eSoC->setSelectable(false);
 	eCapacity->setSelectable(false);
-	eSoC->setCallback(batterySoCChanged);
-	eCapacity->setCallback(batteryCapacityChanged);
+	eSoC->setCallback([](Widget &w) {
+		Battery_NewSoc(&bat, bat.state.SoC);
+		batSchematic->requestRedraw();
+	});
+	eCapacity->setCallback([](Widget &w) {
+		Battery_NewCapacity(&bat, bat.capacityFull);
+		batSchematic->requestRedraw();
+		eSoC->requestRedraw();
+	});
 
 	c->attach(lSoC, COORDS(2, 32));
 	c->attach(eSoC, COORDS(200, 30));

@@ -61,16 +61,7 @@ void Supply_Init() {
 }
 
 static uint8_t loadDialog = 0;
-static void load(Widget &w) {
-	loadDialog = 1;
-	xTaskNotify(handle, SIGNAL_WAKEUP, eSetBits);
-}
-
 static uint8_t saveDialog = 0;
-static void save(Widget &w) {
-	saveDialog = 1;
-	xTaskNotify(handle, SIGNAL_WAKEUP, eSetBits);
-}
 
 static void Supply(void *unused) {
 	handle = xTaskGetCurrentTaskHandle();
@@ -92,8 +83,14 @@ static void Supply(void *unused) {
 	Label *lMax = new Label("Source I set:", Font_Big);
 	Label *lMin = new Label("Sink I set:", Font_Big);
 
-	Button *bLoad = new Button("Load", Font_Big, load);
-	Button *bSave = new Button("Save", Font_Big, save);
+	Button *bLoad = new Button("Load", Font_Big, [](Widget &w) {
+		loadDialog = 1;
+		xTaskNotify(handle, SIGNAL_WAKEUP, eSetBits);
+	});
+	Button *bSave = new Button("Save", Font_Big, [](Widget &w) {
+		saveDialog = 1;
+		xTaskNotify(handle, SIGNAL_WAKEUP, eSetBits);
+	});
 
 	SevenSegment *sVol = new SevenSegment(&voltage, 20, 7, 5, 2, COLOR_DARKGREEN);
 	SevenSegment *sCur = new SevenSegment(&current, 20, 7, 5, 3, COLOR_RED);

@@ -151,11 +151,6 @@ static void pushpullCallback(PushPull_State_t *state) {
 	}
 }
 
-static void Start(Widget &w) {
-	start = 1;
-	xTaskNotify(handle, SIGNAL_WAKEUP, eSetBits);
-}
-
 static void Characterisation(void *unused) {
 	handle = xTaskGetCurrentTaskHandle();
 	/* Create GUI elements */
@@ -170,7 +165,10 @@ static void Characterisation(void *unused) {
 	Graph *gvResponse = new Graph(vResponse, SAMPLES, 85, COLOR_DARKGREEN, &Unit_Voltage);
 	Graph *gcResponse = new Graph(cResponse, SAMPLES, 85, COLOR_RED, &Unit_Current);
 
-	Button *bStart = new Button("START", Font_Big, Start, 260);
+	Button *bStart = new Button("START", Font_Big, [](Widget &w) {
+		start = 1;
+		xTaskNotify(handle, SIGNAL_WAKEUP, eSetBits);
+	}, 260);
 
 	c->attach(lCurrent, COORDS(5, 7));
 	c->attach(eCurrent, COORDS(180, 5));
