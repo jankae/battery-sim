@@ -117,7 +117,7 @@ static
 void xmit_mmc(const BYTE* buff, /* Data to be sent */
 UINT bc /* Number of bytes to send */
 ) {
-	HAL_SPI_Transmit(&hspi3, (uint8_t*) buff, bc, 10);
+	HAL_SPI_Transmit(&hspi3, (uint8_t*) buff, bc, 100);
 }
 
 /*-----------------------------------------------------------------------*/
@@ -130,7 +130,7 @@ UINT bc /* Number of bytes to receive */
 ) {
 	uint8_t dummyTX[bc];
 	memset(dummyTX, 0xFF, bc);
-	HAL_SPI_TransmitReceive(&hspi3, dummyTX, buff, bc, 10);
+	HAL_SPI_TransmitReceive(&hspi3, dummyTX, buff, bc, 100);
 }
 
 /*-----------------------------------------------------------------------*/
