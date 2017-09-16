@@ -53,6 +53,13 @@ void touch_Init(void) {
 }
 
 static uint16_t ADS7843_Read(uint8_t control) {
+	/* SPI3 is also used for the SD card. Reduce speed now to properly work with
+	 * ADS7843 */
+	uint16_t cr1 = hspi3.Instance->CR1;
+	/* Minimum CLK frequency is 2.5MHz, this could be achieved with a prescaler of 16
+	 * (2.25MHz). For reliability, a prescaler of 32 is used */
+	hspi3.Instance->CR1 = (hspi3.Instance->CR1 & ~SPI_BAUDRATEPRESCALER_256 )
+			| SPI_BAUDRATEPRESCALER_32;
 	CS_LOW();
 	/* highest bit in control must always be one */
 	control |= 0x80;
@@ -67,6 +74,8 @@ static uint16_t ADS7843_Read(uint8_t control) {
 	res >>= 3;
 	res &= 0x0FFF;
 	CS_HIGH();
+	/* Reset SPI speed to previous value */
+	hspi3.Instance->CR1 = cr1;
 	return 4095 - res;
 }
 

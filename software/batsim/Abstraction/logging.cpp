@@ -16,7 +16,7 @@ void Log_CritError(const char *filename, uint16_t line, const char *fmt, ...) {
 	display_SetForeground(COLOR_WHITE);
 	display_SetFont(Font_Medium);
 	display_String(0, 16, filename);
-	char buffer[41];
+	char buffer[54];
 	snprintf(buffer, sizeof(buffer), "Line: %u", line);
 	display_String(0, 24, buffer);
 

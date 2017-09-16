@@ -104,6 +104,7 @@
 /* Private variables ---------------------------------------------------------*/
 static BYTE CardType; /* b0:MMC, b1:SDv1, b2:SDv2, b3:Block addressing */
 extern SPI_HandleTypeDef hspi3;
+extern DMA_HandleTypeDef hdma_spi3_tx, hdma_spi3_rx;
 extern SemaphoreHandle_t xMutexSPI3;
 uint8_t mutexAcquired = 0;
 /* Disk status */
@@ -117,7 +118,8 @@ static
 void xmit_mmc(const BYTE* buff, /* Data to be sent */
 UINT bc /* Number of bytes to send */
 ) {
-	HAL_SPI_Transmit(&hspi3, (uint8_t*) buff, bc, 100);
+	HAL_SPI_Transmit_DMA(&hspi3, (uint8_t*) buff, bc);
+	while(HAL_DMA_GetState(&hdma_spi3_tx) != HAL_DMA_STATE_READY);
 }
 
 /*-----------------------------------------------------------------------*/
@@ -130,7 +132,8 @@ UINT bc /* Number of bytes to receive */
 ) {
 	uint8_t dummyTX[bc];
 	memset(dummyTX, 0xFF, bc);
-	HAL_SPI_TransmitReceive(&hspi3, dummyTX, buff, bc, 100);
+	HAL_SPI_TransmitReceive_DMA(&hspi3, dummyTX, buff, bc);
+	while(HAL_DMA_GetState(&hdma_spi3_rx) != HAL_DMA_STATE_READY);
 }
 
 /*-----------------------------------------------------------------------*/
@@ -165,7 +168,7 @@ void deselect(void) {
 	rcvr_mmc(&d, 1); /* Dummy clock (force DO hi-z for multiple slave SPI) */
 	/* Release SPI access */
 	if (mutexAcquired) {
-		xSemaphoreGive(xMutexSPI3);
+		osSemaphoreRelease(xMutexSPI3);
 		mutexAcquired = 0;
 	}
 }
@@ -178,7 +181,7 @@ static
 int selectCard(void) /* 1:OK, 0:Timeout */
 {
 	BYTE d;
-	if (xSemaphoreTake(xMutexSPI3, 10)) {
+	if (osSemaphoreWait(xMutexSPI3, 10) == osOK) {
 		mutexAcquired = 1;
 		CS_L();
 		rcvr_mmc(&d, 1); /* Dummy clock (force DO enabled) */
