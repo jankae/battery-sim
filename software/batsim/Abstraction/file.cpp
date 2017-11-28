@@ -36,9 +36,14 @@ FRESULT file_open(const char *filename, BYTE mode) {
 }
 
 FRESULT file_close(void) {
-	FRESULT res = f_close(&file);
-	fileOpened = 0;
-	xSemaphoreGive(fileAccess);
+	FRESULT res;
+	if (fileOpened) {
+		res = f_close(&file);
+		fileOpened = 0;
+		xSemaphoreGive(fileAccess);
+	} else {
+		return FR_NO_FILE;
+	}
 	return res;
 }
 

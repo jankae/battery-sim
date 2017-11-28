@@ -43,11 +43,12 @@ static Image_t icon = { .width = 32, .height = 32, .data = imagedata };
 
 static TaskHandle_t handle;
 
-int32_t vol, source, sink;
-static const fileEntry_t SupplyConfig[3] = {
+int32_t vol, source, sink, resistance;
+static const fileEntry_t SupplyConfig[4] = {
 		{ "voltage",&vol, PTR_INT32 },
 		{ "source", &source, PTR_INT32 },
 		{ "sink", &sink, PTR_INT32 },
+		{ "resistance", &resistance, PTR_INT32 },
 };
 
 static void Supply(void *unused);
@@ -68,7 +69,7 @@ static void Supply(void *unused) {
 
 	int32_t voltage, current, power;
 
-	int32_t setVoltage = 0, setMaxCurrent = 0, setMinCurrent = 0;
+	int32_t setVoltage = 0, setMaxCurrent = 0, setMinCurrent = 0, setResistance = Limits.minResistance;
 	int32_t null = 0;
 
 	uint8_t on = 0;
@@ -78,10 +79,13 @@ static void Supply(void *unused) {
 	Entry *eSetVoltage = new Entry(&setVoltage, &Limits.maxVoltage, &Limits.minVoltage, Font_Big, 7, &Unit_Voltage);
 	Entry *eMaxCurrent = new Entry(&setMaxCurrent, &Limits.maxCurrent, &null, Font_Big, 7, &Unit_Current);
 	Entry *eMinCurrent = new Entry(&setMinCurrent, &Limits.minCurrent, &null, Font_Big, 7, &Unit_Current);
+	Entry *eResistance = new Entry(&setResistance, &Limits.maxResistance,
+			&Limits.minResistance, Font_Big, 7, &Unit_Resistance);
 
 	Label *lVol = new Label("Voltage set:", Font_Big);
 	Label *lMax = new Label("Source I set:", Font_Big);
 	Label *lMin = new Label("Sink I set:", Font_Big);
+	Label *lRes = new Label("Resistance:", Font_Big);
 
 	Button *bLoad = new Button("Load", Font_Big, [](Widget &w) {
 		loadDialog = 1;
@@ -111,25 +115,27 @@ static void Supply(void *unused) {
 	Container *c= new Container(COORDS(280, 240));
 
 	c->attach(sVol, COORDS(100, 0));
-	c->attach(sCur, COORDS(100, 55));
-	c->attach(sPow, COORDS(100, 110));
+	c->attach(sCur, COORDS(100, 54));
+	c->attach(sPow, COORDS(100, 108));
 
 	c->attach(lV, COORDS(267, 3));
-	c->attach(lA, COORDS(267, 58));
-	c->attach(lW, COORDS(267, 113));
+	c->attach(lA, COORDS(267, 57));
+	c->attach(lW, COORDS(267, 111));
 
 	c->attach(lOutput, COORDS(5, 9));
 	c->attach(lOn, COORDS(5, 27));
 
-	c->attach(bLoad, COORDS(5, 120));
-	c->attach(bSave, COORDS(5, 150));
+	c->attach(bLoad, COORDS(5, 100));
+	c->attach(bSave, COORDS(5, 130));
 
-	c->attach(lVol, COORDS(0, 182));
-	c->attach(eSetVoltage, COORDS(190, 180));
-	c->attach(lMax, COORDS(0, 202));
-	c->attach(eMaxCurrent, COORDS(190, 200));
-	c->attach(lMin, COORDS(0, 222));
-	c->attach(eMinCurrent, COORDS(190, 220));
+	c->attach(lVol, COORDS(0, 162));
+	c->attach(eSetVoltage, COORDS(190, 160));
+	c->attach(lMax, COORDS(0, 182));
+	c->attach(eMaxCurrent, COORDS(190, 180));
+	c->attach(lMin, COORDS(0, 202));
+	c->attach(eMinCurrent, COORDS(190, 200));
+	c->attach(lRes, COORDS(0, 222));
+	c->attach(eResistance, COORDS(190, 220));
 
 	c->setPosition(COORDS(40, 0));
 
@@ -154,6 +160,7 @@ static void Supply(void *unused) {
 		pushpull_SetVoltage(setVoltage);
 		pushpull_SetSourceCurrent(setMaxCurrent);
 		pushpull_SetSinkCurrent(setMinCurrent);
+		pushpull_SetInternalResistance(setResistance);
 
 		if (on != pushpull_GetEnabled()) {
 			pushpull_SetEnabled(on);
@@ -179,19 +186,28 @@ static void Supply(void *unused) {
 				char filename[_MAX_LFN + 1];
 				if (Dialog::FileChooser("Select Preset:", filename, "0:/",
 						"SUP") == Dialog::Result::OK) {
-					if (file_open(filename, FA_OPEN_EXISTING | FA_READ) == FR_OK
-							&& file_ReadParameters(SupplyConfig, 3)
-									== FILE_OK) {
+					if (file_open(filename, FA_OPEN_EXISTING | FA_READ)
+							== FR_OK) {
+						if (file_ReadParameters(SupplyConfig, 4) != FILE_OK) {
+							Dialog::MessageBox("Warning", Font_Big,
+									"Incomplete file.\nSome values were\nnot updated",
+									Dialog::MsgBox::OK,
+									NULL, true);
+						}
 						/* got all new parameters */
 						on = 0;
 						setVoltage = vol;
 						setMaxCurrent = source;
 						setMinCurrent = sink;
 						file_close();
+						eSetVoltage->requestRedraw();
+						eMaxCurrent->requestRedraw();
+						eMinCurrent->requestRedraw();
+						eResistance->requestRedraw();
 					} else {
 						Dialog::MessageBox("Error", Font_Big,
-								"Failed to read file", Dialog::MsgBox::OK, NULL,
-								true);
+								"Failed to open file", Dialog::MsgBox::OK,
+								NULL, true);
 					}
 				}
 				loadDialog = 0;
@@ -211,7 +227,7 @@ static void Supply(void *unused) {
 								"Failed to write file", Dialog::MsgBox::OK,
 								NULL, true);
 					} else {
-						file_WriteParameters(SupplyConfig, 3);
+						file_WriteParameters(SupplyConfig, 4);
 						file_close();
 					}
 				}
