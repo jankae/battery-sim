@@ -33,6 +33,8 @@ void display_Char(uint16_t x, uint16_t y, uint8_t c);
 void display_String(uint16_t x, uint16_t y, const char *s);
 void display_Image(uint16_t x, uint16_t y, const Image_t *im);
 void display_ImageGrayscale(uint16_t x, uint16_t y, const Image_t *im);
+void display_SetActiveArea(uint16_t minx, uint16_t maxx, uint16_t miny, uint16_t maxy);
+void display_SetDefaultArea();
 
 #ifdef __cplusplus
 }

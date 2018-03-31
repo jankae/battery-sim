@@ -15,6 +15,15 @@ color_t foreground;
 color_t background;
 font_t font;
 
+using activeArea = struct {
+	uint16_t minX;
+	uint16_t maxX;
+	uint16_t minY;
+	uint16_t maxY;
+};
+
+static activeArea active;
+
 inline void setData(uint16_t data) {
 	GPIOD->ODR = ((data & 0x00ff) << 8) + ((data & 0xff00) >> 8);
 }
@@ -196,6 +205,7 @@ void display_Init(void){
 	background = COLOR_BG_DEFAULT;
 	foreground = COLOR_FG_DEFAULT;
 	font = Font_Big;
+	display_SetDefaultArea();
 }
 
 void display_SetFont(font_t f) {
@@ -219,47 +229,50 @@ color_t display_GetBackground(void) {
 }
 
 void display_Clear() {
-//	usb_DisplayCommand(0, 0);
-//	usb_DisplayCommand(1, 0);
-//	usb_DisplayCommand(2, DISPLAY_WIDTH - 1);
-//	usb_DisplayCommand(3, DISPLAY_HEIGHT - 1);
 	setXY(0, 0, DISPLAY_WIDTH - 1, DISPLAY_HEIGHT - 1);
 	uint32_t i = DISPLAY_WIDTH * DISPLAY_HEIGHT;
 	for (; i > 0; i--) {
 		writeData(background);
-//		usb_DisplayCommand(4, background);
 	}
 }
 
 void display_Pixel(uint16_t x, uint16_t y, uint16_t color) {
-//	usb_DisplayCommand(0, x);
-//	usb_DisplayCommand(1, y);
-//	usb_DisplayCommand(4, color);
-	setXY(x, y, x, y);
-	writeData(color);
+	if (x >= active.minX && x <= active.maxX && y >= active.minY
+			&& y <= active.maxY) {
+		setXY(x, y, x, y);
+		writeData(color);
+	}
 }
 
 void display_HorizontalLine(uint16_t x, uint16_t y, uint16_t length) {
-//	usb_DisplayCommand(0, x);
-//	usb_DisplayCommand(1, y);
-//	usb_DisplayCommand(2, x + length - 1);
-//	usb_DisplayCommand(3, y);
-	setXY(x, y, x + length - 1, y);
-	for (; length > 0; length--) {
-		writeData(foreground);
-//		usb_DisplayCommand(4, foreground);
+	if (y >= active.minY && y <= active.maxY && x <= active.maxX) {
+		if (x < active.minX) {
+			length -= active.minX - x;
+			x = active.minX;
+		}
+		if (x + length + 1 > active.maxX) {
+			length = active.maxX - x + 1;
+		}
+		setXY(x, y, x + length - 1, y);
+		for (; length > 0; length--) {
+			writeData(foreground);
+		}
 	}
 }
 
 void display_VerticalLine(uint16_t x, uint16_t y, uint16_t length) {
-//	usb_DisplayCommand(0, x);
-//	usb_DisplayCommand(1, y);
-//	usb_DisplayCommand(2, x);
-//	usb_DisplayCommand(3, y + length - 1);
-	setXY(x, y, x, y + length - 1);
-	for (; length > 0; length--) {
-		writeData(foreground);
-//		usb_DisplayCommand(4, foreground);
+	if (x >= active.minX && x <= active.maxX && y <= active.maxY) {
+		if (y < active.minY) {
+			length -= active.minY - y;
+			y = active.minY;
+		}
+		if (y + length + 1 > active.maxY) {
+			length = active.maxY - y + 1;
+		}
+		setXY(x, y, x, y + length - 1);
+		for (; length > 0; length--) {
+			writeData(foreground);
+		}
 	}
 }
 
@@ -292,15 +305,22 @@ void display_Rectangle(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) {
 }
 
 void display_RectangleFull(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1){
-//	usb_DisplayCommand(0, x0);
-//	usb_DisplayCommand(1, y0);
-//	usb_DisplayCommand(2, x1);
-//	usb_DisplayCommand(3, y1);
+	if (x0 < active.minX) {
+		x0 = active.minX;
+	}
+	if (x1 > active.maxX) {
+		x1 = active.maxX;
+	}
+	if (y0 < active.minY) {
+		y0 = active.minY;
+	}
+	if (y1 > active.maxY) {
+		y1 = active.maxY;
+	}
 	setXY(x0, y0, x1, y1);
 	uint32_t i = (x1 - x0 + 1) * (y1 - y0 + 1);
 	for (; i > 0; i--) {
 		writeData(foreground);
-//		usb_DisplayCommand(4, foreground);
 	}
 }
 
@@ -341,28 +361,39 @@ void display_CircleFull(uint16_t x0, uint16_t y0, uint16_t radius) {
 
 
 void display_Char(uint16_t x, uint16_t y, uint8_t c) {
-//	usb_DisplayCommand(0, x);
-//	usb_DisplayCommand(1, y);
-//	usb_DisplayCommand(2, x + font.width - 1);
-//	usb_DisplayCommand(3, y + font.height - 1);
-	setXY(x, y, x + font.width - 1, y + font.height - 1);
+	if(x > active.maxX || y > active.maxY || x + font.width < active.minX || y + font.height < active.minY) {
+		/* Character completely out of active area, skip */
+		return;
+	}
+	uint16_t skipLeft = 0, skipRight = 0, skipTop = 0, skipBottom = 0;
+	if (x < active.minX)
+		skipLeft = active.minX - x;
+	if (y < active.minY)
+		skipTop = active.minY - y;
+	if (x + font.width > active.maxX + 1)
+		skipRight = x + font.width - active.maxX + 1;
+	if (y + font.height > active.maxY + 1)
+		skipBottom = y + font.height - active.maxY + 1;
+
+	setXY(x + skipLeft, y + skipTop, x + font.width - 1 - skipRight, y + font.height - 1 - skipBottom);
 	/* number of bytes in font per row */
 	uint8_t yInc = (font.width - 1) / 8 + 1;
 	const uint8_t *charIndex = font.data + c * yInc * font.height;
 	uint8_t i, j;
 	uint8_t startMask = 0x80 >> (yInc * 8 - font.width);
-	for (i = 0; i < font.height; i++) {
+	for (i = skipTop; i < font.height - skipBottom; i++) {
 		uint8_t offset = (i + 1) * yInc - 1;
 		uint8_t bitMask = startMask;
-		for (j = 0; j < font.width; j++) {
-			uint16_t color;
-			if (charIndex[offset] & bitMask) {
-				color = foreground;
-			} else {
-				color = background;
+		for (j = 0; j < font.width - skipRight; j++) {
+			if (j >= skipLeft) {
+				uint16_t color;
+				if (charIndex[offset] & bitMask) {
+					color = foreground;
+				} else {
+					color = background;
+				}
+				writeData(color);
 			}
-			writeData(color);
-//			usb_DisplayCommand(4, color);
 			bitMask >>= 1;
 			if (!bitMask) {
 				bitMask = 0x80;
@@ -410,4 +441,19 @@ void display_ImageGrayscale(uint16_t x, uint16_t y, const Image_t *im){
 //		usb_DisplayCommand(4, COLOR(gray, gray, gray));
 		ptr++;
 	}
+}
+
+void display_SetActiveArea(uint16_t minx, uint16_t maxx, uint16_t miny,
+		uint16_t maxy) {
+	active.minX = minx;
+	active.maxX = maxx;
+	active.minY = miny;
+	active.maxY = maxy;
+}
+
+void display_SetDefaultArea() {
+	active.minX = 0;
+	active.maxX = DISPLAY_WIDTH - 1;
+	active.minY = 0;
+	active.maxY = DISPLAY_HEIGHT - 1;
 }
