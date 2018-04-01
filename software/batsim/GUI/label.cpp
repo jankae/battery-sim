@@ -5,6 +5,7 @@ Label::Label(uint8_t length, font_t font, Orientation o) {
 	this->font = font;
 	this->orient = o;
 	text = nullptr;
+	this->selectable = false;
 	/* calculate size */
 	size.y = font.height;
 	size.x = font.width * length;
@@ -16,6 +17,7 @@ Label::Label(const char *text, font_t font) {
 	this->font = font;
 	this->orient = orient;
 	this->text = nullptr;
+	this->selectable = false;
 	/* calculate size */
 	size.y = font.height;
 	size.x = font.width * strlen(text);

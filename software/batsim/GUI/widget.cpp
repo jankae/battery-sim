@@ -2,7 +2,7 @@
 
 #include "color.h"
 #include "display.h"
-//#include "desktop.h"
+#include "desktop.h"
 
 Widget *Widget::selectedWidget = nullptr;
 
@@ -60,11 +60,7 @@ void Widget::draw(Widget *w, coords_t pos) {
 	pos.y += w->position.y;
 	if (w->redraw) {
 		if (w->redrawClear) {
-			if (w->selectable) {
-				display_SetForeground(COLOR_BG_DEFAULT);
-			} else {
-				display_SetForeground(COLOR_UNSELECTABLE);
-			}
+			display_SetForeground(COLOR_BG_DEFAULT);
 			/* widget needs a full redraw, clear widget area */
 			display_RectangleFull(pos.x, pos.y, pos.x + w->size.x - 1,
 					pos.y + w->size.y - 1);
@@ -99,17 +95,11 @@ void Widget::input(Widget *w, GUIEvent_t* ev) {
 			/* find matching child */
 			Widget *child = w->firstChild;
 			for (; child; child = child->next) {
-				if (child->selectable) {
-					/* potential candidate, check position */
-					if (ev->pos.x >= child->position.x
-							&& ev->pos.x <= child->position.x + child->size.x
-							&& ev->pos.y >= child->position.y
-							&& ev->pos.y <= child->position.y + child->size.y) {
-						/* event is in child region */
-						input(child, ev);
-						/* send event only to first match */
-						return;
-					}
+				if (child->isInArea(ev->pos)) {
+					/* event is in child region */
+					input(child, ev);
+					/* send event only to first match */
+					return;
 				}
 			}
 			/* Couldn't find any matching children -> this widget will be selected */
@@ -124,30 +114,72 @@ void Widget::input(Widget *w, GUIEvent_t* ev) {
 	case EVENT_BUTTON_CLICKED:
 	case EVENT_ENCODER_MOVED:
 		w->input(ev);
+		if (ev->type != EVENT_NONE && w->parent != nullptr) {
+			input(w->parent, ev);
+		}
 		break;
 	default:
 		break;
 	}
 }
 
-void Widget::select() {
+void Widget::deselect() {
+	if (selectedWidget) {
+		selectedWidget->selected = false;
+		selectedWidget->requestRedraw();
+		selectedWidget = nullptr;
+		desktop_Draw();
+	}
+}
+
+Widget* Widget::IntSelectChild() {
+	for(auto child = firstChild;child;child=child->next) {
+		if(child->selectable)
+			/* Found selectable direct child, use this */
+			return child;
+	}
+	/* No selectable child avaible, recursively check for child of children */
+	for(auto child = firstChild;child;child=child->next) {
+		auto res = child->IntSelectChild();
+		if(res)
+			return res;
+	}
+	return nullptr;
+}
+
+void Widget::select(bool down) {
 	if(this != selectedWidget) {
 		/* de-select currently selected widget */
+		Widget *newSel = nullptr;
+		if(selectable) {
+			newSel = this;
+		} else {
+			/* This widget is not selectable, try to find next in line */
+			if(down) {
+				newSel = this->IntSelectChild();
+			} else {
+				/* Select next selectable parent */
+				for (Widget* p = this->parent; p; p = p->parent) {
+					if (p->selectable) {
+						newSel = p;
+						break;
+					}
+				}
+			}
+		}
+		bool refreshDesktop = (selectedWidget == nullptr) ^ (newSel == nullptr);
 		if (selectedWidget) {
 			selectedWidget->selected = false;
 			selectedWidget->requestRedraw();
 		}
-		selectedWidget = this;
-		selected = true;
-		requestRedraw();
-		// TODO
-//		if ((w && !selectedWidget) || (!w && selectedWidget)) {
-//			/* focus changed from/to desktop */
-//			selectedWidget = w;
-//			desktop_Draw();
-//		} else {
-//			selectedWidget = w;
-//		}
+		if (newSel) {
+			selectedWidget = newSel;
+			newSel->selected = true;
+			newSel->requestRedraw();
+		}
+		if(refreshDesktop) {
+			desktop_Draw();
+		}
 	}
 }
 

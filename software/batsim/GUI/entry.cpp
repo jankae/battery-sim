@@ -94,6 +94,7 @@ void Entry::input(GUIEvent_t *ev) {
     switch(ev->type) {
     case EVENT_BUTTON_CLICKED:
 		if (BUTTON_IS_INPUT(ev->button)) {
+			ev->type = EVENT_NONE;
 			requestRedraw();
 			if (!editing) {
 				/* Start editing */
@@ -143,9 +144,11 @@ void Entry::input(GUIEvent_t *ev) {
 				inputString[editPos] = ' ';
 			}
 			requestRedraw();
+			ev->type = EVENT_NONE;
 		} else if (ev->button == BUTTON_ESC && editing) {
 			editing = false;
 			requestRedraw();
+			ev->type = EVENT_NONE;
 		} else if ((ev->button & (BUTTON_UNIT1 | BUTTON_ENCODER | BUTTON_UNITm))
 				&& editing) {
 			editing = false;
@@ -160,6 +163,7 @@ void Entry::input(GUIEvent_t *ev) {
 				changeCallback(*this);
 			}
 			requestRedraw();
+			ev->type = EVENT_NONE;
 		}
 		break;
     case EVENT_ENCODER_MOVED:
@@ -171,6 +175,7 @@ void Entry::input(GUIEvent_t *ev) {
 				changeCallback(*this);
 			}
 			requestRedraw();
+			ev->type = EVENT_NONE;
     	}
     	break;
     default:

@@ -1,7 +1,10 @@
 #include "container.h"
 
+#include "buttons.h"
+
 Container::Container(coords_t size) {
 	this->size = size;
+	selectable = false;
 	editing = false;
 	focussed = false;
 	scrollHorizontal = false;
@@ -168,6 +171,109 @@ void Container::input(GUIEvent_t *ev) {
 		/* adjust position to canvas offset */
 		ev->pos.x += canvasOffset.x;
 		ev->pos.y += canvasOffset.y;
+		break;
+	case EVENT_BUTTON_CLICKED:
+		if(ev->button & BUTTON_ESC) {
+			if(parent && parent->selectable) {
+				parent->select(false);
+			} else {
+				deselect();
+			}
+		} else if (ev->button
+				& (BUTTON_LEFT | BUTTON_RIGHT | BUTTON_UP | BUTTON_DOWN)) {
+			if (!selectedWidget) {
+				firstChild->select();
+				ev->type = EVENT_NONE;
+				break;
+			} else if (selectedWidget->parent != this) {
+				/* do nothing */
+				break;
+			} else {
+				/* currently selected widget is child of this container. Iterate
+				 * over all children and find the nearest one in the right direction.
+				 * This child will be selected now */
+				uint32_t minDist = UINT32_MAX;
+				Widget *nearest = nullptr;
+				Widget *child = firstChild;
+				coords_t distFrom = selectedWidget->position;
+				switch (ev->button) {
+				case BUTTON_RIGHT:
+					distFrom.x += selectedWidget->size.x;
+				case BUTTON_LEFT:
+					distFrom.y += selectedWidget->size.y / 2;
+					break;
+				case BUTTON_DOWN:
+					distFrom.y += selectedWidget->size.y;
+				case BUTTON_UP:
+					distFrom.x += selectedWidget->size.x / 2;
+					break;
+				}
+				for (; child; child = child->next) {
+					if (child == selectedWidget || !child->visible
+							|| !child->selectable) {
+						/* This child is not eligible for selection */
+						continue;
+					}
+					for (uint8_t i = 0; i < 4; i++) {
+						/* iterate over all four corners of the widget */
+						coords_t distTo = child->position;
+						switch (i) {
+						case 3:
+							distTo.x += child->size.x;
+							/* no break */
+						case 2:
+							distTo.y += child->size.y;
+							break;
+						case 1:
+							distTo.x += child->size.x;
+							break;
+						}
+						/* Skip if corner lies in the wrong direction */
+						coords_t diff;
+						diff.x = distTo.x - distFrom.x;
+						diff.y = distTo.y - distFrom.y;
+						if (ev->button == BUTTON_LEFT
+								&& (diff.x > 0
+										|| abs(diff.x)
+												< abs(diff.y)
+														- selectedWidget->size.y
+																/ 2))
+							continue;
+						if (ev->button == BUTTON_RIGHT
+								&& (diff.x < 0
+										|| abs(diff.x)
+												< abs(diff.y)
+														- selectedWidget->size.y
+																/ 2))
+							continue;
+						if (ev->button == BUTTON_UP
+								&& (diff.y > 0
+										|| abs(diff.y)
+												< abs(diff.x)
+														- selectedWidget->size.x
+																/ 2))
+							continue;
+						if (ev->button == BUTTON_DOWN
+								&& (diff.y < 0
+										|| abs(diff.y)
+												< abs(diff.x)
+														- selectedWidget->size.x
+																/ 2))
+							continue;
+						/* calculate distance */
+						uint32_t dist = diff.x * diff.x + diff.y * diff.y;
+						if (dist < minDist) {
+							minDist = dist;
+							nearest = child;
+						}
+					}
+				}
+				if (nearest != nullptr) {
+					nearest->select();
+					ev->type = EVENT_NONE;
+				}
+			}
+		}
 		break;
 	default:
 		break;

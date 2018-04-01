@@ -245,7 +245,7 @@ void display_Pixel(uint16_t x, uint16_t y, uint16_t color) {
 }
 
 void display_HorizontalLine(uint16_t x, uint16_t y, uint16_t length) {
-	if (y >= active.minY && y <= active.maxY && x <= active.maxX) {
+	if (y >= active.minY && y <= active.maxY && x <= active.maxX && x + length > active.minX) {
 		if (x < active.minX) {
 			length -= active.minX - x;
 			x = active.minX;
@@ -261,7 +261,7 @@ void display_HorizontalLine(uint16_t x, uint16_t y, uint16_t length) {
 }
 
 void display_VerticalLine(uint16_t x, uint16_t y, uint16_t length) {
-	if (x >= active.minX && x <= active.maxX && y <= active.maxY) {
+	if (x >= active.minX && x <= active.maxX && y <= active.maxY && y + length > active.minY) {
 		if (y < active.minY) {
 			length -= active.minY - y;
 			y = active.minY;
@@ -305,6 +305,10 @@ void display_Rectangle(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) {
 }
 
 void display_RectangleFull(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1){
+	if(x0 > active.maxX || y0 > active.maxY || x1 < active.minX || y1 < active.minY) {
+		/* completely out of active area, skip */
+		return;
+	}
 	if (x0 < active.minX) {
 		x0 = active.minX;
 	}
@@ -371,9 +375,9 @@ void display_Char(uint16_t x, uint16_t y, uint8_t c) {
 	if (y < active.minY)
 		skipTop = active.minY - y;
 	if (x + font.width > active.maxX + 1)
-		skipRight = x + font.width - active.maxX + 1;
+		skipRight = x + font.width - active.maxX - 1;
 	if (y + font.height > active.maxY + 1)
-		skipBottom = y + font.height - active.maxY + 1;
+		skipBottom = y + font.height - active.maxY - 1;
 
 	setXY(x + skipLeft, y + skipTop, x + font.width - 1 - skipRight, y + font.height - 1 - skipBottom);
 	/* number of bytes in font per row */
@@ -407,7 +411,7 @@ void display_String(uint16_t x, uint16_t y, const char *s) {
 	while (*s) {
 		display_Char(x, y, *s++);
 		x += font.width;
-		if (x > DISPLAY_WIDTH - font.width)
+		if (x > active.maxX - font.width)
 			break;
 	}
 }

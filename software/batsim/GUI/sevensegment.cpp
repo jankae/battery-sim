@@ -38,6 +38,7 @@ SevenSegment::SevenSegment(int32_t *value, uint8_t sLength, uint8_t sWidth,
 	this->length = length;
 	this->dot = dot;
 	this->color = color;
+	this->selectable = false;
 
 	uint16_t height = sWidth + 2 * sLength;
 	uint16_t digitWidth = sWidth + sLength;

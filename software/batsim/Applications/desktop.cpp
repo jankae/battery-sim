@@ -59,6 +59,7 @@ void desktop_AppStarted(void (*start)(void), Widget *top) {
 	/* bring app into focus */
 	focussed = num;
 	topWidget = AppList[num].topWidget;
+	topWidget->select();
 	topWidget->requestRedrawFull();
 	desktop_Draw();
 }
@@ -201,7 +202,7 @@ static void desktop_SwitchToApp(uint8_t app) {
 			selected = app;
 			desktop_Draw();
 		}
-
+		AppList[selected].topWidget->select();
 		break;
 	case APP_STARTSEND:
 	case APP_KILLSEND:
@@ -262,6 +263,7 @@ void desktop_Input(GUIEvent_t *ev) {
 				desktop_Draw();
 			}
 			break;
+		case BUTTON_RIGHT:
 		case BUTTON_UNIT1:
 		case BUTTON_ENCODER:
 			/* start App */

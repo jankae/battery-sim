@@ -22,15 +22,8 @@ public:
 		return selectedWidget;
 	}
 
-	static void deselect() {
-		if (selectedWidget) {
-			selectedWidget->selected = false;
-			selectedWidget->requestRedraw();
-		}
-		selectedWidget = nullptr;
-	}
-
-	void select();
+	static void deselect();
+	void select(bool down = true);
 
 	void requestRedrawChildren();
 	void requestRedraw();
@@ -64,6 +57,8 @@ public:
 	}
 
 protected:
+	Widget* IntSelectChild();
+
 	virtual void draw(coords_t offset) { return; }
 	virtual void input(GUIEvent_t *ev) { return; }
 	virtual void drawChildren(coords_t offset) { return; }
