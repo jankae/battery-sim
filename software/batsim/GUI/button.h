@@ -18,6 +18,8 @@ private:
 	void draw(coords_t offset) override;
 	void input(GUIEvent_t *ev) override;
 
+	Widget::Type getType() override { return Widget::Type::Button; };
+
 	static constexpr color_t Foreground = COLOR_BLACK;
 	static constexpr color_t Background = COLOR_BG_DEFAULT;
 

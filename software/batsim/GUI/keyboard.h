@@ -11,6 +11,9 @@ public:
 private:
 	void draw(coords_t offset) override;
 	void input(GUIEvent_t *ev) override;
+
+	Widget::Type getType() override { return Widget::Type::Keyboard; };
+
 	void sendChar(void);
 
 	static constexpr color_t Border = COLOR_FG_DEFAULT;

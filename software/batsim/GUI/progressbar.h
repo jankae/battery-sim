@@ -13,6 +13,8 @@ public:
 private:
 	void draw(coords_t offset) override;
 
+	Widget::Type getType() override { return Widget::Type::Progressbar; };
+
 	static constexpr color_t Border = COLOR_BLACK;
 	static constexpr color_t Bar = COLOR_GREEN;
 	static constexpr color_t Background = COLOR_BG_DEFAULT;

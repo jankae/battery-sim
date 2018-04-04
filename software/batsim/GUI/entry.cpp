@@ -3,7 +3,7 @@
 #include "buttons.h"
 
 Entry::Entry(int32_t *value, const int32_t *max, const int32_t *min,
-		font_t font, uint8_t length, const unit_t *unit) {
+		font_t font, uint8_t length, const unit_t *unit, const color_t c) {
 	/* set member variables */
 	this->value = value;
 	this->max = max;
@@ -18,6 +18,7 @@ Entry::Entry(int32_t *value, const int32_t *max, const int32_t *min,
 	size.y = font.height + 3;
 	size.x = font.width * length + 3;
 	inputString = new char[length + 1];
+	color = c;
 }
 
 Entry::~Entry() {
@@ -35,8 +36,8 @@ int32_t Entry::constrainValue(int32_t val) {
     return val;
 }
 
-uint32_t Entry::InputStringValue(uint32_t multiplier) {
-    uint32_t value = 0;
+int32_t Entry::InputStringValue(uint32_t multiplier) {
+    int32_t value = 0;
     uint8_t i;
     uint32_t div = 0;
     for (i = 0; i < length; i++) {
@@ -51,8 +52,12 @@ uint32_t Entry::InputStringValue(uint32_t multiplier) {
         }
     }
     value *= multiplier;
-    if (div)
+    if (div) {
         value /= div;
+    }
+	if (inputString[0] == '-') {
+		value = -value;
+	}
     return value;
 }
 
@@ -74,7 +79,7 @@ void Entry::draw(coords_t offset) {
 		/* construct value string */
 		common_StringFromValue(inputString, length, *value, unit);
 		if (selectable) {
-			display_SetForeground(Foreground);
+			display_SetForeground(color);
 		} else {
 			display_SetForeground(COLOR_GRAY);
 		}
@@ -153,9 +158,17 @@ void Entry::input(GUIEvent_t *ev) {
 				&& editing) {
 			editing = false;
 			/* TODO adjust multiplier to unit */
-			uint32_t multiplier = 1000000;
-			if (ev->button == BUTTON_UNITm) {
+			uint32_t multiplier;
+			if (unit == &Unit_Time) {
 				multiplier = 1000;
+				if (ev->button == BUTTON_UNITm) {
+					multiplier = 1;
+				}
+			} else {
+				multiplier = 1000000;
+				if (ev->button == BUTTON_UNITm) {
+					multiplier = 1000;
+				}
 			}
 			int32_t newval = InputStringValue(multiplier);
 			*value = constrainValue(newval);

@@ -25,3 +25,8 @@ void operator delete[](void* ptr)
     vPortFree(ptr);
 }
 
+extern "C" void __cxa_pure_virtual() {
+	CRIT_ERROR("Pure virtual");
+	while (1);
+}
+

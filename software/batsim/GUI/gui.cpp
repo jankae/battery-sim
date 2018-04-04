@@ -26,7 +26,7 @@ static void guiThread(void) {
 //	topWidget = test;
 
 	while (1) {
-		if (xQueueReceive(GUIeventQueue, &event, 100)) {
+		if (xQueueReceive(GUIeventQueue, &event, 20)) {
 			if (topWidget) {
 				switch (event.type) {
 				case EVENT_TOUCH_PRESSED:

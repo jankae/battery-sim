@@ -44,11 +44,11 @@ void Container::attach(Widget *w, coords_t offset) {
 	w->parent = this;
 
 	/* extend canvas size if necessary */
-	if (canvasSize.x < position.x + w->size.x) {
-		canvasSize.x = position.x + w->size.x;
+	if (canvasSize.x < w->position.x + w->size.x) {
+		canvasSize.x = w->position.x + w->size.x;
 	}
-	if (canvasSize.y < position.y + w->size.y) {
-		canvasSize.y = position.y + w->size.y;
+	if (canvasSize.y < w->position.y + w->size.y) {
+		canvasSize.y = w->position.y + w->size.y;
 	}
 	/* add scroll bars if necessary */
 	if (canvasSize.x > size.x) {

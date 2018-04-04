@@ -144,10 +144,10 @@ void common_StringFromValue(char *to, uint8_t len, int32_t val,
 	}
 	if (!beforeDot)
 		beforeDot = 1;
-	uint8_t spaceAfter = digits - 1 - beforeDot;
+	int8_t spaceAfter = digits - 1 - beforeDot;
 	uint32_t factor = 1;
 	int8_t afterDot = 0;
-	while (spaceAfter && factor < selectedUnit->factor) {
+	while (spaceAfter > 0 && factor < selectedUnit->factor) {
 		factor *= 10;
 		spaceAfter--;
 		afterDot++;

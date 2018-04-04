@@ -250,8 +250,8 @@ void display_HorizontalLine(uint16_t x, uint16_t y, uint16_t length) {
 			length -= active.minX - x;
 			x = active.minX;
 		}
-		if (x + length + 1 > active.maxX) {
-			length = active.maxX - x + 1;
+		if (x + length - 1 > active.maxX) {
+			length = active.maxX - x - 1;
 		}
 		setXY(x, y, x + length - 1, y);
 		for (; length > 0; length--) {
@@ -266,8 +266,8 @@ void display_VerticalLine(uint16_t x, uint16_t y, uint16_t length) {
 			length -= active.minY - y;
 			y = active.minY;
 		}
-		if (y + length + 1 > active.maxY) {
-			length = active.maxY - y + 1;
+		if (y + length - 1 > active.maxY) {
+			length = active.maxY - y - 1;
 		}
 		setXY(x, y, x, y + length - 1);
 		for (; length > 0; length--) {

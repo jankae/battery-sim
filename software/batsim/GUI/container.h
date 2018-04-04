@@ -15,6 +15,8 @@ private:
 	void input(GUIEvent_t *ev) override;
 	void drawChildren(coords_t offset) override;
 
+	Widget::Type getType() override { return Widget::Type::Container; };
+
 	static constexpr uint8_t ScrollbarSize = 8;
 	static constexpr color_t ScrollbarColor = COLOR_ORANGE;
 	static constexpr color_t LineColor = COLOR_FG_DEFAULT;

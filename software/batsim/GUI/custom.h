@@ -25,6 +25,8 @@ private:
 		}
 	}
 
+	Widget::Type getType() override { return Widget::Type::Custom; };
+
 	void (*drawCB)(Widget&, coords_t);
 	void (*inputCB)(Widget&, GUIEvent_t*);
 };

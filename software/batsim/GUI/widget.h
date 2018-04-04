@@ -12,6 +12,24 @@ class Widget {
 	friend class Container;
 	friend class Window;
 public:
+	enum class Type : uint8_t {
+		Button,
+		Checkbox,
+		Container,
+		Custom,
+		Entry,
+		Graph,
+		ItemChooser,
+		Keyboard,
+		Label,
+		Progressbar,
+		Sevensegment,
+		Textfield,
+		Widget,
+		Window,
+		Scopescreen,
+	};
+
 	Widget();
 	virtual ~Widget();
 
@@ -62,6 +80,7 @@ protected:
 	virtual void draw(coords_t offset) { return; }
 	virtual void input(GUIEvent_t *ev) { return; }
 	virtual void drawChildren(coords_t offset) { return; }
+	virtual Type getType() = 0;
 
 	static Widget *selectedWidget;
 

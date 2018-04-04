@@ -16,6 +16,8 @@ private:
 
 	void draw(coords_t offset) override;
 
+	Widget::Type getType() override { return Widget::Type::Sevensegment; };
+
 	static constexpr color_t Background = COLOR_BG_DEFAULT;
 
     int32_t *value;

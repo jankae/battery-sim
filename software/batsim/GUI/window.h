@@ -27,6 +27,8 @@ private:
 //	void input(GUIEvent_t *ev) override;
 	void drawChildren(coords_t offset) override;
 
+	Widget::Type getType() override { return Widget::Type::Window; };
+
 	static constexpr color_t Border = COLOR_BLACK;
 	static constexpr color_t TitleBackground = COLOR(65, 64, 59);
 	static constexpr color_t TitleForeground = COLOR(215, 214, 207);

@@ -53,6 +53,7 @@ Applications/Charger \
 Applications/Info \
 Applications/Settings \
 Applications/Supply \
+Applications/Scope \
 GUI
 
 # Build path
@@ -139,6 +140,7 @@ C_INCLUDES =  \
 -IApplications/Info \
 -IApplications/Settings \
 -IApplications/Supply \
+-IApplications/Scope \
 -IGUI  \
 -IMiddlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc
 

@@ -13,6 +13,8 @@ public:
 private:
 	void draw(coords_t offset) override;
 
+	Widget::Type getType() override { return Widget::Type::Textfield; };
+
 	static constexpr color_t Foreground = COLOR_FG_DEFAULT;
 	static constexpr color_t Background = COLOR_BG_DEFAULT;
 

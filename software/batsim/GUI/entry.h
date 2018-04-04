@@ -9,20 +9,22 @@
 class Entry : public Widget {
 public:
 	Entry(int32_t *value, const int32_t *max, const int32_t *min, font_t font,
-			uint8_t length, const unit_t *unit);
+			uint8_t length, const unit_t *unit, const color_t c = COLOR_FG_DEFAULT);
 	~Entry();
 
 	void setCallback(void (*cb)(Widget&)) {
 		changeCallback = cb;
 	}
+
 private:
 	int32_t constrainValue(int32_t val);
-	uint32_t InputStringValue(uint32_t multiplier);
+	int32_t InputStringValue(uint32_t multiplier);
 
 	void draw(coords_t offset) override;
 	void input(GUIEvent_t *ev) override;
 
-	static constexpr color_t Foreground = COLOR_FG_DEFAULT;
+	Widget::Type getType() override { return Widget::Type::Entry; };
+
 	static constexpr color_t Background = COLOR_BG_DEFAULT;
 	static constexpr color_t Border = COLOR_FG_DEFAULT;
 
@@ -32,6 +34,7 @@ private:
     font_t font;
     const unit_t *unit;
     uint8_t length;
+    color_t color;
 	bool editing;
 	bool dotSet;
 	void (*changeCallback)(Widget&);

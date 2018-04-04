@@ -2,11 +2,10 @@
 
 #include "buttons.h"
 
-Checkbox::Checkbox(bool *value, void (*cb)(Widget&)) {
+Checkbox::Checkbox(bool *value, void (*cb)(Widget&), coords_t size) {
     this->value = value;
     callback = cb;
-    size.x = 29;
-    size.y = 29;
+    this->size = size;
 }
 
 void Checkbox::draw(coords_t offset) {
@@ -18,7 +17,7 @@ void Checkbox::draw(coords_t offset) {
 	if (selected) {
 		display_SetForeground(COLOR_SELECTED);
 	} else {
-		display_SetForeground (Ticked);
+		display_SetForeground (Border);
 	}
 	display_Rectangle(upperLeft.x, upperLeft.y, lowerRight.x, lowerRight.y);
 	if (*value) {
