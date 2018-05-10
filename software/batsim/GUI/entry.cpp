@@ -37,7 +37,7 @@ int32_t Entry::constrainValue(int32_t val) {
 }
 
 int32_t Entry::InputStringValue(uint32_t multiplier) {
-    int32_t value = 0;
+    int64_t value = 0;
     uint8_t i;
     uint32_t div = 0;
     for (i = 0; i < length; i++) {

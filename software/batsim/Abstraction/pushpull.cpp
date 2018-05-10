@@ -119,19 +119,8 @@ static uint16_t sampleRaw(const char * const title, uint16_t samples, uint16_t *
 }
 
 static int32_t getUserInputValue(const char * const title, const unit_t * const unit) {
-	uint8_t ok = 0;
 	int32_t val;
-	do {
-		char input[12];
-		Dialog::StringInput(title, input, sizeof(input));
-		if(common_ValueFromString(&val, input, unit)) {
-			/* got a valid user input */
-			ok = 1;
-		} else {
-			Dialog::MessageBox("ERROR", Font_Big, "Invalid input", Dialog::MsgBox::OK, NULL,
-					true);
-		}
-	} while(!ok);
+	Dialog::UnitInput(title, &val, 8, unit);
 
 	return val;
 }
@@ -190,20 +179,36 @@ uint8_t pushpull_Calibrate(void) {
 
 	/* Set a low voltage and limit the current allowed to flow */
 	pushpull_SetVoltage(2000000);
-	/* limit the current to approx. 250mA */
-	uint16_t dacSource250 = CtrlWords[SPI_DAC_SOURCE] = DAC_MAX /12;
+	/* limit the current to approx. 200mA */
+	CtrlWords[SPI_DAC_SOURCE] = DAC_MAX /15;
 	vTaskDelay(10);
 	pushpull_SetEnabled(1);
 	vTaskDelay(100);
-	while (pushpull_GetBatteryVoltage() > 1000000) {
+	while (pushpull_GetBatteryVoltage() > 1500000) {
 		Dialog::MessageBox("ERROR", Font_Big,
 				"Output doesn't appear\nto be shorted.\n", Dialog::MsgBox::OK, NULL, true);
 	}
 
-	uint16_t lowCurrent250 = sampleRaw("Low current ADC", 2000, &output.rawCurrentLow);
-	uint16_t highCurrent250 = sampleRaw("High current ADC", 2000, &output.rawCurrentHigh);
-	uint32_t actualCurrent250 = getUserInputValue("Current across output?", &Unit_Current);
+	uint16_t lowCurrent200 = sampleRaw("Low current ADC", 2000, &output.rawCurrentLow);
+	uint32_t actualCurrent200 = getUserInputValue("Current across output?", &Unit_Current);
 	pushpull_SetEnabled(0);
+
+	/* Set a high voltage and limit the current allowed to flow */
+	pushpull_SetVoltage(2000000);
+	/* limit the current to approx. 1500mA */
+	uint16_t dacSource1500 = CtrlWords[SPI_DAC_SOURCE] = DAC_MAX / 2;
+	vTaskDelay(10);
+	pushpull_SetEnabled(1);
+	vTaskDelay(100);
+	while (pushpull_GetBatteryVoltage() > 1500000) {
+		Dialog::MessageBox("ERROR", Font_Big,
+				"Output doesn't appear\nto be shorted.\n", Dialog::MsgBox::OK, NULL, true);
+	}
+
+	uint16_t highCurrent1500 = sampleRaw("High current ADC", 2000, &output.rawCurrentHigh);
+	uint32_t actualCurrent1500 = getUserInputValue("Current across output?", &Unit_Current);
+	pushpull_SetEnabled(0);
+
 
 	if (Dialog::MessageBox("Step 3", Font_Big, "Keep output shorted",
 			Dialog::MsgBox::ABORT_OK, NULL, true) != Dialog::Result::OK) {
@@ -214,11 +219,12 @@ uint8_t pushpull_Calibrate(void) {
 	/* limit current to approx. 10mA */
 	uint16_t dacSource10 = CtrlWords[SPI_DAC_SOURCE] = DAC_MAX / 300;
 	vTaskDelay(10);
+	pushpull_SetEnabled(1);
 	vTaskDelay(100);
 	uint16_t raw10mAlow = sampleRaw("Source I DAC", 2000, &output.rawCurrentLow);
-	pushpull_SetEnabled(1);
+	pushpull_SetEnabled(0);
 
-	if (Dialog::MessageBox("Step 4", Font_Big, "Connect a >=5V\n>=300mA voltage\nsupply",
+	if (Dialog::MessageBox("Step 4", Font_Big, "Connect a >=5V\n>=1500mA voltage\nsupply",
 			Dialog::MsgBox::ABORT_OK, NULL, true) != Dialog::Result::OK) {
 		/* abort calibration */
 		pushpull_ReleaseControl();
@@ -227,8 +233,8 @@ uint8_t pushpull_Calibrate(void) {
 	/* Set a low voltage and limit the current allowed to flow */
 	pushpull_SetVoltage(2000000);
 	pushpull_SetSourceCurrent(5000);
-	/* limit the current to approx. 250mA */
-	uint16_t dacSink250 = CtrlWords[SPI_DAC_SINK] = DAC_MAX /12;
+	/* limit the current to approx. 1500mA */
+	uint16_t dacSink1500 = CtrlWords[SPI_DAC_SINK] = DAC_MAX / 2;
 	vTaskDelay(10);
 	pushpull_SetEnabled(1);
 	vTaskDelay(100);
@@ -236,7 +242,7 @@ uint8_t pushpull_Calibrate(void) {
 		Dialog::MessageBox("ERROR", Font_Big,
 				"No sufficient\nsupply connected.\n", Dialog::MsgBox::OK, NULL, true);
 	}
-	uint16_t rawNeg250Low = sampleRaw("Sink I DAC 1/2", 2000, &output.rawCurrentLow);
+	uint16_t rawNeg1500Low = sampleRaw("Sink I DAC 1/2", 2000, &output.rawCurrentHigh);
 	/* limit the current to approx. 10mA */
 	uint16_t dacSink10 = CtrlWords[SPI_DAC_SINK] = DAC_MAX / 300;
 	vTaskDelay(100);
@@ -252,19 +258,26 @@ uint8_t pushpull_Calibrate(void) {
 	cal_UpdateEntry(CAL_ADC_PUSHPULL_OUT, lowPushpull, lowActual, highPushpull, highActual);
 	cal_UpdateEntry(CAL_ADC_BATTERY, lowBattery, lowActual, highBattery, highActual);
 
-	cal_UpdateEntry(CAL_ADC_CURRENT_LOW, zeroLow, 0, lowCurrent250, actualCurrent250);
-	cal_UpdateEntry(CAL_ADC_CURRENT_HIGH, zeroHigh, 0, highCurrent250, actualCurrent250);
+	cal_UpdateEntry(CAL_ADC_CURRENT_LOW, zeroLow, 0, lowCurrent200, actualCurrent200);
+	cal_UpdateEntry(CAL_ADC_CURRENT_HIGH, zeroHigh, 0, highCurrent1500, actualCurrent1500);
 
 	/* calculate actual low current during source DAC calibration */
 	int32_t actual10mA = cal_GetCalibratedValue(CAL_ADC_CURRENT_LOW, raw10mAlow);
-	cal_UpdateEntry(CAL_MAX_CURRENT_DAC, actual10mA, dacSource10, actualCurrent250, dacSource250);
+	cal_UpdateEntry(CAL_MAX_CURRENT_DAC, actual10mA, dacSource10, actualCurrent1500, dacSource1500);
 
 	/* calculate actual currents during sink DAC calibration */
 	int32_t actualSink10mA = cal_GetCalibratedValue(CAL_ADC_CURRENT_LOW, rawNeg10Low);
-	int32_t actualSink250mA = cal_GetCalibratedValue(CAL_ADC_CURRENT_LOW, rawNeg250Low);
-	cal_UpdateEntry(CAL_MIN_CURRENT_DAC, actualSink10mA, dacSink10, actualSink250mA, dacSink250);
+	int32_t actualSink1500mA = cal_GetCalibratedValue(CAL_ADC_CURRENT_HIGH, rawNeg1500Low);
+	cal_UpdateEntry(CAL_MIN_CURRENT_DAC, -actualSink10mA, dacSink10, -actualSink1500mA, dacSink1500);
 
 	/* TODO: Check calibration against default entries */
+	if(cal_Valid()) {
+		Dialog::MessageBox("SUCCESS", Font_Big, "Calibration was\nsuccessful",
+				Dialog::MsgBox::OK, NULL, true);
+	} else {
+		Dialog::MessageBox("WARNING", Font_Big, "Dubious calibration\nresults. Use caution\nand/or repeat",
+				Dialog::MsgBox::OK, NULL, true);
+	}
 	return 1;
 }
 

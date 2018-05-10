@@ -28,6 +28,8 @@ Result FileChooser(const char *title, char *result,
 
 Result StringInput(const char *title, char *result, uint8_t maxLength);
 
+Result UnitInput(const char *title, int32_t *result, uint8_t maxLength, const unit_t *unit);
+
 }
 
 #endif /* DIALOG_H_ */

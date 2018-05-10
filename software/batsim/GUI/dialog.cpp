@@ -29,6 +29,9 @@ struct {
 			uint8_t pos;
 			uint8_t maxLength;
 		} StringInput;
+		struct {
+			SemaphoreHandle_t dialogDone;
+		} UnitInput;
 	};
 } dialog;
 
@@ -357,6 +360,57 @@ Result StringInput(const char *title, char *result, uint8_t maxLength) {
 	} else {
 		return Result::ABORT;
 	}
+}
+
+Result UnitInput(const char *title, int32_t *result, uint8_t maxLength, const unit_t *unit) {
+	if(xTaskGetCurrentTaskHandle() == GUIHandle) {
+		/* This dialog must never be called by the GUI thread (Deadlock) */
+		CRIT_ERROR("Dialog started from GUI thread.");
+	}
+
+	/* check pointers */
+	if (!title || !result) {
+		return Result::ERR;
+	}
+
+	memset(&dialog, 0, sizeof(dialog));
+
+	dialog.UnitInput.dialogDone = xSemaphoreCreateBinary();
+	if(!dialog.UnitInput.dialogDone) {
+		/* failed to create semaphore */
+		return Result::ERR;
+	}
+
+	*result = 0;
+
+	/* Create window */
+	Window *w = new Window(title, Font_Big, COORDS(313, 233));
+	Container *c = new Container(w->getAvailableArea());
+
+	Entry *e = new Entry(result, NULL, NULL, Font_Big, maxLength, unit);
+
+	/* Create buttons */
+	Button *bOK = new Button("OK", Font_Big, [](Widget &w) {
+		xSemaphoreGive(dialog.UnitInput.dialogDone);
+	}, 80);
+
+
+	c->attach(e, COORDS((c->getSize().x - e->getSize().x) / 2, 5));
+	c->attach(bOK,
+			COORDS((c->getSize().x - bOK->getSize().x) / 2,
+					c->getSize().y - bOK->getSize().y - 5));
+
+	e->select();
+	w->setMainWidget(c);
+
+	/* Wait for button to be clicked */
+	xSemaphoreTake(dialog.UnitInput.dialogDone, portMAX_DELAY);
+	vPortFree(dialog.UnitInput.dialogDone);
+
+	/* delete window */
+	delete w;
+
+	return Result::OK;
 }
 
 }
